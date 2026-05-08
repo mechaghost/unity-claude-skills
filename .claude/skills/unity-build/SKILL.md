@@ -45,7 +45,13 @@ Each profile holds its own scene list, scripting defines, IL2CPP optimization le
 
 Default: IL2CPP for any shipping platform; Mono only for the Editor and quick dev builds.
 
-**Code Optimization** (Unity 6): `Release` / `Debug` / `Master`. `Master` strips logging and enables LTO — use for shipping. `Release` is the right pick for store builds you intend to patch, since it preserves enough metadata to symbolicate crashes.
+**Code Optimization** (Unity 6): `Debug` / `Release` / `Master`.
+
+- **Debug** — unoptimized, debugger-attachable, fastest iteration. Default for development.
+- **Release** — IL2CPP optimized for runtime speed; the new shipping default. Preserves enough metadata to symbolicate crashes — pick this for store builds you intend to patch post-launch.
+- **Master** — Release + LTO + dead-code elimination. Smallest binary, slowest build, hardest to symbolicate. Reserve for final store builds when post-launch patching is not on the table.
+
+Code Optimization mode does NOT govern log stripping — that is controlled by managed-stripping settings (Player Settings > Other > Managed Stripping Level) and `[Conditional]` define guards in code. Picking Master alone will not strip `Debug.Log` calls.
 
 ## Code stripping and link.xml
 
@@ -167,11 +173,18 @@ File.WriteAllText("Builds/last-report.json", json);
 
 ## Mobile platform gotchas
 
-See `references/mobile.md` for: target frame rate defaults, `Screen.safeArea`, `OnApplicationPause` save semantics, orientation lock, touch/mouse parity, thermal throttling, and Android/iOS permission prompts.
+See `references/mobile.md` for the full list. Two essentials worth surfacing here:
+
+- **Frame rate** — mobile defaults to 30 fps. Set `Application.targetFrameRate = 60` (or `30`) at boot AND `QualitySettings.vSyncCount = 0` so the target actually applies. 60 fps roughly doubles thermal load; most F2P titles target 30 with adaptive 60 on flagship devices.
+- **App size budgets** — Google Play base APK install footprint cap is 150 MB (anything larger needs AAB + Play Asset Delivery or Addressables remote groups). AAB total ceiling is 4 GB. Apple App Store IPA cap is 4 GB binary, but the cellular OTA download limit is 200 MB — over that, install conversion craters. Cross-link `unity-addressables`.
+
+`references/mobile.md` covers the rest: `OnDemandRendering`, Adaptive Performance, texture/RAM tiers, audio voice counts, shader warmup, thermal throttling, `OnApplicationPause` save semantics, `Screen.safeArea`, touch input, orientation, particle ceilings, render-scale and shadow budgets.
 
 ## WebGL platform gotchas
 
 See `references/webgl.md` for: no-threads constraint, IndexedDB persistence + `FS.syncfs`, audio context unlock, build-size budget, memory cap, browser quirks, and WebGL-specific API blocklist.
+
+**Unity 6 Web vs WebGL** — Unity 6 introduced a separate **Web** build target alongside WebGL. As of Unity 6 LTS, Web is still in preview; **WebGL remains the production-ready target**. Prefer WebGL today; revisit Web when GA support lands. WebGPU support in URP is similarly experimental — ship WebGL2 for production browser builds.
 
 ## Desktop gotchas
 

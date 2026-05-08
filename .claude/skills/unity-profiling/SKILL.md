@@ -106,12 +106,44 @@ Launch the Profiler before the game and let it survive Editor restarts. `Window 
 
 ## Common patterns
 
-- Find GC allocations: Hierarchy view, sort by GC Alloc descending. Common offenders: string concat in `Update`, LINQ on hot paths, `foreach` on `List<T>` in old Mono (fixed in modern .NET), boxing struct -> object, `FindObjectOfType<T>` per frame, `GetComponent<T>` per frame, lambda closures capturing locals.
+- Find GC allocations: Hierarchy view, sort by GC Alloc descending. Common offenders: string concat in `Update`, LINQ on hot paths, `foreach` on `List<T>` in old Mono (fixed in modern .NET), boxing struct -> object, `Object.FindAnyObjectByType<T>()` per frame, `GetComponent<T>` per frame, lambda closures capturing locals.
 - Render bottleneck: Frame Debugger; count SetPass calls (target <30 mobile, <100 desktop). High batches = lots of materials or broken SRP Batcher compatibility (cross-link unity-shaders).
 - UI cost: Profiler UI module shows `Canvas.SendWillRenderCanvases` and `Canvas.BuildBatch` time. Move dynamic widgets to a nested Canvas so the static parent does not rebuild (cross-link unity-ugui).
 - Physics cost: Profiler Physics module; reduce solver iterations, increase `Time.fixedDeltaTime` if simulation can tolerate it, simplify colliders, prefer primitives over mesh colliders (cross-link unity-physics).
 - Audio cost: usually trivial unless using effects. Profiler Audio module. Cross-link unity-audio.
 - Scripting cost: ProfilerMarker your own systems, then Hierarchy view to rank them. Optimize the top 1-2; ignore the rest until they matter.
+
+## GC budget
+
+Concrete targets, not "near zero". Measure in the Profiler Hierarchy view's `GC Alloc` column on a Development Build.
+
+| Budget | GC per frame, per system | Action |
+|---|---|---|
+| Shipping target | 0 B (steady-state gameplay loop) | this is the bar |
+| Yellow flag | <1 KB / frame | acceptable on desktop, audit on mobile |
+| Red flag | >4 KB / frame | must fix before ship — guarantees Gen0 churn and hitches |
+
+Common offenders and rough costs:
+
+- `string` concatenation / `$"interp {x}"`: varies by length, always allocs. Use `StringBuilder` (cached) or pre-format static strings.
+- `foreach` on `List<T>`: zero in modern Unity (.NET 4.x / Mono / IL2CPP). Older Mono allocated an enumerator — most Unity 6 code is fine.
+- Boxing struct → object: ~24 B per box. Common with `object`-typed event payloads, `Dictionary<TKey, object>`, `string.Format` of value types.
+- `new WaitForSeconds(t)`: 16 B every call. Cache as `static readonly`.
+- Lambda capturing locals (`() => use(local)`): ~40 B closure object + delegate. `WaitUntil(() => cond)` allocates this every coroutine entry.
+- `Mathf.Approximately(a, b)`: fine, no alloc.
+- `LayerMask.NameToLayer("Enemy")` per call: probes a managed string→int dictionary every time. Cache the int once.
+
+Canonical caching patterns:
+
+```csharp
+static readonly int s_speedHash      = Animator.StringToHash("Speed");
+static readonly int s_baseColorID    = Shader.PropertyToID("_BaseColor");
+static readonly WaitForSeconds s_w1  = new WaitForSeconds(1f);
+static readonly int s_enemyMask      = LayerMask.GetMask("Enemy");
+static readonly StringBuilder s_sb   = new StringBuilder(256);
+```
+
+`Animator.StringToHash` and `Shader.PropertyToID` are deterministic and cheap once cached — calling them in a `[SerializeField]` field initializer or a `static` field is the canonical shape. `LayerMask.GetMask(...)` returns the bitmask; cache the int and reuse for `Physics.Raycast` mask params.
 
 ## Gotchas
 
@@ -128,7 +160,7 @@ Launch the Profiler before the game and let it survive Editor restarts. `Window 
 
 - Capture a baseline profile before optimization; capture again after; diff via Profile Analyzer.
 - Frame time consistently under target (16.6ms for 60fps, 33.3ms for 30fps) on lowest-supported hardware.
-- GC.Alloc per frame near zero in steady-state gameplay.
+- GC.Alloc per frame meets the GC budget table — 0 B per system in steady-state gameplay; <1 KB yellow flag; >4 KB blocks ship.
 - SetPass call count under platform budget (Frame Debugger or Rendering module).
 - `read_console` clean of "ParticleSystem update is taking too long", "Physics warning", "Canvas rebuild" runtime warnings.
 - For optimizations claimed: a Profile Analyzer screenshot or numbers showing the named marker dropped.

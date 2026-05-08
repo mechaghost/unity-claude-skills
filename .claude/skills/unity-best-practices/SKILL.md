@@ -19,6 +19,21 @@ Before any modification — including the very first read — run this preflight
 
 When you hand off to a domain skill, print a one-line paradigm summary so the receiving skill doesn't redo the work.
 
+## MCP tools available
+
+This skill set assumes the following Unity MCP tools are exposed by the connected server. Names are canonical; group is informational.
+
+- GameObject / scene: `manage_gameobject`, `manage_components`, `manage_prefabs`, `manage_scene`, `find_gameobjects`
+- Editor / project: `manage_editor`, `manage_packages`, `manage_asset`, `set_active_instance`, `refresh_unity`, `execute_menu_item`, `execute_custom_tool`
+- Rendering: `manage_camera`, `manage_graphics`, `manage_material`, `manage_shader`, `manage_texture`
+- Specialized: `manage_physics`, `manage_animation`, `manage_vfx`, `manage_ui`, `manage_probuilder`, `manage_scriptable_object`, `manage_build`, `manage_tools`, `manage_profiler`
+- Code: `apply_text_edits`, `script_apply_edits`, `create_script`, `delete_script`, `validate_script`
+- Diagnostics: `read_console`, `debug_request_context`, `unity_reflect`, `unity_docs`
+- Tests: `run_tests`, `get_test_job`
+- Misc: `get_sha`, `batch_execute`
+
+If a tool fails or is unavailable on the connected MCP server, fall back to `execute_menu_item`, `unity_reflect`, or generated scripts via `create_script`. Different MCP server forks expose different subsets.
+
 ## Detect the project paradigm
 
 Run these checks once per session and cache the answer in your working notes.

@@ -1,6 +1,6 @@
 ---
 name: unity-persistence
-description: Use when working with Unity save data and persistence through Unity MCP — PlayerPrefs, JsonUtility, save data, save game, save slot, load game, persistentDataPath, dataPath, BinaryFormatter, Newtonsoft Json, JSON save, save file, cloud save, Steam Cloud, encrypted save, savefile path, application persistent data, ES3, Easy Save, atomic save, save slot UI, settings save, options save, scriptable object save.
+description: Use when working with Unity save data and persistence through Unity MCP — PlayerPrefs, JsonUtility, save data, save game, save slot, load game, persistentDataPath, dataPath, BinaryFormatter, Newtonsoft Json, JSON save, save file, cloud save, Steam Cloud, encrypted save, savefile path, application persistent data, ES3, Easy Save, atomic save, save slot UI, scriptable object save.
 ---
 
 Companion skill: `unity-scenes` for the boot scene that owns the SaveManager singleton; `unity-patterns` for singleton structure; `unity-build` for shipping save format compatibility across builds.
@@ -195,21 +195,25 @@ NOT for player save data — SO changes do not persist across runs in builds. Th
 - **Auto-save on event** — subscribe to a `CheckpointEventSO`; on raise, atomic write current `SaveData`. Throttle — never write every frame.
 - **Quit save** — `Application.quitting += Save;` plus `OnApplicationPause(bool paused)` on mobile; mobile may kill the app without raising `quitting`.
 
+Use the canonical singleton pattern from `unity-patterns` for the SaveManager bootstrap. Persistence-specific guidance: register `Save(activeSlot)` on `Application.quitting` (and `OnApplicationPause(true)` on mobile) inside the manager's `Awake`, after the singleton-instance guard. The persistence-specific surface (slot path, atomic write, JSON round-trip) is what this skill owns; the singleton scaffold lives in `unity-patterns`.
+
 ```csharp
 public class SaveManager : MonoBehaviour
 {
+    // singleton scaffold per unity-patterns ([DefaultExecutionOrder(-100)] + Awake guard + DontDestroyOnLoad)
     public static SaveManager Instance { get; private set; }
     public SaveData Current { get; private set; } = new();
+    int activeSlot = 1;
 
-    void Awake()
+    void OnEnable()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
-        Application.quitting += () => Save(activeSlot);
+        // Persistence-specific: write on quit / pause
+        Application.quitting += SaveActive;
     }
 
-    int activeSlot = 1;
+    void OnDisable() => Application.quitting -= SaveActive;
+
+    void SaveActive() => Save(activeSlot);
 
     public void Save(int slot)
     {

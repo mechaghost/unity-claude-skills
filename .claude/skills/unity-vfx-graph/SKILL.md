@@ -13,7 +13,7 @@ GPU-driven, large-count, or data-sampled effects: magic projectiles, energy fiel
 | --- | --- | --- |
 | Sim | CPU | GPU |
 | Component | `ParticleSystem` | `VisualEffect` + `.vfx` asset |
-| Comfortable count | ~10–1000 | 10,000–1,000,000 |
+| Comfortable count | up to ~5,000 | 5,000–1,000,000+ |
 | Per-particle script callbacks | `OnParticleCollision` / `OnParticleTrigger` | none |
 | Authoring | Inspector modules | Node graph (Shader-Graph-style) |
 | Pipeline | Built-in / URP / HDRP | URP / HDRP only |

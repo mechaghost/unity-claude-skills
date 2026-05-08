@@ -16,7 +16,7 @@ Any audio task: playing SFX, looping music, building a mixer hierarchy, hooking 
 - Mute / Bypass Effects / Bypass Listener Effects / Bypass Reverb Zones — debug and special-case toggles. Bypass Listener Effects is useful for UI clicks that should not be affected by an "underwater" listener filter.
 - Play On Awake — fires `Play()` automatically. Disable for triggered/pooled SFX.
 - Loop — restart at end. PlayOneShot ignores this.
-- Priority (0-256, lower = more important). Unity caps simultaneous voices (default 32, see `Project Settings > Audio > Real Voice Count`); when capped, lowest-priority voices are virtualized.
+- Priority (0-256, lower = more important). Unity caps simultaneous voices (default 32, see `Project Settings > Audio > Real Voice Count`); when capped, lowest-priority voices are virtualized. **Drop to 16-24 on mobile** — every active voice costs CPU and battery, and the cap usually isn't audible (cross-link `unity-build` references/mobile.md).
 - Volume (0-1), Pitch (-3 to 3), Stereo Pan (-1 to 1).
 - Spatial Blend — 0 = pure 2D (UI/music), 1 = pure 3D (worldspace SFX). Curve-mappable.
 - Reverb Zone Mix — how much AudioReverbZone affects this source.
@@ -166,6 +166,6 @@ Configure via `manage_asset` on each clip. The fields that matter:
 - Volume slider sanity: log the dB value as the slider moves. Should be roughly `-80` at 0, `-20` near 0.1, `-6` near 0.5, `0` at 1. If the curve feels flat or cliff-edged, the linear-to-dB conversion is wrong.
 - Mixer routing visible: select an AudioSource and confirm `Output` is the intended Group; press Play (Edit mode is fine if `Edit > Project Settings > Audio > Disable Audio` is unchecked) and watch level meters move on the right Group.
 - WebGL: build, open in a browser tab, confirm the first tap/click unlocks audio. Test in an incognito window to avoid cached gestures.
-- `manage_profiler` — Audio module shows active sources, voices used, and memory. Voices capped at `Project Settings > Audio > Real Voice Count` (default 32). Ramping into the cap manifests as quiet sounds dropping.
+- `manage_profiler` — Audio module shows active sources, voices used, and memory. Voices capped at `Project Settings > Audio > Real Voice Count` (default 32; 16-24 on mobile). Ramping into the cap manifests as quiet sounds dropping.
 - For 3D sources, walk past Min Distance and confirm rolloff curve matches intent. Doppler issues are most obvious on fast-moving projectiles — turn Doppler Level to 0 if unwanted pitch slides appear.
 - After scene transitions (cross-link `unity-scenes`), re-check listener count and that music sources with `ignoreListenerPause` survived as intended.

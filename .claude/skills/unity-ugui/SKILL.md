@@ -73,7 +73,7 @@ Order of operations: layout group asks children for preferred sizes, ContentSize
 
 Prefer TMP for any new UI — better atlas, MSDF rendering, rich text, and shader effects than legacy `Text`.
 
-- Install via `manage_packages` (`com.unity.textmeshpro` — usually preinstalled). First use of any TMP component prompts to import TMP Essentials; accept the import. The default font asset and settings land under `Assets/TextMesh Pro/`; do not move that folder.
+- In Unity 6, TextMeshPro is folded into `com.unity.ugui` — there is no separate `com.unity.textmeshpro` package to install. First use of any TMP component still prompts to import TMP Essentials; accept the import. The default font asset and settings land under `Assets/TextMesh Pro/`; do not move that folder.
 - `TextMeshProUGUI` is for UI under a Canvas. `TextMeshPro` (non-UGUI) is for 3D world-space text on a MeshRenderer.
 - TMP project settings live at `Window > TextMeshPro > Settings` and edit a `TMP_Settings` asset under `Assets/TextMesh Pro/Resources/`.
 - Legacy `Text` only autosizes via `BestFit`, which is jagged at runtime resize. Migrate to TMP for any new UI.

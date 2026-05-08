@@ -98,7 +98,8 @@ Custom features: derive `ScriptableRendererFeature` and `ScriptableRenderPass` C
 
 ## Performance
 
-- HDR + MSAA + full PP stack each cost real ms. Mobile budget: LDR, FXAA, MSAA off, no SSAO, render scale 0.85, ≤1 shadow cascade, 1 directional light + a few baked.
+- HDR + MSAA + full PP stack each cost real ms. Mobile budget: LDR, FXAA, MSAA off, no SSAO, **render scale 0.7-0.75 with FSR1 / TAAU upscaling** (URP renderer feature), ≤1 shadow cascade, 1 directional light + a few baked.
+- Mobile shadows: **shadow distance ≤30 m**, **1 cascade on low-end**, **2 on flagship**. Cascade count dominates shadow cost more than shadowmap resolution. Cross-link `unity-build` references/mobile.md for the broader mobile budget.
 - SSAO is the single most expensive renderer feature; profile before shipping it.
 - Shadow distance and cascade count dominate shadow cost more than shadowmap resolution.
 - Depth Texture and Opaque Texture each add a copy pass — only enable if a feature uses them.
@@ -110,7 +111,7 @@ Custom features: derive `ScriptableRendererFeature` and `ScriptableRenderPass` C
 
 - **Cinematic.** HDR on, ACES tonemapping, Bloom intensity ~1.0 / threshold ~1.1 / scatter 0.7, Color Adjustments post-exposure +0.3, soft Vignette, light Film Grain.
 - **Stylized 2D.** 2D Renderer + one Global 2D Light (low intensity ambient) + per-area Point / Freeform 2D Lights + Shadow Caster 2D on tilemap walls + normal maps on hero sprites.
-- **Mobile budget.** LDR, FXAA, no SSAO, MSAA off, half-res post-process, render scale 0.85, 1 shadow cascade, max distance ~30m.
+- **Mobile budget.** LDR, FXAA, no SSAO, MSAA off, half-res post-process, render scale 0.7-0.75 with FSR1 / TAAU upscaling, 1 shadow cascade (2 on flagship), max distance ~30m.
 - **Outline selected object.** Assign the object to a Rendering Layer; add a `Render Objects` renderer feature filtering on that layer with an outline material; run after opaques. No global script needed.
 
 ## Gotchas

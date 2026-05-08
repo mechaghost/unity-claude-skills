@@ -1,6 +1,6 @@
 ---
 name: unity-shuriken
-description: Use when authoring or tuning Unity Shuriken particle effects through Unity MCP (trigger keywords ParticleSystem, particle, shuriken, emission, sub-emitter, particle effect, VFX, hit spark, explosion, smoke, fire, dust, muzzle flash, spark, magic projectile, weather, rain, snow, footstep dust, color over lifetime, rate over time, rate over distance, OnParticleCollision, OnParticleTrigger, in-volume / out-volume particle triggers, particle pooling, billboard, stretched particle, trail, texture sheet animation). Shuriken-specific — see VFX Graph (Visual Effect component) for the GPU pipeline; most modules below do not apply there.
+description: Use when authoring or tuning Unity Shuriken particle effects through Unity MCP (trigger keywords ParticleSystem, particle, shuriken, emission, sub-emitter, particle effect, hit spark, explosion, smoke, fire, dust, muzzle flash, spark, magic projectile, weather, rain, snow, footstep dust, color over lifetime, rate over time, rate over distance, OnParticleCollision, OnParticleTrigger, in-volume / out-volume particle triggers, particle pooling, billboard, stretched particle, trail, texture sheet animation). Shuriken-specific — see VFX Graph (Visual Effect component) for the GPU pipeline; most modules below do not apply there. Do NOT use for >5000 GPU-driven particles or texture/SDF/mesh sampling — use unity-vfx-graph for that.
 ---
 
 ## When to use
@@ -73,11 +73,11 @@ Wire via `manage_vfx` if the action is exposed. If not, fall back to `manage_com
 
 ## Performance
 
-Dominant cost is `Main.Max Particles` x simulation step x renderer overdraw. Rules of thumb:
+Dominant cost is `Main.Max Particles` x simulation step x renderer overdraw. Tiered ceilings before VFX Graph becomes the better choice:
 
-- < 100 active particles per system: trivial.
-- 100 - 1,000: fine for hero VFX on PC; monitor on mobile.
-- 1,000 - 10,000: Shuriken will start dominating frame time; consider VFX Graph (GPU-driven) instead.
+- **Mobile** — keep each system **<200 particles at peak**, **hard-cap simultaneous emitters at 4-6**. Above that, frame-time and overdraw dominate. Cross-link `unity-build` references/mobile.md.
+- **Desktop** — **<2,000 particles per system** is fine on Shuriken; 2,000-5,000 is workable but hot.
+- **>2,000 mobile / >5,000 desktop** — switch to VFX Graph (GPU-driven). Cross-link `unity-vfx-graph`.
 - Collision module: prefer `Planes` over `World`; lower `Quality`; raise `Voxel Size`. Each `World` collision is a physics query.
 - Lights module: cap to fewer than ~8 active particle lights at any time. They are real-time lights with full cost.
 - Trails: every particle with a trail multiplies vertex/index count. Limit `Ratio` (fraction of particles with trails).
@@ -85,7 +85,7 @@ Dominant cost is `Main.Max Particles` x simulation step x renderer overdraw. Rul
 - GPU instancing: enable on the renderer when `Render Mode = Mesh` with the same material across particles.
 - Profile via `manage_profiler` and look at `ParticleSystem.Update`, `ParticleSystem.Render`, and `ParticleSystem.EndUpdateAll` markers.
 
-Mobile-specific: large alpha-blended quads cause overdraw and thermal throttling. Smaller particles, lower alpha, or fewer overlapping layers.
+Mobile-specific: large alpha-blended quads cause overdraw and thermal throttling. Smaller particles, lower alpha, or fewer overlapping layers. Stick to the **<200/system, 4-6 emitters** ceiling above; pool aggressively.
 
 ## Runtime control
 

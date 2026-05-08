@@ -143,20 +143,25 @@ The `CBUFFER_START(UnityPerMaterial)` block is what makes the shader SRP Batcher
 
 ## MaterialPropertyBlock
 
-Per-instance values without cloning the material.
+Per-instance values without cloning the material. **MPB is NOT compatible with the SRP Batcher** — setting an MPB on a renderer drops that draw out of the SRP Batcher, and the Frame Debugger annotates such draws with reasons like `Node has different shader keywords` or `per-material data overridden`. MPB is compatible with GPU instancing (and required for `Graphics.DrawMeshInstanced` / `Graphics.RenderMeshInstanced`).
+
+If you need per-instance variation while keeping SRP Batcher: use a `_BaseColor`-style property array on a single shared material, indexed by `unity_InstanceID` with GPU instancing — not MPB.
+
+**Cache the block.** Allocating `new MaterialPropertyBlock()` per call costs ~80 B GC. Cache one shared instance and `Clear()` before each use:
 
 ```csharp
 static readonly int BaseColorID = Shader.PropertyToID("_BaseColor");
+static readonly MaterialPropertyBlock s_mpb = new();
 
 void TintRed(Renderer r) {
-    var mpb = new MaterialPropertyBlock();
-    r.GetPropertyBlock(mpb);          // start from current overrides
-    mpb.SetColor(BaseColorID, Color.red);
-    r.SetPropertyBlock(mpb);
+    s_mpb.Clear();
+    r.GetPropertyBlock(s_mpb);          // start from current overrides
+    s_mpb.SetColor(BaseColorID, Color.red);
+    r.SetPropertyBlock(s_mpb);
 }
 ```
 
-Required for `Graphics.DrawMeshInstanced` and `Graphics.RenderMeshInstanced` (pass an MPB array). Pitfalls: `SetPropertyBlock(null)` clears all overrides; the block is cached on the renderer, so reading via `GetPropertyBlock` then mutating then `SetPropertyBlock` is the safe pattern; MPBs break dynamic batching but are compatible with SRP Batcher and GPU instancing.
+Pitfalls: `SetPropertyBlock(null)` clears all overrides; the block is cached on the renderer, so the `GetPropertyBlock` -> mutate -> `SetPropertyBlock` round-trip is the safe pattern; MPBs break dynamic batching and the SRP Batcher.
 
 ## Keywords and variants
 
@@ -169,6 +174,56 @@ Keywords toggle code paths: `_NORMALMAP`, `_METALLICSPECGLOSSMAP`, `_EMISSION`, 
 - Strip aggressively in `IPreprocessShaders` for keywords that are demonstrably unused.
 
 **Build-time stripping pitfall.** A `shader_feature` variant survives the build only if some material had the keyword enabled at build time. Runtime `EnableKeyword` for a variant that nothing used at build time silently falls back to a working but wrong variant. Fix: maintain a sentinel material in `Resources/` with the runtime-needed keywords toggled on, so the build keeps the variant.
+
+## Shader variant stripping and warmup
+
+**Build-time stripping with `IPreprocessShaders`.** Implement the interface in an `Editor/` script to drop variant combinations that no material in the project uses. Strip aggressively: every removed variant cuts shader binary size and player startup compile cost.
+
+```csharp
+using UnityEditor;
+using UnityEditor.Build;
+using UnityEditor.Rendering;
+using UnityEngine.Rendering;
+using System.Collections.Generic;
+
+class StripUnusedVariants : IPreprocessShaders {
+    public int callbackOrder => 0;
+    static readonly ShaderKeyword s_unused = new ShaderKeyword("_DEPRECATED_FEATURE");
+
+    public void OnProcessShader(Shader shader, ShaderSnippetData snippet, IList<ShaderCompilerData> data) {
+        for (int i = data.Count - 1; i >= 0; i--) {
+            if (data[i].shaderKeywordSet.IsEnabled(s_unused)) data.RemoveAt(i);
+        }
+    }
+}
+```
+
+Cross-link `unity-build` for where this slots into the pipeline and `unity-profiling` (Frame Debugger) for counting variants actually used in a frame.
+
+**Runtime warmup with `ShaderVariantCollection`.** Generate the collection in the editor (Project Settings -> Graphics, log shader variants while playing then `Save to asset`), include it in the build, and call `WarmUp()` during a loading scene before gameplay starts. This is essential on iOS Metal — the first time a variant is rendered without warmup, Metal compiles the shader on the GPU thread and stalls the frame.
+
+```csharp
+[SerializeField] ShaderVariantCollection warmupSet;
+
+IEnumerator WarmUpAllShaders() {
+    warmupSet.WarmUp();           // synchronous, runs while loading screen is visible
+    yield return null;
+}
+```
+
+**Mobile budget.** Aim for <500 variants per shader and total compiled shader binary <20 MB. Each `multi_compile` pragma doubles variant count; `shader_feature` only ships the combinations referenced by some material. Inspect `Library/ShaderCache/` after a build to gauge the binary size.
+
+### iOS Metal warmup gotcha
+
+Without warmup, the first time a shader variant is rendered on iOS Metal causes a 100-300 ms hitch as Metal compiles the pipeline state object on demand. Players see a stutter the first time each enemy type, particle effect, or post-process volume appears.
+
+Pattern:
+
+1. In Project Settings -> Graphics, click `Save to asset` next to the currently-tracked variants list (or use `Edit > Save current shader compile log`) to produce a `.shadervariants` asset.
+2. Include the asset in build (assign it to a serialized field on a loading-scene MonoBehaviour, or load via Addressables).
+3. During the loading screen, call `ShaderVariantCollection.WarmUp()` before showing the first frame of gameplay.
+
+Without this, expect first-encounter stutters on iPhone. Cross-link `unity-build` (build pipeline) and `unity-profiling` (Frame Debugger to verify variants).
 
 ## Common patterns
 
@@ -194,7 +249,7 @@ Keywords toggle code paths: `_NORMALMAP`, `_METALLICSPECGLOSSMAP`, `_EMISSION`, 
 
 - **Static batching.** Same material across renderers. MaterialPropertyBlock does not break it; cloning via `Renderer.material` does.
 - **Dynamic batching.** Limited to small meshes, breaks on lightmap UVs and MPBs. Mostly superseded.
-- **SRP Batcher (URP).** Replaces dynamic batching. Requires shaders to declare a `CBUFFER_START(UnityPerMaterial)` block with all per-material properties. Shader Graph and stock URP/Lit are compatible by default. Frame Debugger labels each draw call as compatible or not, with the reason.
+- **SRP Batcher (URP).** Replaces dynamic batching. Requires shaders to declare a `CBUFFER_START(UnityPerMaterial)` block with all per-material properties. Shader Graph and stock URP/Lit are compatible by default. Frame Debugger labels each draw call as compatible or not, with the reason. **MaterialPropertyBlock breaks the SRP Batcher** — any renderer with an MPB drops out of the batcher and renders as its own draw. For SRP-Batcher-compatible per-instance variation, declare an array property like `_BaseColor` indexed by `unity_InstanceID` and drive it through GPU instancing.
 - **GPU instancing.** Per-instance variation without breaking batching. Add `#pragma multi_compile_instancing` to the shader, check `Enable GPU Instancing` on the material, drive per-instance values via MPB. Mutually exclusive with SRP Batcher per draw call — Unity picks the cheaper path.
 - **Texture sampling.** Use compressed formats (BC7 for color/normal on desktop, ASTC on mobile). Enable mipmaps for anything not pixel-art UI; without them you get aliasing and worse cache behavior.
 - **Branching.** Modern GPUs handle dynamic branches fine if all threads in a warp take the same path. Use `[branch]` for divergent conditions, `[flatten]` for tight ones. Avoid loops with non-constant bounds — they unroll badly or not at all.

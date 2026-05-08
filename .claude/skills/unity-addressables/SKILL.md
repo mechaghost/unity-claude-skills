@@ -36,7 +36,7 @@ Pulls `com.unity.scriptablebuildpipeline` automatically. After install, open `Wi
 - **Groups** — a group bundles multiple addressables that share download/memory behavior. Organize by content (`Levels`, `Audio`, `UI`, `Localization-EN`), not by type. Each group has a Schema (Content Packing & Loading) controlling:
   - **Build Path / Load Path** — Local (StreamingAssets) or Remote (CDN URL).
   - **Bundle Mode** — Pack Together (one bundle per group), Pack Separately (one bundle per asset), or Pack Together By Label (one bundle per label within the group).
-  - **Compression** — LZ4 (fast, larger) for runtime; LZMA (smaller, slower decompress) for downloads you cache.
+  - **Compression** — `LZ4` (Default) is correct for **mobile and runtime-decompressed groups**: fast, ~5x decode speed of LZMA, slightly larger file. `LZMA` produces ~30% smaller bundles but is **CPU-bound on low-end Android** — mid-load hitches and cold-start stalls are routine. Use LZMA only for **desktop** or for **pre-warmed downloads** that you stage to disk and decompress to LZ4 once before play. Default new mobile groups to LZ4.
 - **Labels** — string tags applied to an addressable (`hat`, `weapon`, `level1`). Load all assets with a label via `Addressables.LoadAssetsAsync<T>(label, callback)`. Labels cross groups; an asset can have many.
 
 Two addressables sharing the same address is a build error. Plan a namespace prefix scheme early.

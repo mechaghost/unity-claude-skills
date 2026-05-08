@@ -78,21 +78,7 @@ SceneManager.SetActiveScene(SceneManager.GetSceneByName("Hub"));
 
 `DontDestroyOnLoad` only works on **root** GameObjects. Calling it on a child of a non-DDOL parent silently does nothing — Unity moves the root to a hidden DDOL scene, and a child cannot move while its parent stays.
 
-If the boot scene reloads (e.g., user hits "New Game" and `LoadScene(0)`), the bootstrapper runs again and creates a duplicate manager. Guard with a singleton check:
-
-```csharp
-public class AudioManager : MonoBehaviour
-{
-    public static AudioManager Instance { get; private set; }
-
-    void Awake()
-    {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
-    }
-}
-```
+If the boot scene reloads (e.g., user hits "New Game" and `LoadScene(0)`), the bootstrapper runs again and creates a duplicate manager. Guard with a singleton check. Use the canonical singleton pattern from `unity-patterns` for the manager scaffold. Boot-scene-specific guidance: declare each manager in scene index 0 so `Awake` order is predictable, gate the boot loader behind the singleton check on the bootstrapper itself, and avoid `DontDestroyOnLoad` on children — only the root survives.
 
 ## Scene references (the build settings trap)
 

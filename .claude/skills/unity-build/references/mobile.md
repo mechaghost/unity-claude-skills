@@ -1,0 +1,171 @@
+# Mobile platform reference
+
+Companion reference for `unity-build` covering Android + iOS runtime gotchas. Unity 6, URP-only, new Input System only. Cross-link `unity-build/SKILL.md` for the build pipeline itself, `unity-persistence` for save-on-pause, `unity-audio` for audio interruption, `unity-ugui` for safe-area UI, `unity-input-system` for touch input, `unity-urp` for mobile rendering budgets, `unity-shuriken` for particle ceilings.
+
+## Frame rate
+
+Mobile defaults to **30 fps**. Set explicitly at boot:
+
+```csharp
+void Awake()
+{
+    Application.targetFrameRate = 60;   // or 30 on lower tiers
+    QualitySettings.vSyncCount = 0;     // required — vSync overrides targetFrameRate
+}
+```
+
+`vSyncCount > 0` makes the engine ignore `targetFrameRate` and sync to display refresh — set it to 0 first. 60 fps on mobile roughly doubles thermal load vs 30; most F2P titles target 30 with adaptive 60 only on flagship devices. Pick a target per device tier and lock to it.
+
+## OnDemandRendering
+
+Render every Nth frame to halve GPU load on low-end devices while keeping UI responsive:
+
+```csharp
+using UnityEngine.Rendering;
+
+OnDemandRendering.renderFrameInterval = 2; // render every other frame; UI still polls every frame
+```
+
+Pair with the new Input System and UGUI — both stay responsive at the full Update tick rate even when rendering is throttled.
+
+## Adaptive Performance
+
+Package: `com.unity.adaptiveperformance` (plus the per-vendor provider, e.g. Samsung Android Provider). Reads device thermal/power state and exposes events when the SoC starts throttling. Wire a quality-tier scaler that lowers render scale, disables bloom, drops shadow distance when `WarningLevel` rises. Fire-and-forget once configured — the package handles polling.
+
+## Texture memory budgets
+
+| Tier                              | RAM      | Texture budget | Format      | Max size |
+| --------------------------------- | -------- | -------------- | ----------- | -------- |
+| Low-end Android                   | 2 GB     | ~200 MB        | ASTC 6x6    | 1024     |
+| Mid Android                       | 4 GB     | ~400 MB        | ASTC 6x6    | 2048     |
+| High-end Android / iOS            | 6+ GB    | ~600-800 MB    | ASTC 4x4    | 2048     |
+
+ASTC is the modern format — supported on iOS (all current devices) and Android (GLES 3.1+ / Vulkan, ~98% of the market). Keep ETC2 as a fallback in the texture importer's Android override for ancient devices. UI textures: disable mipmaps to save 33% memory; mips matter only for 3D surfaces sampled at varying distance.
+
+## App size budgets
+
+- **Google Play (Android)** — base APK / install footprint cap is **150 MB**. Anything larger ships as AAB with Play Asset Delivery (install-time / fast-follow / on-demand asset packs) or via Addressables remote groups. Total AAB ceiling: **4 GB** across all configurations.
+- **Apple App Store (iOS)** — IPA hard ceiling is **4 GB** uncompressed. Cellular OTA download cap is **200 MB**; over that, the user must be on Wi-Fi, which crushes day-1 install conversion. Ship the binary under 200 MB and stream the rest via Addressables / on-demand resources.
+
+Cross-link `unity-addressables` for the actual remote content split.
+
+## Audio voices
+
+Default `Project Settings > Audio > Real Voice Count` is 32. Drop to **16-24 on mobile** — every active voice costs CPU and battery, and the cap usually isn't audible. Configure via `manage_editor` per platform. Cross-link `unity-audio`.
+
+## Shader variants and warmup
+
+First-time-rendered shaders compile on the device (Metal on iOS, Vulkan/GLES on Android). The first frame that needs a previously-unseen variant stalls 100-300 ms — visible as a hitch when a player encounters a new effect. Mitigation: ship a `ShaderVariantCollection` and warm it during a loading screen.
+
+```csharp
+public ShaderVariantCollection variants;
+
+IEnumerator BootWarmup()
+{
+    yield return null; // let first frame finish
+    variants.WarmUp(); // blocking, fine on a loading screen
+}
+```
+
+Build the collection by checking `Save to asset` in `Project Settings > Graphics > Shader Loading > Track all shaders the player uses` while playing through the game in Editor.
+
+## Battery and thermal throttling
+
+Sustained 60 fps for 5+ minutes triggers iOS / Android thermal throttling — the OS will silently halve clock speed and your 60 fps target will start missing. Strategies in order of cost:
+
+1. Drop to 30 fps after a 60-fps "first-impression" warmup window.
+2. Dynamic-resolution scale: lower URP `renderScale` from 1.0 → 0.7 when `Adaptive Performance` reports throttling.
+3. Disable bloom / SSAO / heavy post on heat events.
+4. Cap simulation: pause AI / particles in offscreen rooms.
+
+`SystemInfo.batteryLevel` and `Application.lowMemory` are signals worth listening to as well.
+
+## OnApplicationPause
+
+```csharp
+void OnApplicationPause(bool paused)
+{
+    if (paused)
+        SaveSystem.FlushImmediate(); // see unity-persistence
+}
+```
+
+iOS and Android **may kill the app from the background without ever calling `OnApplicationQuit`**. `OnApplicationPause(true)` is the only reliable hook to flush state on mobile. Cross-link `unity-persistence`.
+
+## Screen.safeArea
+
+iPhone notches, Dynamic Island, Android cutouts, and rounded corners eat the corners of the screen. UI must respect `Screen.safeArea`:
+
+```csharp
+[ExecuteAlways]
+public class SafeAreaFitter : MonoBehaviour
+{
+    RectTransform _rt;
+    Rect _last;
+
+    void OnEnable() { _rt = GetComponent<RectTransform>(); Apply(); }
+    void Update() { if (Screen.safeArea != _last) Apply(); }
+
+    void Apply()
+    {
+        var safe = Screen.safeArea;
+        var min = safe.position;
+        var max = safe.position + safe.size;
+        min.x /= Screen.width;  min.y /= Screen.height;
+        max.x /= Screen.width;  max.y /= Screen.height;
+        _rt.anchorMin = min;
+        _rt.anchorMax = max;
+        _last = safe;
+    }
+}
+```
+
+Drop on a HUD root RectTransform. Cross-link `unity-ugui` for the broader Canvas pattern.
+
+## Touch input
+
+```csharp
+using UnityEngine.InputSystem;
+
+void Update()
+{
+    var touch = Touchscreen.current;
+    if (touch == null) return;
+
+    if (touch.primaryTouch.press.wasPressedThisFrame)
+    {
+        var pos = touch.primaryTouch.position.ReadValue();
+        // ...
+    }
+}
+```
+
+Never call legacy `Input.touchCount` / `Input.GetTouch` on a new-Input-System project — silently reads zero. Cross-link `unity-input-system`.
+
+## Permissions
+
+Android 6+ and all iOS versions require runtime permission prompts for camera, microphone, location, push notifications, photo library. Use the `com.unity.android-permissions` package on Android; on iOS, fill in the matching `NS<Permission>UsageDescription` strings in `PlayerSettings > iOS > Other Settings`. Missing iOS usage descriptions are an automatic App Store rejection.
+
+## Orientation
+
+`PlayerSettings > Resolution and Presentation > Default Orientation` for the boot orientation. Override at runtime:
+
+```csharp
+Screen.orientation = ScreenOrientation.LandscapeLeft;
+Screen.autorotateToPortrait = false;
+Screen.autorotateToLandscapeLeft = true;
+```
+
+## Particle budget
+
+Shuriken on mobile: **≤200 particles/system at peak**, hard-cap simultaneous emitters at **4-6**. Above that, frame-time and overdraw dominate. Cross-link `unity-shuriken` for tiered ceilings and `unity-vfx-graph` for the GPU alternative.
+
+## Render scale and post
+
+- **Render scale** — 0.7-0.75 typical mobile. Pair with FSR1 or TAAU URP Renderer Feature for upscaled output.
+- **Shadow distance** — ≤30 m. **Cascade count** — 1 on low-end, 2 on flagship. Cross-link `unity-urp`.
+- Disable MSAA, SSAO, motion blur, depth of field on mobile profiles.
+
+## Verification
+
+Profile on the **lowest-supported device**, NOT in the Editor — Editor frame times have no relationship to ARM SoC frame times. Use a remote profiler attached to a release-mode IL2CPP build (Development Build is ~30% slower than Release). Frame Debugger and the Memory Profiler both work over the remote-profiler connection. Cross-link `unity-profiling`.

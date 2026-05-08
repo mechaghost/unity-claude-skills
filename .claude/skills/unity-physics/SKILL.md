@@ -1,11 +1,11 @@
 ---
 name: unity-physics
-description: Use when working with Unity physics through Unity MCP — adding a Rigidbody/Rigidbody2D, configuring colliders or triggers, setting kinematic vs dynamic, freezing rotation, tweaking gravity, applying force or torque (AddForce, AddTorque, AddExplosionForce, MovePosition), raycasts and overlap queries, joints (3D or 2D), layer collision matrix edits, physics materials, FixedUpdate vs Update timing, or OnCollisionEnter/OnTriggerEnter callbacks. Covers both 3D and 2D physics; pick the fork that matches the scene.
+description: Use when working with Unity physics through Unity MCP — adding a Rigidbody/Rigidbody2D, configuring colliders or triggers, setting kinematic vs dynamic, freezing rotation, tweaking gravity, applying force or torque (AddForce, AddTorque, AddExplosionForce, MovePosition), raycasts and overlap queries, joints (3D or 2D), layer collision matrix edits, physics materials, FixedUpdate vs Update timing, or OnCollisionEnter/OnTriggerEnter callbacks. Covers both 3D and 2D physics; pick the fork that matches the scene. For rotation-specific tasks (Quaternion math, Atan2 facing, RectTransform pivot rotation) use unity-3d-rotation, unity-2d-rotation, or unity-ugui-rotation.
 ---
 
 ## When to use
 
-Any task that touches Unity's physics simulation: bodies, colliders, joints, queries, materials, the layer matrix, fixed timestep, or collision/trigger callbacks. Covers both 3D (`Physics`, `Rigidbody`, `Collider`, `PhysicMaterial`) and 2D (`Physics2D`, `Rigidbody2D`, `Collider2D`, `PhysicsMaterial2D`). 2D and 3D are independent simulations — pick one paradigm per scene.
+Any task that touches Unity's physics simulation: bodies, colliders, joints, queries, materials, the layer matrix, fixed timestep, or collision/trigger callbacks. Covers both 3D (`Physics`, `Rigidbody`, `Collider`, `PhysicsMaterial`) and 2D (`Physics2D`, `Rigidbody2D`, `Collider2D`, `PhysicsMaterial2D`). 2D and 3D are independent simulations — pick one paradigm per scene.
 
 ## 3D vs 2D fork
 
@@ -18,7 +18,7 @@ Concepts share names; APIs and assets do not. Pick the column that matches the s
 | Mesh-shaped collider     | `MeshCollider`                  | `PolygonCollider2D`                 |
 | Fixed joint              | `FixedJoint`                    | `FixedJoint2D`                      |
 | Raycast                  | `Physics.Raycast`               | `Physics2D.Raycast`                 |
-| Material asset           | `PhysicMaterial` (or `PhysicsMaterial` in newer versions) | `PhysicsMaterial2D`            |
+| Material asset           | `PhysicsMaterial`               | `PhysicsMaterial2D`                 |
 | Gravity                  | `Physics.gravity` (Vector3)     | `Physics2D.gravity` (Vector2)       |
 | Layer collision matrix   | shared 32 layers, separate UI panel under Project Settings > Physics | same layers, panel under Physics 2D |
 | Hit struct               | `RaycastHit` (class-like struct)| `RaycastHit2D` (struct, implicit-bool true if hit) |
@@ -142,13 +142,15 @@ Layer-based collision is configured ONLY through the matrix. Setting fields on t
 
 ## Physics materials
 
-3D `PhysicMaterial` fields: `dynamicFriction`, `staticFriction`, `bounciness`, `frictionCombine`, `bounceCombine` (combine modes: Average, Minimum, Maximum, Multiply). Apply via `Collider.sharedMaterial` (preferred — does not duplicate the asset) or `Collider.material` (auto-instantiates a per-collider copy).
+3D `PhysicsMaterial` fields: `dynamicFriction`, `staticFriction`, `bounciness`, `frictionCombine`, `bounceCombine` (combine modes: Average, Minimum, Maximum, Multiply). Apply via `Collider.sharedMaterial` (preferred — does not duplicate the asset) or `Collider.material` (auto-instantiates a per-collider copy).
 
 2D `PhysicsMaterial2D` fields (Unity 6 / 2023.2+): `friction`, `bounciness`, `frictionCombine`, `bounceCombine` (combine modes: Average, Minimum, Maximum, Multiply — same set as 3D). No static/dynamic friction split. Footnote: on Unity 2022 LTS the combine fields are not exposed and contacts always average — this skill set targets Unity 6, so the combine fields are available.
 
 Create or edit material assets via `manage_material`. The 3D and 2D assets are different file types — do not assign one to the other's collider.
 
 Edits to existing material fields do not retroactively affect contacts already in progress; reassign `Collider.sharedMaterial` (or briefly disable/enable the collider) to refresh.
+
+Footnote: `PhysicMaterial` (no `s`) is the deprecated alias kept for back-compat with 2022 LTS — Unity 6 canonical is `PhysicsMaterial`.
 
 ## Fixed timestep and order of execution
 

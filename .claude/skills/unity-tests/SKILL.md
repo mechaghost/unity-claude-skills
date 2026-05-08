@@ -81,12 +81,14 @@ Use for time- or frame-based behavior:
 ```csharp
 [UnityTest] public IEnumerator Level_Loads_And_Boots() {
     yield return SceneManager.LoadSceneAsync("TestLevel", LoadSceneMode.Single);
-    var boss = GameObject.FindObjectOfType<Boss>();
+    var boss = Object.FindAnyObjectByType<Boss>();
     Assert.IsNotNull(boss);
 }
 ```
 
 Test scenes must be in Build Settings (cross-link unity-scenes), or load from a `TestSceneAsset` referenced via a `[PrebuildSetup]` / `TestSceneManager` helper that adds the scene to the build list before PlayMode runs and removes it after.
+
+**Object lookup APIs**: Unity 6 deprecated `FindObjectOfType<T>()` and `FindObjectsOfType<T>()` with editor obsolescence warnings on every call. Use `Object.FindAnyObjectByType<T>()` or `Object.FindFirstObjectByType<T>()` for the singular case, and `Object.FindObjectsByType<T>(FindObjectsSortMode.None)` for the plural case. The legacy names still compile but emit obsolescence warnings.
 
 ## MonoBehaviour testing
 

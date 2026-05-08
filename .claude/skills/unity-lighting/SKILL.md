@@ -54,7 +54,11 @@ Set in Lighting window > Scene > Mixed Lighting (or via the URP asset's Quality 
 - GameObject with `LightProbeGroup`; defines points sampling the baked GI. Dynamic objects sample the trilinear-interpolated probe values at runtime for indirect lighting.
 - Place probes densely where lighting changes (doorways, edges of light pools). Sparse probes = blocky / wrong indirect on moving characters.
 - **Anchor Override** on Renderer — controls which probe position the Renderer samples (default = bounds center). Set to a specific child for tall objects to sample at head height.
-- **Adaptive Probe Volumes (APV)** — URP 17 / Unity 6: auto-place probes based on geometry; replaces manual LightProbeGroup. Strongly recommended. Requires the enable flag in the URP asset and a baked light setup.
+- **Adaptive Probe Volumes (APV)** — URP 17+ / Unity 6: auto-place probes based on geometry; replaces manual LightProbeGroup. Strongly recommended. Concrete setup:
+  - Add a `ProbeVolume` component to a GameObject sized over the area to cover (multiple volumes can overlap; the union defines the probe footprint).
+  - Assign a Baking Set in `Lighting > Adaptive Probe Volumes` — every scene that contributes to the same baked GI must share a Baking Set.
+  - Per-scene state is stored on a `ProbeVolumePerSceneData` component that Unity adds to the scene automatically when an APV is baked; do not delete it.
+  - Enable APV in the URP pipeline asset's Lighting section, then bake from the Lighting window.
 
 ## Reflection probes
 
@@ -120,7 +124,7 @@ Lighting window > Environment tab.
 - Lightmap seam stitching only with the seam-stitching option enabled; without it, baked seams visible.
 - Shadowmask distance in URP asset caps blended-shadow range; past it only baked shadows show — moving characters lose realtime shadows.
 - Project Settings > Graphics > Lightmap Modes determines which lightmap variants ship; mismatch with what you baked = pink / wrong at runtime.
-- APV (Adaptive Probe Volumes) requires URP 17+ and a baked light setup; check the enable flag in the URP asset.
+- APV (Adaptive Probe Volumes) requires URP 17+ and a baked light setup; check the enable flag in the URP asset, and confirm every contributing scene shares a Baking Set assignment in `Lighting > Adaptive Probe Volumes`. Missing `ProbeVolumePerSceneData` on a scene = no APV data loaded for it.
 
 ## Verification
 

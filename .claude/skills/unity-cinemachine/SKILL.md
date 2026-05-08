@@ -1,6 +1,6 @@
 ---
 name: unity-cinemachine
-description: Use when authoring or tuning Unity Cinemachine cameras through Unity MCP — Cinemachine, CinemachineCamera, CinemachineVirtualCamera, virtual camera, vcam, CinemachineBrain, camera blend, follow target, look at target, dolly track, FreeLook, Free Look camera, third person camera, framing transposer, Position Composer, Rotation Composer, Cinemachine noise, screen shake, impulse, CinemachineImpulseSource, CinemachineImpulseListener, dolly cart, smart camera, priority, blend list, state-driven camera, Cinemachine Confiner, ClearShot. Unity 6 / Cinemachine 3.x, URP-only, new Input System only.
+description: Use when authoring or tuning Unity Cinemachine cameras through Unity MCP — Cinemachine, CinemachineCamera, CinemachineVirtualCamera, virtual camera, vcam, CinemachineBrain, camera blend, follow target, look at target, dolly track, FreeLook, Free Look camera, third person camera, framing transposer, Position Composer, Rotation Composer, Cinemachine noise, screen shake, impulse, CinemachineImpulseSource, CinemachineImpulseListener, dolly cart, spline cart, CinemachineSplineCart, smart camera, priority, blend list, state-driven camera, Cinemachine Confiner, ClearShot. Unity 6 / Cinemachine 3.x, URP-only, new Input System only. For Animator state machines, AnimationEvents, blend trees, or non-camera Timeline tracks, use unity-animation.
 ---
 
 ## When to use
@@ -16,6 +16,7 @@ Unity 6 ships **Cinemachine 3.x**. The architecture changed; most online tutoria
 - 2.x inline `Aim = Composer` → 3.x add `CinemachineRotationComposer` component.
 - 2.x `FreeLook` rig → 3.x `CinemachineOrbitalFollow` component (single CinemachineCamera, no 3-rig structure).
 - 2.x `Collider` extension → 3.x `CinemachineDeoccluder`.
+- 2.x `CinemachineDollyCart` → 3.x `CinemachineSplineCart`.
 
 2.x is still supported for legacy projects but is frozen. Write all new content for 3.x. When `unity_reflect` shows a `CinemachineVirtualCamera` already in-scene, the project is on 2.x; do not mix paradigms.
 
@@ -62,7 +63,7 @@ Attach procedural components as **siblings** on the same GameObject:
 - **Top-down**: `CinemachineCamera` + `CinemachineFollow` (offset Y high, Z = 0) + `CinemachineHardLookAt` or `CinemachineRotationComposer`.
 - **Side-scroller**: `CinemachineCamera` + `CinemachinePositionComposer` (screen X/Y dead zone) + `CinemachineConfiner2D` for level bounds.
 - **First-person**: `CinemachineCamera` + `CinemachineHardLockToTarget` parented under the player head bone. Note: many FPS games hand-roll the camera since FPS demands frame-locked control with no smoothing — use Cinemachine here only if a small amount of camera character is desired.
-- **Cinematic dolly**: `CinemachineCamera` + `CinemachineSplineDolly` referencing a `SplineContainer`. Drive position via Auto-Dolly, a `CinemachineDollyCart`, or a Timeline track.
+- **Cinematic dolly**: `CinemachineCamera` + `CinemachineSplineDolly` referencing a `SplineContainer`. Drive position via Auto-Dolly, a `CinemachineSplineCart`, or a Timeline track.
 - **Orbital character viewer**: `CinemachineCamera` + `CinemachineOrbitalFollow` for character select, inventory, photo mode.
 
 ## Blends and priorities
@@ -88,7 +89,7 @@ Attach procedural components as **siblings** on the same GameObject:
 1. Create a `SplineContainer` GameObject; edit knots in Scene view.
 2. Add `CinemachineSplineDolly` to the vcam, reference the SplineContainer, set Camera Position 0..1 along the spline.
 3. **Auto Dolly** modes: `None` (manual position), `FollowTargetOnSpline` (camera slides to closest spline point to Follow target), or `FixedSpeed`.
-4. For driven motion, add a `CinemachineDollyCart` (as a separate GameObject) that animates a Position parameter along the same spline, then point a CinemachineCamera at the cart as Follow target.
+4. For driven motion, add a `CinemachineSplineCart` (as a separate GameObject) that animates a Position parameter along the same spline, then point a CinemachineCamera at the cart as Follow target.
 
 ## ClearShot and state-driven cameras
 
