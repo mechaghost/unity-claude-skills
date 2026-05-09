@@ -21,9 +21,9 @@ git remote add unity-skills https://github.com/mechaghost/unity-claude-skills.gi
 git subtree add --prefix=.claude/skills/ unity-skills main --squash
 ```
 
-You also need a Unity MCP server connected to your Claude Code session. The skills target Unity's **official Unity MCP**, shipped as part of the [`com.unity.ai.assistant`](https://docs.unity3d.com/Packages/com.unity.ai.assistant@latest/manual/integration/unity-mcp-landing.html) package. After installing the package via Unity Package Manager, point Claude Code at the relay binary the package drops at `~/.unity/relay/` (the docs walk through `claude mcp add unity-mcp ...` with the platform-specific binary), then accept the **Pending Connection** prompt in Unity's Project Settings the first time the client connects.
+You also need a Unity MCP server connected to your Claude Code session. The skills are written **server-agnostic** — they describe capabilities ("read the Unity Editor console", "create a primitive GameObject", "edit this script file") rather than specific tool names, because the MCP tool surface for Unity is moving fast across competing servers. Pick whichever server fits, install it, and let Claude Code discover the available tools at runtime.
 
-> **Tool-name compatibility.** The official Unity MCP advertises tools with a `Unity_PascalCase` naming convention (e.g. `Unity_ManageScene`, `Unity_ManageGameObject`, `Unity_ReadConsole`). Throughout the per-skill content you'll see references to lower-case shorthand like `manage_gameobject`, `read_console`, `apply_text_edits`, `batch_execute`, `unity_reflect`. Treat those as **role names**, not literal tool IDs — match them against whatever the connected Unity MCP server returns from `tools/list` at runtime. If your server doesn't expose a one-to-one equivalent for a given role (for example `batch_execute` is server-specific), fall back to issuing the underlying actions as separate calls.
+The recommended option is Unity's **official Unity MCP**, shipped as part of the [`com.unity.ai.assistant`](https://docs.unity3d.com/Packages/com.unity.ai.assistant@latest/manual/integration/unity-mcp-landing.html) package. After installing the package via Unity Package Manager, point Claude Code at the relay binary the package drops under `~/.unity/relay/` (the docs walk through `claude mcp add unity-mcp ...` with the platform-specific binary), then accept the **Pending Connection** prompt in Unity's Project Settings the first time the client connects. Other community servers (CoplayDev, IvanMurzak, AnkleBreaker, …) work too — the skills don't care which one is wired up, as long as it exposes the capabilities listed in [`.claude/skills/unity-best-practices/SKILL.md`](.claude/skills/unity-best-practices/SKILL.md).
 
 ## Source of truth
 
@@ -37,7 +37,7 @@ Do not edit `.agents/skills/` as a second source of truth. If an `.agents/` tree
 
 ## How the skills work
 
-Skills load on description match. `unity-best-practices` is written to fire on essentially any Unity-related prompt and acts as the always-loaded primer (paradigm detection, console reading, MCP tool inventory, failure protocol, router to all 43 skills).
+Skills load on description match. `unity-best-practices` is written to fire on essentially any Unity-related prompt and acts as the always-loaded primer (paradigm detection, console reading, server-agnostic capability inventory, failure protocol, router to all 43 skills).
 
 Domain skills load when their trigger keywords appear in the user's prompt. The full router lives in [`.claude/skills/unity-best-practices/references/router.md`](.claude/skills/unity-best-practices/references/router.md).
 
@@ -46,7 +46,7 @@ Domain skills load when their trigger keywords appear in the user's prompt. The 
 ### Foundations
 | Skill | Use for |
 | --- | --- |
-| `unity-best-practices` | Always-on primer — paradigm detection, console-first discipline, MCP tool inventory, failure protocol, skill routing. |
+| `unity-best-practices` | Always-on primer — paradigm detection, console-first discipline, server-agnostic capability inventory, failure protocol, skill routing. |
 | `unity-3d-verification` | 4-shot orthographic capture (left, right, top, bottom) before declaring a 3D change done. Includes batching budget for large scenes. |
 | `unity-patterns` | Object pooling, singletons, ScriptableObject event bus, FSM, pause / unscaled time, tweens, screenshot helpers, debug console. |
 
@@ -155,7 +155,7 @@ By design:
 3. No emojis. URP-only / new Input System only / Unity 6.
 4. Cross-link siblings by skill name.
 5. Code snippets must compile against Unity 6 with no obsolescence warnings.
-6. End with a `## Verification` section that names what success looks like in MCP terms (`read_console`, manage_* checks, profiler markers, screenshot capture).
+6. End with a `## Verification` section that names what success looks like in capability terms (a clean Unity Editor console, expected component values readable through the hierarchy, profiler markers visible, an orthographic screenshot matching the brief). Do not reference specific MCP tool names — those vary by server and version.
 
 ## License
 

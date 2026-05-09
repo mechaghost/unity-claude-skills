@@ -18,11 +18,11 @@ Unity 6 ships **Cinemachine 3.x**, and that is the only version this skill cover
 - 2.x `Collider` extension → 3.x `CinemachineDeoccluder`.
 - 2.x `CinemachineDollyCart` → 3.x `CinemachineSplineCart`.
 
-If `unity_reflect` shows a `CinemachineVirtualCamera` already in the scene, the project is still on 2.x. Stop and warn the user — finish a 2.x→3.x upgrade (Window → Cinemachine → Upgrade Manager) before continuing.
+If reflecting on the scene shows a `CinemachineVirtualCamera` component already present, the project is still on 2.x. Stop and warn the user — finish a 2.x→3.x upgrade (Window → Cinemachine → Upgrade Manager) before continuing.
 
 ## Package install
 
-`manage_packages` add `com.unity.cinemachine`. Cinemachine 3.x also depends on `com.unity.splines` for SplineDolly. Once installed, Unity adds the `Cinemachine > ...` menu (use `execute_menu_item` to spawn a CinemachineCamera fast).
+Add `com.unity.cinemachine` via the package manager. Cinemachine 3.x also depends on `com.unity.splines` for SplineDolly. Once installed, Unity adds the `Cinemachine > ...` menu — drive it from the editor menu to spawn a CinemachineCamera fast.
 
 ## CinemachineBrain
 
@@ -131,7 +131,7 @@ Attach procedural components as **siblings** on the same GameObject:
 
 - Enter Play mode (only with user permission). Toggle the trigger that activates each vcam; confirm transitions match priority intent.
 - Enable `Show Debug Text` on the Brain to see the active vcam name and blend percentage on screen.
-- `read_console` for warnings: "CinemachineBrain has no Camera", "No active CinemachineCamera", missing Follow / LookAt.
+- Editor console clean of "CinemachineBrain has no Camera", "No active CinemachineCamera", missing Follow / LookAt warnings.
 - For cinematic Timeline shots, scrub the Timeline preview in Edit mode; Cinemachine respects scrub in-editor.
 - After authoring a follow camera, cross-link `unity-3d-verification` for a 4-shot orthographic capture of the camera-target framing to confirm shoulder offset and dead-zone placement.
 - Cross-link `unity-animation` for Timeline / StateDrivenCamera, `unity-best-practices` for the always-read-the-console / detect-pipeline-first rules.

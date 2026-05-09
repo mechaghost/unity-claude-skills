@@ -20,22 +20,19 @@ The target is a RectTransform under a Canvas (Screen Space Overlay, Screen Space
 
 ## Workflow
 
-1. `find_gameobjects` to locate the UI element by name or tag.
-2. `manage_ui` to inspect or set RectTransform fields at edit time (anchors, pivot, anchored position, size delta).
+1. Locate the UI element by name or tag.
+2. Inspect or set RectTransform fields at edit time (anchors, pivot, anchored position, size delta).
 3. Decide pivot location before rotating. For a needle, a slider handle, or a swing, set the pivot at the rotation point in the prefab — not at runtime.
-4. For one-shot rotations: `manage_gameobject` writing `localEulerAngles` with X=Y=0.
-5. For continuous or animated rotation: `create_script` for a MonoBehaviour, attach via `manage_components`.
+4. For one-shot rotations: write `localEulerAngles` with X=Y=0.
+5. For continuous or animated rotation: author a MonoBehaviour and attach it.
 6. Verify there is no `LayoutGroup`, `ContentSizeFitter`, `Mask`, or `RectMask2D` ancestor that will misbehave (see Gotchas).
-7. `read_console`, then verify visually.
+7. Editor console clean, then verify visually.
 
 ## Common patterns
 
 ### Set absolute rotation
 
-```
-manage_gameobject(action="set_transform", target="HUD/HealthIcon",
-                  localEulerAngles=[0, 0, 45])
-```
+Write `localEulerAngles` to `[0, 0, 45]` on the target RectTransform (e.g. `HUD/HealthIcon`).
 
 ### Spin a loading icon
 
@@ -94,10 +91,10 @@ static void SetPivotKeepPosition(RectTransform rt, Vector2 newPivot) {
 
 ### Editor-time vs runtime tools
 
-- `manage_ui` — RectTransform fields (anchors, pivot, anchoredPosition, sizeDelta) at edit time.
-- `manage_components` — attach the spin/tilt MonoBehaviour, set Animator references.
-- `manage_animation` — author a tilt or spin animation clip to drive `m_LocalRotation`.
-- `unity_reflect` — read live RectTransform corners (`GetWorldCorners`) when debugging clipping.
+- UGUI tooling — RectTransform fields (anchors, pivot, anchoredPosition, sizeDelta) at edit time.
+- Component editing — attach the spin/tilt MonoBehaviour, set Animator references.
+- Animator / Timeline — author a tilt or spin animation clip to drive `m_LocalRotation`.
+- Reflection — read live RectTransform corners (`GetWorldCorners`) when debugging clipping.
 
 ## Gotchas
 

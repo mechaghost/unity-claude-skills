@@ -262,9 +262,9 @@ public class SaveManager : MonoBehaviour
 
 ## Verification
 
-- After save, read the file back with `manage_asset` or `File.ReadAllText` and assert the content matches and `saveVersion` is present.
+- After save, read the file back with `File.ReadAllText` and assert the content matches and `saveVersion` is present.
 - Test on each target platform — `Application.persistentDataPath` differs; iOS / Android sandboxing surfaces only at runtime.
 - For atomic writes, kill the app mid-write (Force Quit / Task Manager / ADB kill) and confirm the previous save survives via the `.bak` file.
-- `read_console` for `IOException`, `UnauthorizedAccessException`, `DirectoryNotFoundException`.
+- Editor console clean of `IOException`, `UnauthorizedAccessException`, `DirectoryNotFoundException`.
 - On first boot, log `Application.persistentDataPath` and confirm it is writable — `File.WriteAllText` to a probe file then delete.
 - Verify settings round-trip: set a slider, restart Play mode, confirm the value loaded.

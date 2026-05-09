@@ -9,7 +9,7 @@ Any audio task: playing SFX, looping music, building a mixer hierarchy, hooking 
 
 ## AudioSource basics
 
-`AudioSource` is the per-object playback component. Add via `manage_components`. Inspector fields and what they actually do:
+`AudioSource` is the per-object playback component. Add it to the GameObject. Inspector fields and what they actually do:
 
 - AudioClip — the asset to play. Required for `Play()` / loops; optional for `PlayOneShot(clip)`.
 - Output — `AudioMixerGroup` to route through. Leave empty and audio bypasses the mixer (no Master volume control). Almost always set this.
@@ -35,15 +35,15 @@ audioSource.Pause(); audioSource.UnPause();
 
 ## AudioListener (one rule)
 
-Exactly ONE `AudioListener` per scene. Default location: Main Camera (`manage_camera`). Two listeners spam the console with "There are 2 audio listeners in the scene…" and Unity arbitrarily uses the first found — audio routing changes are silently ignored.
+Exactly ONE `AudioListener` per scene. Default location: Main Camera. Two listeners spam the console with "There are 2 audio listeners in the scene…" and Unity arbitrarily uses the first found — audio routing changes are silently ignored.
 
-Place on the player instead of the camera for top-down games (where camera sits high above), split-screen (per-player), or first-person where camera and player are the same anchor anyway. Use `manage_scene` to verify there is one and only one listener.
+Place on the player instead of the camera for top-down games (where camera sits high above), split-screen (per-player), or first-person where camera and player are the same anchor anyway. Verify the scene contains one and only one listener.
 
 Note: `AudioListener.pause = true` halts ALL audio without touching `Time.timeScale`. `AudioListener.volume` is a final 0-1 multiplier on everything.
 
 ## AudioMixer architecture
 
-Create with `manage_asset` — `Assets > Create > Audio > Audio Mixer`. A mixer asset holds an audio Group hierarchy; everything terminates at Master.
+Create the asset via `Assets > Create > Audio > Audio Mixer`. A mixer asset holds an audio Group hierarchy; everything terminates at Master.
 
 - AudioSources route via `Output` → AudioMixerGroup.
 - Groups can route to a parent Group: typical layout is `Master → {Music, SFX, UI, Voice, Ambience}` and SFX may have children `SFX_Player`, `SFX_World`, `SFX_Enemy`.
@@ -93,7 +93,7 @@ Ducking — make music dip when dialogue plays — has two implementations:
 
 ## AudioClip import settings
 
-Configure via `manage_asset` on each clip. The fields that matter:
+Configure the AudioImporter on each clip. The fields that matter:
 
 - **Load Type**:
   - `Decompress On Load` — small clips, decoded once at load, low CPU at runtime, higher RAM. Default for short SFX.
@@ -120,7 +120,7 @@ Configure via `manage_asset` on each clip. The fields that matter:
 - Audio interruption (incoming call, Siri, Music app): `AudioSettings.OnAudioConfigurationChanged` fires. After interruption, music often needs to be restarted from `OnApplicationFocus(true)`.
 - Background mute: by default Unity mutes audio when backgrounded. Set `Application.runInBackground = true` AND configure platform session (iOS `AVAudioSession.Category` via a plugin, Android `AudioFocus`).
 - Sample rate cost — 44100 Hz on every clip adds up. Force SFX to 22050.
-- DSP buffer size — `Project Settings > Audio > DSP Buffer Size` via `manage_editor`. `Best latency` for action games (lower buffer = lower latency, more CPU); `Default` for most; `Best performance` for low-end / battery-sensitive devices.
+- DSP buffer size — `Project Settings > Audio > DSP Buffer Size`. `Best latency` for action games (lower buffer = lower latency, more CPU); `Default` for most; `Best performance` for low-end / battery-sensitive devices.
 - Memory: streaming music + a dozen Compressed-In-Memory SFX is the right shape. PCM everywhere will OOM on low-end Android.
 
 ## WebGL gotchas
@@ -162,10 +162,10 @@ Configure via `manage_asset` on each clip. The fields that matter:
 
 ## Verification
 
-- `read_console` immediately after configuration. Watch for "There are 2 audio listeners…", "AudioMixer parameter '…' not exposed", "Cannot find AudioMixerGroup", null clip warnings.
+- Editor console clean after configuration. Watch for "There are 2 audio listeners…", "AudioMixer parameter '…' not exposed", "Cannot find AudioMixerGroup", null clip warnings.
 - Volume slider sanity: log the dB value as the slider moves. Should be roughly `-80` at 0, `-20` near 0.1, `-6` near 0.5, `0` at 1. If the curve feels flat or cliff-edged, the linear-to-dB conversion is wrong.
 - Mixer routing visible: select an AudioSource and confirm `Output` is the intended Group; press Play (Edit mode is fine if `Edit > Project Settings > Audio > Disable Audio` is unchecked) and watch level meters move on the right Group.
 - WebGL: build, open in a browser tab, confirm the first tap/click unlocks audio. Test in an incognito window to avoid cached gestures.
-- `manage_profiler` — Audio module shows active sources, voices used, and memory. Voices capped at `Project Settings > Audio > Real Voice Count` (default 32; 16-24 on mobile). Ramping into the cap manifests as quiet sounds dropping.
+- Profiler — the Audio module shows active sources, voices used, and memory. Voices capped at `Project Settings > Audio > Real Voice Count` (default 32; 16-24 on mobile). Ramping into the cap manifests as quiet sounds dropping.
 - For 3D sources, walk past Min Distance and confirm rolloff curve matches intent. Doppler issues are most obvious on fast-moving projectiles — turn Doppler Level to 0 if unwanted pitch slides appear.
 - After scene transitions (cross-link `unity-scenes`), re-check listener count and that music sources with `ignoreListenerPause` survived as intended.

@@ -24,7 +24,7 @@ Cameras can be stacked: a **Base** camera owns a render target; **Overlay** came
 
 ## Pipeline asset
 
-Edit via `manage_asset` on the `.asset` file, or via `manage_graphics` (pipeline-settings actions).
+Edit the `.asset` file directly, or change pipeline-asset fields through Project Settings → Graphics tooling.
 
 - **General.** `Depth Texture` — enable when anything samples scene depth (soft particles, water, SSAO, distortion); costs a copy pass. `Opaque Texture` — enable for refraction / glass / heat-haze effects sampling the scene color; also a copy pass. `Terrain Holes`. `Force Render to Texture` (HDR pipeline path).
 - **Quality.** `HDR` — enable for bloom and tonemapping; required for ACES. `MSAA` — Off / 2x / 4x / 8x; expensive on mobile and redundant if relying on FXAA/SMAA. `Render Scale` — 0.5–2.0; the simplest dynamic-resolution lever.
@@ -38,12 +38,12 @@ The renderer holds rendering-path and feature decisions. See `references/rendere
 
 - **Rendering Path.** `Forward` (legacy, simple, per-object light cap), `Forward+` (modern default — many lights via tile-based binning, no per-object cap), `Deferred` (many-lights AAA scenes; transparent objects still go through forward, MSAA is unsupported, shader compatibility narrower).
 - **Default Stencil State, Render Pass Strategy, Native RenderPass** (mobile tile-based GPUs benefit from Native RenderPass).
-- **Renderer Features list.** Add/remove via the renderer asset inspector (or `manage_asset`). Built-ins: SSAO, Decal, Screen Space Shadows, Render Objects, Full Screen Pass.
+- **Renderer Features list.** Add/remove via the renderer asset inspector (or by editing the asset). Built-ins: SSAO, Decal, Screen Space Shadows, Render Objects, Full Screen Pass.
 - **Filtering.** `Opaque Layer Mask`, `Transparent Layer Mask` — restrict which scene layers this renderer draws. `Rendering Layer Mask` — light-layer filtering at the renderer level.
 
 ## Camera and camera stack
 
-Edit cameras with `manage_camera` and `manage_components`.
+Edit Camera components directly on the GameObject.
 
 - **Render Type.** `Base` — owns a render target, runs post-processing, draws the world. `Overlay` — composites onto a Base's target; appears in the Base's Camera Stack list. UI cameras, weapon viewmodels, minimap inserts are Overlays.
 - **Renderer override.** A camera can pick a renderer asset other than the pipeline default (e.g. minimap uses a renderer with no SSAO, no decals).
@@ -57,7 +57,7 @@ Edit cameras with `manage_camera` and `manage_components`.
 See `references/post-processing.md` for the full effect catalog and recommended profiles.
 
 - **Volume component.** `Mode = Global` (always applies, weighted by Priority) or `Local` (applies inside a `Collider` set to `isTrigger`, blended by distance). `Weight` 0–1, `Priority` (higher wins ties), `Blend Distance` (Local only).
-- **Volume Profile asset.** Holds the actual overrides. Add overrides per effect; each override has a checkbox per parameter (only checked params apply). Edit via `manage_graphics` post-processing actions or by editing the `.asset` directly with `manage_asset`.
+- **Volume Profile asset.** Holds the actual overrides. Add overrides per effect; each override has a checkbox per parameter (only checked params apply). Edit through post-processing tooling or by editing the `.asset` directly.
 - **Authoring pattern.** One Global Volume with a "Default" profile sets the project look. Local Volumes layer on area-specific looks (cave: darker exposure + heavier vignette; underwater: blue color filter + chromatic aberration).
 - **Common overrides:** Bloom, Tonemapping (Neutral / ACES), Color Adjustments, White Balance, Vignette, Depth of Field (Gaussian / Bokeh), Motion Blur, Film Grain, Lens Distortion, Chromatic Aberration, Channel Mixer, Shadows Midtones Highlights, Lift Gamma Gain, Split Toning.
 
@@ -66,14 +66,14 @@ See `references/post-processing.md` for the full effect catalog and recommended 
 - **Light types.** Directional, Point, Spot — Realtime / Mixed / Baked. Area (Rectangle, Disc) — Baked only.
 - **Mixed sub-modes.** Baked Indirect, Subtractive, Shadowmask. Pick one per scene under Lighting Settings.
 - **Light Layers (Rendering Layers).** Enable in the pipeline asset under Lighting. Each Light has a Rendering Layer mask; each Renderer (MeshRenderer etc.) has one too. A light only illuminates renderers whose mask intersects its mask. Use case: a key light for the player only, not the level.
-- **Lightmapping.** `Window > Rendering > Lighting`. Bake via `manage_graphics` (light-baking action). Prefer the GPU lightmapper. Set Lightmap Resolution conservatively — bake times scale quadratically.
+- **Lightmapping.** `Window > Rendering > Lighting`. Trigger the bake from the Lighting window. Prefer the GPU lightmapper. Set Lightmap Resolution conservatively — bake times scale quadratically.
 - **Reflection probes.** Baked or Realtime; Box or Sphere proxy. Renderer's Reflection Probes setting (Off / Blend Probes / Blend Probes And Skybox / Simple) controls how it samples.
 
 ## 2D Renderer
 
 A separate renderer asset (`Renderer2DData`) — assign it to the pipeline asset (or to a specific camera) for 2D projects.
 
-- **2D Lights.** Component types: Freeform, Sprite, Parametric, Point, Global. Add via `manage_components`.
+- **2D Lights.** Component types: Freeform, Sprite, Parametric, Point, Global. Add the component directly to the GameObject.
 - **Light Blend Styles.** Up to four channels on the 2D Renderer asset. Each style picks a blend mode (Multiply / Additive / Modulate) and mask channel. Lights and sprites both reference a blend style index.
 - **Lit sprites.** Sprite materials must use `Sprite-Lit-Default` or a `Sprite Lit Shader Graph` to receive 2D lights. Default `Sprite-Default` is unlit and ignores 2D Lights entirely.
 - **Normal / mask maps.** Authored in Sprite Editor's Secondary Textures pane (`_NormalMap`, `_MaskTex`).
@@ -89,11 +89,11 @@ Built-in features (`UniversalRendererData` inspector → Add Renderer Feature):
 - **Render Objects** — render selected layer / rendering-layer mask with a custom material/shader at a specific event in the frame. The workhorse for outline / silhouette / X-ray passes.
 - **Full Screen Pass Renderer Feature** — apply a Shader Graph "Fullscreen" shader as a post-process before/after transparents.
 
-Custom features: derive `ScriptableRendererFeature` and `ScriptableRenderPass` C# classes via `create_script` / `apply_text_edits`, then add to the renderer asset. See `references/renderer-features.md` for the skeleton and event-ordering rules.
+Custom features: derive `ScriptableRendererFeature` and `ScriptableRenderPass` C# classes in your project, then add the feature to the renderer asset. See `references/renderer-features.md` for the skeleton and event-ordering rules.
 
 ## Switching pipelines
 
-- **Built-in to URP.** This skill set targets URP, but legacy asset packages, Asset Store content, and older Unity templates routinely import Built-in shaders/materials — so this migration is the common case. Install URP via `manage_packages` (`com.unity.render-pipelines.universal`). Create the pipeline asset (`Assets > Create > Rendering > URP Asset (with Universal Renderer)`) — `manage_asset`. Assign under `Project Settings > Graphics`. Run `Edit > Rendering > Materials > Convert Selected/All Built-in Materials to URP` to remap Standard / Legacy shaders. Custom hand-written shaders need rewriting — see `unity-shaders`.
+- **Built-in to URP.** This skill set targets URP, but legacy asset packages, Asset Store content, and older Unity templates routinely import Built-in shaders/materials — so this migration is the common case. Install URP via the package manager (`com.unity.render-pipelines.universal`). Create the pipeline asset (`Assets > Create > Rendering > URP Asset (with Universal Renderer)`). Assign it under `Project Settings > Graphics`. Run `Edit > Rendering > Materials > Convert Selected/All Built-in Materials to URP` to remap Standard / Legacy shaders. Custom hand-written shaders need rewriting — see `unity-shaders`.
 - **Per-quality overrides.** In `Project Settings > Quality`, each tier can point to a different pipeline asset; the global Graphics setting is only the fallback. Devs editing the wrong tier and seeing no change is a top miss.
 
 ## Performance
@@ -104,8 +104,8 @@ Custom features: derive `ScriptableRendererFeature` and `ScriptableRenderPass` C
 - Shadow distance and cascade count dominate shadow cost more than shadowmap resolution.
 - Depth Texture and Opaque Texture each add a copy pass — only enable if a feature uses them.
 - Forward+ supports many lights without the per-object light cap, but tile binning has constant overhead; on scenes with ≤4 lights Forward can be cheaper.
-- **SRP Batcher** requires SRP-compatible shaders. URP/Lit and Shader Graph qualify by default; old hand-written shaders may not. The shader inspector shows compatibility status; `read_console` surfaces incompatibility warnings.
-- Use `manage_profiler`'s Frame Debugger to inspect the actual pass list — far more reliable than reasoning about renderer features.
+- **SRP Batcher** requires SRP-compatible shaders. URP/Lit and Shader Graph qualify by default; old hand-written shaders may not. The shader inspector shows compatibility status; the Editor console surfaces incompatibility warnings.
+- Use the Profiler's Frame Debugger to inspect the actual pass list — far more reliable than reasoning about renderer features.
 
 ## Common patterns
 
@@ -119,7 +119,7 @@ Custom features: derive `ScriptableRendererFeature` and `ScriptableRenderPass` C
 - Built-in (or HDRP) shaders render pink in URP. Convert via `Edit > Rendering > Materials > Convert ... to URP`; for custom HLSL see `unity-shaders`.
 - **Volume not affecting camera.** The Volume's GameObject layer isn't in the camera's `Volume Mask`. Or for Local Volumes: the Collider isn't a trigger, or the camera's `Volume Trigger` transform is outside the collider bounds.
 - **Overlay camera with post-processing on** costs an extra full pass and may double-tonemap. Only Base owns PP.
-- **SRP Batcher off** = an incompatible shader broke batching. Check `read_console` for SRP Batcher compatibility messages and the shader inspector's compatibility line.
+- **SRP Batcher off** = an incompatible shader broke batching. Check the Editor console for SRP Batcher compatibility messages and the shader inspector's compatibility line.
 - **Light Layers do nothing** unless `Rendering Layers` is enabled on the pipeline asset AND each Light AND each Renderer has its mask set.
 - **Wrong pipeline asset edited.** Graphics-settings asset is fallback; per-Quality-tier assets override. Confirm which is active for the current quality level before tuning.
 - **2D Lights have no effect** on sprites using `Sprite-Default`. Switch material to `Sprite-Lit-Default`.
@@ -130,4 +130,4 @@ Custom features: derive `ScriptableRendererFeature` and `ScriptableRenderPass` C
 
 ## Verification
 
-After any 3D pipeline change, run `unity-3d-verification` (4-shot orthographic) and capture a Game-view screenshot showing the active post-processing stack. After enabling or modifying a renderer feature, capture a Frame Debugger screenshot via `manage_profiler` to confirm the expected pass actually appears in the frame and in the right order. After switching pipelines or per-quality overrides, take screenshots of every quality tier the project ships — quality-tier overrides are the most-missed regression source.
+After any 3D pipeline change, run `unity-3d-verification` (4-shot orthographic) and capture a Game-view screenshot showing the active post-processing stack. After enabling or modifying a renderer feature, capture a Frame Debugger screenshot to confirm the expected pass actually appears in the frame and in the right order. After switching pipelines or per-quality overrides, take screenshots of every quality tier the project ships — quality-tier overrides are the most-missed regression source.

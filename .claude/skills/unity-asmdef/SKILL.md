@@ -196,7 +196,7 @@ Two fixes:
 1. **Extract shared types to a third assembly.** If `Combat` and `Inventory` both need `ItemId`, create `Studio.Domain` lower in the graph and put `ItemId` there.
 2. **Invert via interface.** If `Combat` needs to notify `UI` and `UI` already refs `Combat`, define `ICombatListener` in `Combat`, have `UI` implement it, and inject the listener into `Combat` at boot. Direction stays `UI -> Combat`.
 
-To find the cycle, use `find_in_file` against every `.asmdef` under `Assets/` and grep the `references` arrays — or inspect the Project view, where Unity highlights the offending asmdef.
+To find the cycle, search every `.asmdef` under `Assets/` and grep the `references` arrays — or inspect the Project view, where Unity highlights the offending asmdef.
 
 ## Compilation cost
 
@@ -218,8 +218,8 @@ Warm iteration is the bigger win — editing one leaf script with a healthy grap
 
 ## Verification
 
-- `read_console` after each asmdef edit; cyclic-ref and missing-reference errors surface immediately.
-- `find_in_file` for `using UnityEditor;` across every runtime asmdef folder. Any hit must be `#if UNITY_EDITOR`-guarded or moved to an Editor asmdef.
+- Editor console clean after each asmdef edit; cyclic-ref and missing-reference errors surface immediately.
+- Search for `using UnityEditor;` across every runtime asmdef folder. Any hit must be `#if UNITY_EDITOR`-guarded or moved to an Editor asmdef.
 - Make a trivial edit to one leaf script and observe the recompile in the bottom-right spinner — it should name only the owning DLL plus its dependents.
 - For the test-asmdef setup, open Window > General > Test Runner and confirm tests are listed.
 

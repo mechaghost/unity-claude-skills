@@ -20,10 +20,6 @@ Fire this skill when the user is reaching for the ubiquitous patterns that don't
 
 For dedicated subsystems, defer to: `unity-audio`, `unity-scenes`, `unity-persistence`, `unity-animation`, `unity-shuriken`, `unity-3d-verification`, `unity-best-practices`.
 
-## MCP cheatsheet
-
-`manage_components`, `manage_gameobject`, `manage_asset`, `manage_scene`, `manage_scriptable_object`, `find_gameobjects`, `read_console`, `unity_reflect`, `unity_docs`, `apply_text_edits`, `create_script`, `batch_execute`.
-
 ## Object pooling
 
 Unity 6 ships `UnityEngine.Pool.ObjectPool<T>` — use it instead of rolling your own.
@@ -329,6 +325,6 @@ For an in-game debug console, install `IngameDebugConsole` (asset store, free) o
 - **SO events**: log on `Raise`; confirm all expected listeners fire and unregister on disable.
 - **Pause**: pause for 5s, confirm Animator paused, music stopped (or playing if `ignoreListenerPause`), UI tweens still running.
 - **Screenshots**: open the file; matches expected resolution (`superSize` multiplies width × height).
-- `read_console` clean — no "Coroutine couldn't be started because the game object 'X' is inactive" warnings.
+- Editor console clean — no "Coroutine couldn't be started because the game object 'X' is inactive" warnings.
 
 Cross-link: `unity-best-practices`, `unity-scenes`, `unity-persistence`, `unity-audio`, `unity-animation`, `unity-shuriken`, `unity-3d-verification`.

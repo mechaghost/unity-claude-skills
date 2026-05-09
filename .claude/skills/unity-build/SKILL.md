@@ -11,7 +11,7 @@ Any build or shipping task: producing a Player binary, switching platforms, conf
 
 Unity 6 introduced **Build Profiles** (`File > Build Profiles`) which replace the older Build Settings dialog. A profile bundles `(platform, scenes, scripting backend, defines, settings overrides)` so you can switch between `Android-Release` and `WebGL-Staging` without re-importing assets every time. Profiles still funnel through `BuildPipeline.BuildPlayer` under the hood — anything you do in the GUI is reproducible in code.
 
-Pick profiles via Unity MCP: `execute_menu_item` → `File/Build Profiles`, then `manage_build` to switch active profile and trigger the build. Use `manage_editor` to mutate `PlayerSettings`, `BuildSettings`, and `EditorBuildSettings.scenes` between profiles when CI must override values.
+Open `File > Build Profiles` from the editor menu, switch the active profile, and trigger the build. Mutate `PlayerSettings`, `BuildSettings`, and `EditorBuildSettings.scenes` through Project Settings tooling between profiles when CI must override values.
 
 ## PlayerSettings essentials
 
@@ -25,7 +25,7 @@ Under `Edit > Project Settings > Player`. Per-platform tabs:
 - **Capabilities** (iOS) — Push Notifications (cross-link `unity-push-local-notifications`), In-App Purchase (cross-link `unity-iap`), Sign in with Apple (cross-link `unity-auth-account-linking`), Game Center, etc. Each capability flips an entitlement in the generated Xcode project; missing capabilities are a frequent cause of post-archive upload errors.
 - **Icon** — per-platform icon sets; Android adaptive icons need foreground/background mipmap layers.
 
-Mutate via `manage_editor` rather than hand-editing `ProjectSettings/ProjectSettings.asset` — the editor normalizes values and re-serializes meta.
+Mutate through Project Settings tooling rather than hand-editing `ProjectSettings/ProjectSettings.asset` — the editor normalizes values and re-serializes meta.
 
 ## Build profiles (Unity 6)
 
@@ -117,7 +117,7 @@ public static class Builders
 }
 ```
 
-Use for CI: `unity -batchmode -nographics -executeMethod Builders.BuildAndroidRelease -quit -logFile build.log`. Create build scripts via `create_script` and trigger via `manage_build` or `execute_menu_item`.
+Use for CI: `unity -batchmode -nographics -executeMethod Builders.BuildAndroidRelease -quit -logFile build.log`. Author the build script in the project and trigger it from the build menu or via BuildPipeline tooling.
 
 ## Post-build callbacks
 
@@ -248,7 +248,7 @@ Pair with `unity-persistence` for the actual save/flush implementation.
 1. Build first. Confirm `BuildReport.summary.result == BuildResult.Succeeded` and `summary.totalErrors == 0`.
 2. Inspect `summary.totalSize` and `report.packedAssets` (sort descending) to spot bloat.
 3. Test the actual artifact (`.exe`/`.app`/`.apk`/`.aab`/`.ipa`/`index.html`) on target hardware — the Editor build is NOT the same.
-4. `read_console` for compile warnings and stripping notices during the build.
+4. Editor console clean of compile warnings and stripping notices during the build.
 5. Test app lifecycle: alt-tab on desktop, home-button on mobile, browser tab switch on WebGL — verify save-on-pause works.
 6. Mobile: run on the lowest-supported device. WebGL: test in Chrome + Safari + Firefox (Safari has the most divergent quirks).
 7. After IL2CPP shipping builds, scan device logs for `MissingMethodException` / AOT errors → add to `link.xml` and rebuild.

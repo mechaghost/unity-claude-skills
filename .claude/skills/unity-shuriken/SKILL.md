@@ -15,7 +15,7 @@ Any task involving the built-in `ParticleSystem` MonoBehaviour: hit sparks, expl
   - `World` — particles stay where they were emitted (smoke trail behind a moving rocket).
   - `Custom` — particles follow a chosen Transform (e.g. parent rig that moves but not the emitter).
 - Loop vs one-shot. `Main.Looping` on = continuous (smoke, fire). Off + `Main.Stop Action: Destroy` = one-shot prefab that removes itself after the last particle dies. Use `Disable` instead of `Destroy` when pooling.
-- Build hierarchies under a clearly named anchor GameObject (e.g. `FX_Explosion_Large`) so `manage_gameobject` can spawn/parent the whole effect as a unit.
+- Build hierarchies under a clearly named anchor GameObject (e.g. `FX_Explosion_Large`) so the whole effect can be spawned or reparented as a unit.
 
 ## Modules
 
@@ -57,9 +57,9 @@ Blend mode picks the look:
 - `Alpha` — smoke, dust, water spray. Standard transparent compositing.
 - `Premultiplied` — soft particles with internal masking, fog cards.
 
-`Soft Particles` (smooth fade against intersecting geometry) requires the active camera to render a depth texture — confirm via `manage_camera` and pipeline settings (`manage_graphics`).
+`Soft Particles` (smooth fade against intersecting geometry) requires the active camera to render a depth texture — confirm on the Camera component and in Project Settings → Graphics.
 
-Author/swap materials with `manage_material`; for custom particle shaders use `manage_shader`. Texture sheets and atlases come in via `manage_texture` and `manage_asset`.
+Author or swap materials directly on the asset; for custom particle shaders, edit the Shader Graph or HLSL source. Texture sheets and atlases come in through standard texture / sprite import.
 
 ## Sub-emitters
 
@@ -69,7 +69,7 @@ Sub Emitters wire one ParticleSystem to spawn another on a lifecycle event. Cano
 2. On root `Death` — sub-emitter `FX_Explosion`: short Sphere burst, additive, `Looping` off, `Stop Action: Destroy`, `Lights` module on a small fraction.
 3. On `FX_Explosion` `Death` — sub-emitter `FX_Smoke_Linger`: alpha smoke, `World` space, gravity slightly negative, color-over-lifetime fading to 0.
 
-Wire via `manage_vfx` if the action is exposed. If not, fall back to `manage_components` to set the `ParticleSystem.SubEmittersModule` (its `subEmitters` list of `ParticleSystem` references and `ParticleSystemSubEmitterType`). For complex API access route through `unity_reflect` or generate a configurator script with `create_script`.
+Wire the sub-emitters by setting the `ParticleSystem.SubEmittersModule` on the parent system — its `subEmitters` list of `ParticleSystem` references and `ParticleSystemSubEmitterType`. For complex API access, reflect on the live type or author a small configurator script.
 
 ## Performance
 
@@ -83,7 +83,7 @@ Dominant cost is `Main.Max Particles` x simulation step x renderer overdraw. Tie
 - Trails: every particle with a trail multiplies vertex/index count. Limit `Ratio` (fraction of particles with trails).
 - Pooling: never `Instantiate`+`Destroy` per shot. Pre-spawn pooled effects, then `ps.Play()` / `ps.Stop()`. Combine with `Stop Action: Disable` and re-enable on dequeue.
 - GPU instancing: enable on the renderer when `Render Mode = Mesh` with the same material across particles.
-- Profile via `manage_profiler` and look at `ParticleSystem.Update`, `ParticleSystem.Render`, and `ParticleSystem.EndUpdateAll` markers.
+- Profile in the Profiler and look at `ParticleSystem.Update`, `ParticleSystem.Render`, and `ParticleSystem.EndUpdateAll` markers.
 
 Mobile-specific: large alpha-blended quads cause overdraw and thermal throttling. Smaller particles, lower alpha, or fewer overlapping layers. Stick to the **<200/system, 4-6 emitters** ceiling above; pool aggressively.
 
@@ -122,7 +122,7 @@ bool done = !ps.IsAlive(true);
 
 Or set `Main.Stop Action: Callback` and implement `OnParticleSystemStopped()` on a MonoBehaviour on the same GameObject — fires once when emission has stopped and all particles have died.
 
-Generate or edit such scripts with `create_script` / `apply_text_edits` and attach via `manage_components`. For batched configuration (many systems at once) use `batch_execute`.
+Author or edit such scripts and attach the components in the scene. Batch related calls together when the server supports it; otherwise issue them sequentially.
 
 ## Common patterns
 
@@ -136,13 +136,13 @@ Generate or edit such scripts with `create_script` / `apply_text_edits` and atta
 ## Gotchas
 
 - Module struct trap (above) — cache `var main = ps.main;` then mutate.
-- Pink material in URP = Built-in / legacy particle shader on a URP project (commonly from imported asset packages). Reassign to a `Universal Render Pipeline/Particles/...` shader via `manage_material`.
+- Pink material in URP = Built-in / legacy particle shader on a URP project (commonly from imported asset packages). Reassign to a `Universal Render Pipeline/Particles/...` shader on the material asset.
 - `World` vs `Local` mismatch is the single most common "particles drag behind", "clump up at origin", or "stick to the player" bug. Pick deliberately.
 - `Play On Awake` is on by default. Disable for triggered/pooled effects, otherwise they fire once when spawned and leave the pool already-stopped.
 - `Stop Action: Destroy` destroys the GameObject — fatal if the ParticleSystem is on a player or a persistent rig. Use `Disable` plus pooling.
 - Sub-emitter prefab references can break across scenes. Either assign in the prefab inspector or wire at runtime via the `SubEmittersModule` API.
 - Particles render in the transparent queue and do not write depth — they can z-fight with other transparent meshes. Tune `Sorting Fudge`, `Order in Layer`, or pin `Sort Mode`.
-- 2D scenes: Transparency Sort Mode (`manage_graphics`) and `Pixels Per Unit` interact with particle sorting in non-obvious ways. Pin a custom sort axis if results are unstable.
+- 2D scenes: Transparency Sort Mode (Project Settings → Graphics) and `Pixels Per Unit` interact with particle sorting in non-obvious ways. Pin a custom sort axis if results are unstable.
 - Trails inherit the particle's lifetime. Short particle = short trail. Lengthen `Start Lifetime` (or use `Lifetime` on the Trails module) instead of fighting it.
 - `Looping` off + no `Stop Action` = the GameObject lingers forever. Always pair with `Destroy` or `Disable` (or pool it).
 - Mobile thermal: large additive quads at high count overdraw the screen multiple times per frame.
@@ -162,5 +162,5 @@ ps.Simulate(0.4f, true /* withChildren */, true /* restart */);
   - Cone/Shape orientation matches intent (gizmo arrow points where particles should go).
   - Emission rate roughly matches the design (count particles in a single captured frame).
   - No pink material; particles are not z-fighting with adjacent transparents.
-- Run `manage_profiler` for any effect that may be hot. Look for `ParticleSystem.Update` / `ParticleSystem.Render` spikes.
-- Check `read_console` after configuration changes for null references in sub-emitter slots or missing renderer materials.
+- Open the Profiler for any effect that may be hot. Look for `ParticleSystem.Update` / `ParticleSystem.Render` spikes.
+- Editor console clean of null references in sub-emitter slots or missing renderer materials after configuration changes.

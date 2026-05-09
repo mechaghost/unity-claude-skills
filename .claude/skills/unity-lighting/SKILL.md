@@ -7,8 +7,6 @@ description: 'Use when working with Unity lighting and global illumination throu
 
 URP-only. Unity 6. New Input System only.
 
-MCP cheatsheet: manage_graphics, manage_components, manage_gameobject, manage_scene, manage_asset, manage_packages, manage_editor, manage_material, manage_camera, find_gameobjects, read_console, unity_reflect, unity_docs, apply_text_edits, create_script, batch_execute, execute_menu_item.
-
 ## When to use
 
 Light setup, GI bake, indoor / outdoor lighting, performance issues from lights, broken lightmaps, missing reflections, ambient light wrong, fog setup, dynamic time-of-day, shadowmask blending, light cookie projection.
@@ -128,7 +126,7 @@ Lighting window > Environment tab.
 
 ## Verification
 
-- `read_console` for "Lightmap UVs missing" / "Generate Lightmap UVs" / "Could not find lightmap" warnings.
+- Editor console clean of "Lightmap UVs missing" / "Generate Lightmap UVs" / "Could not find lightmap" warnings.
 - Lighting window > Baked Lightmaps tab shows the generated atlases — visually inspect for seams, dead space.
 - Scene view > Draw Mode = Baked Lightmap to see lightmap contribution; Indirect for GI only; Shadowmask for shadowmask coverage.
 - For 3D scene changes, verify via `unity-3d-verification` 4-shot at multiple times-of-day.

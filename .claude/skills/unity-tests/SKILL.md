@@ -5,12 +5,12 @@ description: 'Use when authoring or running Unity tests through Unity MCP — Un
 
 ## When to use
 
-Reach for this skill any time you are writing automated tests in Unity, configuring a test asmdef, running tests from the Test Runner window, kicking a test job through MCP (`run_tests` / `get_test_job`), wiring code coverage, or hooking tests into CI. UTF is the official test framework; it is NUnit-based but adds Unity-specific affordances such as `[UnityTest]` coroutines and PlayMode runs. Open the runner via `Window > General > Test Runner`.
+Reach for this skill any time you are writing automated tests in Unity, configuring a test asmdef, running tests from the Test Runner window, kicking a test job through the test-runner capability, wiring code coverage, or hooking tests into CI. UTF is the official test framework; it is NUnit-based but adds Unity-specific affordances such as `[UnityTest]` coroutines and PlayMode runs. Open the runner via `Window > General > Test Runner`.
 
 ## Test framework setup
 
 1. Create a folder like `Assets/Tests/EditMode/` or `Assets/Tests/PlayMode/`.
-2. Add a Tests asmdef inside it (`manage_asset` create asmdef, see unity-asmdef).
+2. Add a Tests asmdef inside it (create the asmdef asset, see unity-asmdef).
 3. In the asmdef inspector, check Test Assemblies. This automatically scopes the asmdef and hides it from non-test builds.
 4. Add precompiled references: `nunit.framework.dll`, `UnityEngine.TestRunner`, `UnityEditor.TestRunner` (the Editor one only when the asmdef includes the Editor platform). **Note**: the `Override References` checkbox in the asmdef inspector must be enabled before the precompiled-references list field appears. Without that toggle, the field is hidden and adding nunit/TestRunner fails silently. For the canonical Tests asmdef JSON template see `unity-asmdef`.
 5. Reference the asmdef under test (e.g. `Game.Runtime`).
@@ -112,7 +112,7 @@ Inject via constructor, field, or `[Inject]` (if using a DI container). Avoid si
 
 ## Code coverage
 
-Install `com.unity.testtools.codecoverage` (`manage_packages`). Open `Window > Analysis > Code Coverage`. Settings:
+Install `com.unity.testtools.codecoverage` via the package manager. Open `Window > Analysis > Code Coverage`. Settings:
 
 - Enable Code Coverage in Settings.
 - Generate HTML Report after run.
@@ -133,7 +133,7 @@ unity -batchmode -nographics -runTests \
 
 Repeat with `-testPlatform playmode`. Exit code is nonzero on red. Parse `*-results.xml` (NUnit3 schema) in CI. The `game-ci/unity-test-runner` GitHub Action wraps this and uploads results + coverage.
 
-Through MCP: `run_tests` to kick a job, `get_test_job` to poll for completion. Use this for quick local smoke runs; use the Test Runner window for iterative authoring.
+Through the test-runner capability: kick a job, then poll for completion. Use this for quick local smoke runs; use the Test Runner window for iterative authoring.
 
 ## Common patterns
 
@@ -159,14 +159,14 @@ Through MCP: `run_tests` to kick a job, `get_test_job` to poll for completion. U
 ## Verification
 
 - Test Runner window shows green for the suite (EditMode and PlayMode).
-- `read_console` clean — no stray errors or warnings during runs.
+- Editor console clean — no stray errors or warnings during runs.
 - Code Coverage HTML report shows touched lines for the system under test.
 - CI build fails on a red test (verify by intentionally breaking one once).
-- For MCP-driven runs: `get_test_job` returns `passed` and `failures: 0`.
+- For runner-capability-driven runs: the job returns `passed` and `failures: 0`.
 
 ## Cross-links
 
 - unity-asmdef — required to set up Test Assemblies flag and references.
 - unity-scenes — for PlayMode scene fixtures and Build Settings additions.
 - unity-build — for headless CI builds and Development Build profiling.
-- unity-best-practices — read-console / batch_execute discipline applies to test runs too.
+- unity-best-practices — read-console and batch-related-calls discipline applies to test runs too.

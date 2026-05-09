@@ -50,7 +50,7 @@ Reuse logic with `Convert to Sub Graph` (right-click selected nodes). For a one-
 
 ## Materials and properties
 
-A Material is a Shader plus a value table plus keyword toggles. Edit values with `manage_material`.
+A Material is a Shader plus a value table plus keyword toggles. Edit values directly on the material asset.
 
 **Shared vs instance.** `Renderer.material` clones the asset on first access, allocating a new material per renderer and breaking SRP Batcher / static batching. `Renderer.sharedMaterial` reads and writes the asset itself. For per-object tweaks without cloning, use a `MaterialPropertyBlock`.
 
@@ -74,7 +74,7 @@ Always cache property IDs at runtime: `static readonly int BaseColor = Shader.Pr
 1. Create: `Project > Create > Shader Graph > URP > Lit Shader Graph` (or Unlit, Sprite Lit, etc — pick the URP subtarget that matches the surface).
 2. Open: double-click the asset. The Master Stack on the right is the output; the Blackboard on the left holds properties.
 3. Add a property: click `+` on the Blackboard, pick a type, set the **Reference** name to match what scripts expect (`_BaseColor` etc). Without an explicit Reference, Shader Graph generates a GUID-suffixed name and `Shader.PropertyToID` will fail at runtime.
-4. Save: `Save Asset` button top-left, or Cmd/Ctrl-S inside the editor. Out-of-band file edits to the `.shadergraph` need `manage_asset` to refresh.
+4. Save: `Save Asset` button top-left, or Cmd/Ctrl-S inside the editor. Out-of-band file edits to the `.shadergraph` need an asset refresh to pick up.
 5. Vertex stage: connect to the **Position**, **Normal**, or **Tangent** ports on the Vertex block of the Master Stack for wave/foliage effects.
 
 Common nodes: Sample Texture 2D, Tiling and Offset, UV, Time, Gradient Noise, Voronoi, Step, Smoothstep, Fresnel Effect, Normal From Texture, Lerp, Remap, Split, Combine.
@@ -165,7 +165,7 @@ Pitfalls: `SetPropertyBlock(null)` clears all overrides; the block is cached on 
 
 ## Keywords and variants
 
-Keywords toggle code paths: `_NORMALMAP`, `_METALLICSPECGLOSSMAP`, `_EMISSION`, `_ALPHATEST_ON`. Set at runtime with `Material.EnableKeyword("_NORMALMAP")` or via `manage_material` keyword toggles.
+Keywords toggle code paths: `_NORMALMAP`, `_METALLICSPECGLOSSMAP`, `_EMISSION`, `_ALPHATEST_ON`. Set at runtime with `Material.EnableKeyword("_NORMALMAP")` or by toggling the keyword on the material asset.
 
 **Variant explosion.** Each `multi_compile` keyword doubles the variant count. A Lit shader with 12 keywords ships 4096 variants. Mitigations:
 
@@ -224,13 +224,13 @@ IEnumerator WarmUpAllShaders() {
 
 ## Debugging pink / errors
 
-- **Pink material.** The shader is missing or failed to compile. Check `read_console` for compile errors first. If it is "Shader 'X' not found", run the URP converter or assign a URP shader from the catalog above.
+- **Pink material.** The shader is missing or failed to compile. Check the Editor console for compile errors first. If it is "Shader 'X' not found", run the URP converter or assign a URP shader from the catalog above.
 - **Wrong-pipeline shader.** Built-in `Standard` (or any legacy / HDRP shader pulled in by an imported package) on a URP project. Run `Edit > Rendering > Materials > Convert ... to URP`.
-- **Compile error.** `read_console` shows the line and pass. Common causes: missing `#include`, undefined keyword sampler, mismatched CBUFFER, Shader Model too low for a node (raise with `#pragma target 4.5`).
+- **Compile error.** The Editor console shows the line and pass. Common causes: missing `#include`, undefined keyword sampler, mismatched CBUFFER, Shader Model too low for a node (raise with `#pragma target 4.5`).
 - **Silent fallback.** Runtime keyword combination not in the build. Open Frame Debugger (`Window > Analysis > Frame Debugger`) and inspect the actual variant used.
-- **Washed-out colors.** sRGB flag wrong on the texture. Albedo/color = sRGB on. Mask, normal, roughness, data textures = sRGB off. Toggle via `manage_texture`.
-- **Blue/wrong normals.** Texture not flagged as Normal Map at import. Toggle `Texture Type = Normal Map` via `manage_texture`. URP also needs `_NORMALMAP` keyword enabled on the material.
-- **Z-sort wrong.** Render queue mismatch. Opaque = 2000, AlphaTest = 2450, Transparent = 3000. Set via `manage_material` `renderQueue` or via Shader Graph `Surface = Opaque/Transparent`.
+- **Washed-out colors.** sRGB flag wrong on the texture. Albedo/color = sRGB on. Mask, normal, roughness, data textures = sRGB off. Toggle the import setting on the texture asset.
+- **Blue/wrong normals.** Texture not flagged as Normal Map at import. Set `Texture Type = Normal Map` on the texture importer. URP also needs `_NORMALMAP` keyword enabled on the material.
+- **Z-sort wrong.** Render queue mismatch. Opaque = 2000, AlphaTest = 2450, Transparent = 3000. Set `renderQueue` on the material directly, or via Shader Graph `Surface = Opaque/Transparent`.
 - **Transparent object disappears.** No depth write but writing to depth-required pass, or queue too low. Check Surface = Transparent and Alpha Clipping for cutout.
 
 ## Performance

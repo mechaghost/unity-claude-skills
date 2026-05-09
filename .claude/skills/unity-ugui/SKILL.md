@@ -41,7 +41,7 @@ Quick rules:
 
 In the editor, Alt-click the anchors-preset menu to set anchors AND position AND pivot in one click — by far the fastest path for common configs.
 
-Use `manage_ui` to set these fields at edit time. For one-off transform writes use `manage_gameobject`. Prefer `RectTransform.anchoredPosition` over `position`; world position ignores the anchor system.
+Set these fields at edit time through UGUI tooling. For one-off transform writes, write the Transform directly. Prefer `RectTransform.anchoredPosition` over `position`; world position ignores the anchor system.
 
 ## Selectables and widgets
 
@@ -49,7 +49,7 @@ Use `manage_ui` to set these fields at edit time. For one-off transform writes u
 
 - **Transition**: None (no visual change), Color Tint (cheapest), Sprite Swap, Animation (Animator-driven). Color Tint is the default for HUD widgets; Animation when hover/press needs richer motion.
 - **Navigation**: Automatic, Horizontal, Vertical, Explicit (manually wire select-on-up/down/left/right). Use Explicit for grid menus to avoid wrong picks.
-- **Button**: `onClick` UnityEvent. Wire via `manage_components` (set persistent target/method) or in code:
+- **Button**: `onClick` UnityEvent. Wire by setting the persistent target/method on the component or in code:
   ```csharp
   button.onClick.AddListener(() => Debug.Log("clicked"));
   ```
@@ -234,5 +234,5 @@ Pool N visible items in a ScrollRect and reposition them as the user scrolls ins
 
 - Game-view screenshot at the project's reference resolution AND at one off-target resolution (e.g. 1920x1080 reference + a 1080x1920 portrait test) to catch anchor breakage.
 - For world-space canvases sitting in a 3D scene, hand off to `unity-3d-verification` for the four-shot orthographic capture.
-- Inspect `read_console` for: layout cycle warnings, missing-EventSystem warnings, TMP Essentials nags, Graphic Raycaster errors.
-- For interactive flows, scripted check via `unity_reflect` to confirm `Selectable.interactable` matches intent and `Button.onClick` listener count is greater than zero.
+- Editor console clean of: layout cycle warnings, missing-EventSystem warnings, TMP Essentials nags, Graphic Raycaster errors.
+- For interactive flows, reflect on the live components to confirm `Selectable.interactable` matches intent and `Button.onClick` listener count is greater than zero.

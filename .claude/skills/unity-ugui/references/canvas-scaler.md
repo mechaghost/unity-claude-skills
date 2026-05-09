@@ -32,7 +32,7 @@ Scale by DPI so a button is the same physical size on every device. Niche; use w
 
 ## Reference Pixels Per Unit
 
-This pairs with sprite import `Pixels Per Unit` (set via `manage_texture`). The two should match for sprites to render at their authored size. Mismatch produces wrong-scale UI sprites. The default is `100` on both sides.
+This pairs with sprite import `Pixels Per Unit` (set on the texture importer). The two should match for sprites to render at their authored size. Mismatch produces wrong-scale UI sprites. The default is `100` on both sides.
 
 ## Mobile patterns
 

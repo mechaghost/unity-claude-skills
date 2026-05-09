@@ -25,7 +25,7 @@ Translation table:
 
 `com.unity.entities` brings in `com.unity.collections`, `com.unity.burst`, `com.unity.mathematics` automatically. For rendering entities: `com.unity.entities.graphics` (Hybrid Renderer / Entities Graphics). For networking: `com.unity.netcode` (Netcode for Entities — separate package and stack from Netcode for GameObjects). Editor windows live under `Window > Entities > Hierarchy / Components / Systems`.
 
-Use `manage_packages` via MCP to add. Verify with `read_console` after install — Burst and Entities both emit version banners.
+Add via the package manager. Verify in the Editor console after install — Burst and Entities both emit version banners.
 
 ## Hello DOTS in 30 lines
 
@@ -208,7 +208,7 @@ Render entity meshes via `com.unity.entities.graphics` (Hybrid Renderer) alongsi
 - `Window > Entities > Systems` — confirm system order matches `[UpdateBefore]`/`[UpdateAfter]`.
 - Profiler with Burst markers: confirm jobs run on worker threads, not main thread (timeline view).
 - Burst Inspector: spot SIMD instructions (`vmovups`, `vmulps`) — confirms Burst is actually vectorizing.
-- `read_console` clean of "ECS Safety", "leaked NativeArray", "JobHandle.Complete forgotten" warnings.
+- Editor console clean of "ECS Safety", "leaked NativeArray", "JobHandle.Complete forgotten" warnings.
 
 ## Cross-links
 

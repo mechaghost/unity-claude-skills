@@ -22,7 +22,7 @@ Pick VFX Graph when count > ~5000, or you need texture / SDF / mesh sampling, or
 
 ## Package install
 
-`manage_packages` add `com.unity.visualeffectgraph`. Adds menu `Assets > Create > Visual Effects > Visual Effect Graph` and the `Visual Effect` component (`Component > Visual Effects > Visual Effect`).
+Add `com.unity.visualeffectgraph` via the package manager. It adds the menu `Assets > Create > Visual Effects > Visual Effect Graph` and the `Visual Effect` component (`Component > Visual Effects > Visual Effect`).
 
 ## Asset anatomy and contexts
 
@@ -124,7 +124,7 @@ Spawn contexts accept named events. From C#: `vfx.SendEvent("OnDeath")` triggers
 ## Verification
 
 - `Visual Effect` component visible in scene; Visual Effect Asset assigned; transform anchored where you expect emission.
-- `read_console` for `VFX shader compilation failed` / `Property not exposed` / `Bounds` warnings.
+- Editor console clean of `VFX shader compilation failed` / `Property not exposed` / `Bounds` warnings.
 - Frame Debugger shows the VFX render pass at expected ordering (`unity-profiling`).
 - Profiler GPU time for the VFX pass under target.
 - For 3D scene effects, run `unity-3d-verification` (4-shot orthographic) at peak emission, plus a runtime simulate-and-pause to capture mid-effect.

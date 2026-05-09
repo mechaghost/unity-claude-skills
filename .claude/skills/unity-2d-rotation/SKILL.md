@@ -17,12 +17,12 @@ The target is a SpriteRenderer, a Rigidbody2D, a 2D collider parent, or any obje
 
 ## Workflow
 
-1. `find_gameobjects` to locate the target.
-2. Confirm whether a Rigidbody2D is attached (`unity_reflect` or `manage_components` get) — it changes which API to use.
-3. For one-shot rotations: `manage_gameobject` writing `eulerAngles` with X=Y=0.
-4. For continuous spin or aim: `create_script` for a small MonoBehaviour, attach via `manage_components`.
-5. For physics-locked rotation: `manage_physics` to set `Rigidbody2D.freezeRotation` or constraints.
-6. `read_console` for errors. Verify visually (see Verification).
+1. Locate the target GameObject in the scene.
+2. Confirm whether a Rigidbody2D is attached (inspect the live components) — it changes which API to use.
+3. For one-shot rotations: write `eulerAngles` with X=Y=0.
+4. For continuous spin or aim: create a small MonoBehaviour and attach it.
+5. For physics-locked rotation: set `Rigidbody2D.freezeRotation` or constraints.
+6. Editor console clean of errors. Verify visually (see Verification).
 
 ## Common patterns
 

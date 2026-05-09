@@ -65,7 +65,7 @@ Never ship Deep Profile enabled. Don't trust absolute numbers in a deep profile 
 
 ## Memory Profiler
 
-Install `com.unity.memoryprofiler` (`manage_packages`). Window > Analysis > Memory Profiler.
+Install `com.unity.memoryprofiler` via the package manager. Window > Analysis > Memory Profiler.
 
 - Capture a snapshot at a known-good baseline (main menu, just-loaded level).
 - Capture another after suspect activity (after several scene reloads).
@@ -162,7 +162,7 @@ static readonly StringBuilder s_sb   = new StringBuilder(256);
 - Frame time consistently under target (16.6ms for 60fps, 33.3ms for 30fps) on lowest-supported hardware.
 - GC.Alloc per frame meets the GC budget table — 0 B per system in steady-state gameplay; <1 KB yellow flag; >4 KB blocks ship.
 - SetPass call count under platform budget (Frame Debugger or Rendering module).
-- `read_console` clean of "ParticleSystem update is taking too long", "Physics warning", "Canvas rebuild" runtime warnings.
+- Editor console clean of "ParticleSystem update is taking too long", "Physics warning", "Canvas rebuild" runtime warnings.
 - For optimizations claimed: a Profile Analyzer screenshot or numbers showing the named marker dropped.
 
 ## Cross-links
@@ -172,4 +172,4 @@ static readonly StringBuilder s_sb   = new StringBuilder(256);
 - unity-ugui — canvas split strategy and rebuild costs.
 - unity-physics — solver tuning and collider choice.
 - unity-audio — audio module costs and effect chains.
-- unity-best-practices — read_console / batch_execute discipline applies during profiling.
+- unity-best-practices — read-console and batch-related-calls discipline applies during profiling.

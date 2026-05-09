@@ -1,21 +1,36 @@
 ---
 name: unity-best-practices
-description: 'Use ALWAYS at the start of ANY Unity work through Unity MCP — before reading, modifying, or creating anything in a Unity project. Foundational rules: detect render pipeline, read the console, prefer batch_execute, respect Undo, never enter Play mode unprompted, pick one paradigm (Input System, render pipeline, physics dimension), verify visually with screenshots after 3D changes. Trigger keywords — Unity, Unity MCP, Unity Editor, GameObject, Component, MonoBehaviour, ScriptableObject, scene, prefab, asset, package, build, render pipeline, URP, HDRP, Built-in, Project Settings, scripting, Assembly Definition, Library, Assets folder, Packages folder, Play mode, Edit mode, asmdef, manifest.json, .unityproj.'
+description: 'Use ALWAYS at the start of ANY Unity work through Unity MCP — before reading, modifying, or creating anything in a Unity project. Foundational rules: detect render pipeline, read the Editor console, batch related calls when the server supports it, respect Undo, never enter Play mode unprompted, pick one paradigm (Input System, render pipeline, physics dimension), verify visually with screenshots after 3D changes. Trigger keywords — Unity, Unity MCP, Unity Editor, GameObject, Component, MonoBehaviour, ScriptableObject, scene, prefab, asset, package, build, render pipeline, URP, HDRP, Built-in, Project Settings, scripting, Assembly Definition, Library, Assets folder, Packages folder, Play mode, Edit mode, asmdef, manifest.json, .unityproj. Unity 6+ / 6000.x, URP-only, new Input System only.'
 ---
 
 This skill loads alongside any domain-specific Unity skill. It encodes the cross-cutting rules. Violate them and every other skill produces wrong results.
 
+## Tool-name policy
+
+The MCP tool surface for Unity is changing fast — multiple servers compete (Unity's official `com.unity.ai.assistant`, CoplayDev, IvanMurzak, AnkleBreaker, and others), each with its own tool catalog and naming convention, and even within one server the catalog is versioned.
+
+These skills therefore **do not name specific MCP tools**. They describe *capabilities* — "read the Unity Editor console", "create a primitive GameObject", "open the Profiler", "edit this script file" — and you map each capability to whatever tool your connected MCP server actually advertises (via the protocol's `tools/list`).
+
+If a capability has no equivalent on the connected server, fall back in this order:
+
+1. Drive the equivalent Unity Editor menu item, if the server exposes a generic menu-execution tool.
+2. Reflect over `UnityEditor` / `UnityEngine` types and call the API directly, if the server exposes a reflection or arbitrary-code-execution tool.
+3. Generate a small Editor script that performs the action and let Unity compile and run it.
+4. Ask the user how their server exposes the capability.
+
+The same policy applies to "batch the calls together if your server supports a batch endpoint" — never assume a batch tool exists, and degrade gracefully to one call per action when it does not.
+
 ## Always do this first
 
-Before any modification — including the very first read — run this preflight in order. Use `batch_execute` to fold these into one round-trip when possible.
+Before any modification — including the very first read — run this preflight in order. If the server supports batching, fold these into a single round-trip; otherwise issue them sequentially.
 
-1. `read_console` — surface existing errors and warnings. A red error halts compilation; until it clears, MCP-side script reloads no-op silently and many tools return `success: true` against stale state.
-2. `set_active_instance` if more than one Unity Editor is open. Pick the project the user actually means.
-3. `refresh_unity` if there have been out-of-band file edits since the last MCP call (anything written by `apply_text_edits`, `create_script`, or your shell). Without a refresh, the editor is reading stale assets.
-4. Detect the render pipeline. See `## Detect the project paradigm`.
-5. Detect the input handling mode (Old / New / Both). Unity 6+ final state is New only; Both is migration mode.
-6. Detect the physics dimension in the active scene (3D Rigidbody vs 2D Rigidbody2D — they are separate worlds).
-7. Note the Unity version via `unity_reflect` on `Application.unityVersion`. This skill set targets **Unity 6 / 6000.x**. If the project is on an older major version (2022 LTS, 2023.x, etc.), warn the user — APIs differ (e.g. `Rigidbody.velocity` is the deprecated form of Unity 6's `linearVelocity`) and the skill set is not validated against pre-6 versions.
+1. **Read the Editor console.** Surface existing errors and warnings. A red error halts compilation; until it clears, MCP-side script reloads no-op silently and many tools report success against stale state.
+2. **Pick the active Unity Editor.** If more than one Editor instance is running, target the project the user actually means before issuing any mutation.
+3. **Refresh the AssetDatabase** if there have been out-of-band file edits since the last MCP call (anything written by a script-edit tool, a generated script file, or your shell). Without a refresh, the editor reads stale assets.
+4. **Detect the render pipeline.** See `## Detect the project paradigm`.
+5. **Detect the input handling mode** (Old / New / Both). The Unity 6 final state is New only; Both is migration mode.
+6. **Detect the physics dimension** in the active scene (3D `Rigidbody` vs 2D `Rigidbody2D` — separate simulations).
+7. **Note the Unity version.** Reflect on `Application.unityVersion` (or read it via the docs/about tool the server provides). This skill set targets **Unity 6 / 6000.x**. If the project is on an older major version (2022 LTS, 2023.x, etc.), warn the user — APIs differ (e.g. `Rigidbody.velocity` is the deprecated form of Unity 6's `linearVelocity`) and the skill set is not validated against pre-6 versions.
 
 When you hand off to a domain skill, print a one-line paradigm summary so the receiving skill doesn't redo the work.
 
@@ -30,24 +45,19 @@ Rotation work is split across four sibling skills because the underlying APIs an
 
 When in doubt, identify the component type that holds the visual (`MeshRenderer`, `SpriteRenderer`, `RectTransform`) and pick the matching skill.
 
-## MCP server and tool catalog
+## Capabilities a Unity MCP server should expose
 
-This skill set targets Unity's **official Unity MCP**, shipped with the `com.unity.ai.assistant` package. The package drops a relay binary under `~/.unity/relay/` that Claude Code launches as a stdio MCP server; the first connection has to be approved from Unity's Project Settings → AI → MCP panel.
+These are the capabilities the skills lean on. They are *not* tool names — match each to whatever the connected server advertises.
 
-Tools on the official server use a `Unity_PascalCase` naming convention. Confirmed names from the public docs include `Unity_ManageScene`, `Unity_ManageGameObject`, and `Unity_ReadConsole`; the rest of the catalog is discovered at runtime via the MCP `tools/list` response and grows with package versions.
+- **Scene and hierarchy:** create / mutate / delete GameObjects, add and configure components, query the hierarchy by name or component type, enter / exit / save Prefab Mode, load and unload scenes.
+- **Editor and project:** read and write Project Settings and PlayerSettings, install / remove / update Package Manager packages, refresh the AssetDatabase, execute arbitrary Editor menu items, switch the active Editor instance.
+- **Assets:** create / import / move / delete assets (materials, textures, shaders, ScriptableObjects, prefabs, scenes), edit asset properties.
+- **Code:** create new C# scripts, apply text edits to existing scripts, validate the project compiles.
+- **Diagnostics:** read the Editor console, reflect over loaded types in the project's assemblies, query Unity documentation, capture screenshots from the Game / Scene view, expose a frame profiler snapshot.
+- **Tests:** run EditMode and PlayMode tests, fetch results.
+- **Throughput:** batch multiple calls into one round-trip (server-specific — degrade to per-call if absent).
 
-The role table below names the *capability* each skill expects. Match each role against whatever the connected server actually advertises (the `Unity_*` tool whose description matches), and if the server does not expose an equivalent, fall back to the listed alternatives.
-
-- GameObject / scene roles: `manage_gameobject`, `manage_components`, `manage_prefabs`, `manage_scene`, `find_gameobjects` → on the official server look for `Unity_ManageGameObject`, `Unity_ManageScene`, etc.
-- Editor / project roles: `manage_editor`, `manage_packages`, `manage_asset`, `set_active_instance`, `refresh_unity`, `execute_menu_item`, `execute_custom_tool`
-- Rendering roles: `manage_camera`, `manage_graphics`, `manage_material`, `manage_shader`, `manage_texture`
-- Specialized roles: `manage_physics`, `manage_animation`, `manage_vfx`, `manage_ui`, `manage_probuilder`, `manage_scriptable_object`, `manage_build`, `manage_tools`, `manage_profiler`
-- Code roles: `apply_text_edits`, `script_apply_edits`, `create_script`, `delete_script`, `validate_script`
-- Diagnostics roles: `read_console` (confirmed `Unity_ReadConsole`), `debug_request_context`, `unity_reflect`, `unity_docs`
-- Test roles: `run_tests`, `get_test_job`
-- Misc roles: `get_sha`, `batch_execute` (server-specific — fall back to issuing each action as a separate call when the server does not expose a batch endpoint)
-
-If a role isn't satisfied by any exposed tool, fall back to `execute_menu_item` (drives any Editor menu), reflection over `UnityEditor`/`UnityEngine` (where the server exposes a reflect tool), or a generated Editor script via `create_script`. The other 42 skills in this pack write tool calls in the lower-case role form for readability — do not paste them as literal tool IDs without first confirming the official server's exact spelling.
+When a capability is missing, see the fallback ladder under `## Tool-name policy`.
 
 ## Detect the project paradigm
 
@@ -55,29 +65,29 @@ Run these checks once per session and cache the answer in your working notes.
 
 > **Skill-set policy.** This skill set assumes **Unity 6+ / 6000.x**, **URP**, and the **new Input System** as the final project state. Built-in / HDRP and legacy `Input.GetKey/GetAxis` are out of scope except where explicitly called out as migration guidance. If detection finds the project on an unsupported paradigm, warn the user before proceeding.
 
-- **Render pipeline** — `unity_reflect` on `UnityEngine.Rendering.GraphicsSettings.defaultRenderPipeline`.
+- **Render pipeline** — read `UnityEngine.Rendering.GraphicsSettings.defaultRenderPipeline` (via reflection, a docs lookup, or any tool the server exposes for inspecting Project Settings → Graphics).
   - `null` → Built-in. **Out of scope.** Warn the user that this skill set targets URP and recommend installing URP and running `Edit > Rendering > Materials > Convert All Built-in Materials to URP` before proceeding. See `unity-urp` for the migration steps.
   - type name contains `Universal` → URP. Proceed.
   - type name contains `HD` → HDRP. **Out of scope.** Warn the user that this skill set does not cover HDRP and recommend either switching the project to URP or using a different toolchain. Do not attempt HDRP-specific edits.
   Every shader, material, and particle decision hinges on this. Pink materials at runtime almost always mean a pipeline mismatch.
-- **Input handling** — Project Settings → Player → Active Input Handling. Read via `manage_editor` or `unity_reflect` on `UnityEditor.PlayerSettings`.
+- **Input handling** — read Project Settings → Player → Active Input Handling (via the editor-settings capability or by reflecting on `UnityEditor.PlayerSettings`).
   - "Input System Package (New)" → proceed; the `unity-input-system` skill applies.
   - "Both" → migration mode only. Proceed only for migration work, search for legacy `Input.GetKey/GetAxis/GetButton/mousePosition/touchCount` call sites, and finish by switching to "Input System Package (New)" once the legacy calls and old UI module are gone.
   - "Input Manager (Old)" → **out of scope** as the *primary* paradigm. Warn the user that this skill set assumes the new Input System; the only legacy support is migration guidance for code that calls `Input.GetKey/GetAxis/GetButton/mousePosition/touchCount`. Recommend switching Active Input Handling to "Both" only for a bounded migration, then to "Input System Package (New)" as the final state.
-- **Physics dimension** — `find_gameobjects` with type filter for `Rigidbody` and again for `Rigidbody2D`. A scene mixing both is a red flag worth surfacing to the user. Cross-link `unity-physics`.
+- **Physics dimension** — query the active scene for components of type `Rigidbody` and again for `Rigidbody2D`. A scene mixing both is a red flag worth surfacing to the user. Cross-link `unity-physics`.
 
 ## Read the console
 
-`read_console` is your primary truth signal. Many `manage_*` tools report tool-level success while the underlying Unity operation produced an error.
+The Unity Editor console is your primary truth signal. Many MCP tools report tool-level success while the underlying Unity operation produced an error.
 
 - Read after every batch of mutations.
 - Filter for: `Error`, `Exception`, `NullReferenceException`, `shader compile error`, `Layout is being rebuilt`, `InputSystem`, `SRP Batcher`, `Recompile required`, `Missing Prefab`.
 - A red error halts compilation. Until cleared, scripts do not recompile and many tools no-op silently.
 - Warnings about missing components, missing scripts, and missing references are not noise — they usually mean a previous edit left the scene in a broken state.
 
-## Use batch_execute
+## Batch when you can
 
-When the next 5 or more MCP calls are knowable in advance — building a hierarchy, configuring a Volume profile, attaching half a dozen components, wiring a UGUI panel — wrap them in `batch_execute`. The justinpbarnett docs claim 10–100x speedup. One round-trip beats fifty. Lay the calls out as a list, run them as a batch, then `read_console` once at the end.
+When the next 5 or more MCP calls are knowable in advance — building a hierarchy, configuring a Volume profile, attaching half a dozen components, wiring a UGUI panel — group them into a single round-trip if the connected server exposes a batch endpoint, then read the console once at the end. Reported speedups for batched servers are 10–100× over per-call. If the server has no batch endpoint, issue the calls sequentially and still read the console once at the end.
 
 ## Respect Undo
 
@@ -88,12 +98,12 @@ Anything the user might want to undo from the Unity Editor MUST go through the a
 - `Undo.DestroyObjectImmediate` instead of `Object.DestroyImmediate`
 - `Undo.AddComponent<T>(go)` instead of `go.AddComponent<T>()`
 
-Most `manage_*` tools handle this internally. When you write custom Editor scripts via `create_script`, do it explicitly. Without Undo, the user loses Cmd-Z and is rightly annoyed.
+Most server-managed mutations handle this internally. When you write a custom Editor script to perform the change yourself, do it explicitly. Without Undo, the user loses Cmd-Z and is rightly annoyed.
 
 ## Stay out of Play mode (unless asked)
 
 - Entering Play mode wipes scene-level edits made in Edit mode unless they were serialized first.
-- Many MCP servers expose a Play-mode toggle. Use it ONLY when the user explicitly asks for runtime testing, or when running Play-mode tests via `run_tests` / `get_test_job`.
+- Many MCP servers expose a Play-mode toggle. Use it ONLY when the user explicitly asks for runtime testing, or when running PlayMode tests through the test-runner capability.
 - Edit mode is enough for: validating component setup, capturing screenshots, building scenes, verifying serialized data, asset import, prefab work.
 - If you need runtime behavior verification, ask first.
 
@@ -101,8 +111,8 @@ Most `manage_*` tools handle this internally. When you write custom Editor scrip
 
 - `Assets/` — source content under version control. Anything Unity should track and import lives here.
 - `Library/` — cache, regenerated by Unity. Never check in. Acceptable as a temp output target for verification screenshots that should not pollute `Assets/`.
-- `Packages/` — package manager state. Edit `Packages/manifest.json` only via `manage_packages`, never by hand.
-- `ProjectSettings/` — serialized project settings (Graphics, Input, Quality, Tags, Layers). Hand-edit with care; prefer the editor or `manage_editor`.
+- `Packages/` — package manager state. Edit `Packages/manifest.json` only via the package-manager capability, never by hand.
+- `ProjectSettings/` — serialized project settings (Graphics, Input, Quality, Tags, Layers). Hand-edit with care; prefer the editor or a settings-management capability.
 - `.meta` files — every asset has a sibling `.meta` carrying a stable GUID. NEVER delete a `.meta` without deleting the matching asset. NEVER hand-edit a GUID — it breaks references everywhere in the project.
 - Use forward slashes in asset paths. Unity normalizes; many tools do not.
 
@@ -110,12 +120,12 @@ Most `manage_*` tools handle this internally. When you write custom Editor scrip
 
 - 32 layers maximum. Layer 0 (Default) is for static world geometry. Conventional layout: Default, TransparentFX, Ignore Raycast, Water, UI, plus project-specific (Player, Enemy, Projectile, Trigger).
 - Tags are loose strings, useful for one-off identification. Prefer components or layer membership for queries — tags do not compose.
-- Name GameObjects by role, not by asset (`PlayerSpawn`, not `SpawnPoint (1)`). Strip Unity's `(Clone)` suffix on instantiation when it matters for `find_gameobjects` lookups.
+- Name GameObjects by role, not by asset (`PlayerSpawn`, not `SpawnPoint (1)`). Strip Unity's `(Clone)` suffix on instantiation when it matters for hierarchy lookups by name.
 
 ## Prefab over instance edits
 
 - When editing a recurring entity, edit the PREFAB ASSET, not a scene instance. Instance edits create overrides that drift; multi-scene projects diverge silently.
-- Use `manage_prefabs` to enter Prefab Mode, edit, save. Apply or revert overrides explicitly — do not let them accumulate.
+- Enter Prefab Mode through the prefab-management capability, edit, save. Apply or revert overrides explicitly — do not let them accumulate.
 - Use Prefab Variants for shared structure with role-specific tweaks (`BasicEnemy` → `ArmoredEnemy` variant).
 - Nested prefabs are powerful but increase merge friction. Keep nesting shallow.
 
@@ -156,25 +166,25 @@ The highest-impact traps surfaced once here so every domain skill does not have 
 - **Static colliders moved at runtime** trigger a static-collision-tree rebuild — performance cliff. If the collider needs to move, add a kinematic Rigidbody.
 - **UGUI layout cycles** ("Layout is being rebuilt during a layout rebuild") usually mean a `ContentSizeFitter` on a parent that is also being driven by a layout-sized child. Break the cycle.
 - **Shader keywords stripped at build time** appear pink at runtime. Touch a sentinel material with the keyword enabled in a Resources folder so the variant is included.
-- **Saving inside `.inputactions` or Shader Graph editor** writes to the asset directly and may bypass the `apply_text_edits` cache. Call `refresh_unity` after out-of-band edits.
-- **`find_gameobjects` by string in hot paths** is slow. Cache the reference at startup. (Applies to runtime code Claude writes, not Editor tooling.)
+- **Saving inside `.inputactions` or Shader Graph editor** writes to the asset directly and may bypass any text-edit cache the MCP server keeps. Refresh the AssetDatabase after out-of-band edits.
+- **Hierarchy lookup by string in hot paths** is slow. Cache the reference at startup. (Applies to runtime code Claude writes, not Editor tooling.)
 
 ## When you don't know
 
 In order:
 
-1. `unity_docs` — official documentation page for the API in question.
-2. `unity_reflect` — inspect the live type's fields and methods in the loaded assemblies. Ground truth for "does this property exist in this version".
-3. `find_in_file` over `Library/PackageCache/com.unity.<pkg>/...` — package source is often clearer than docs and matches the exact version installed.
+1. Look up the official Unity documentation page for the API in question.
+2. Reflect on the live type's fields and methods in the loaded assemblies. Ground truth for "does this property exist in this version".
+3. Search package source under `Library/PackageCache/com.unity.<pkg>/...` — package source is often clearer than docs and matches the exact version installed.
 4. Ask the user. Do not guess.
 
 ## Failure protocol
 
 When an MCP tool returns success but the change is not visible:
 
-1. `read_console` immediately. Look for compile errors, missing references, shader errors.
-2. `refresh_unity` to force re-import. Out-of-band edits are the most common cause of phantom success.
-3. Re-query the target via `manage_gameobject` or `find_gameobjects` to confirm the change actually persisted on the object you expected.
+1. Read the Editor console immediately. Look for compile errors, missing references, shader errors.
+2. Refresh the AssetDatabase to force re-import. Out-of-band edits are the most common cause of phantom success.
+3. Re-query the target via the hierarchy or component capability to confirm the change actually persisted on the object you expected.
 4. For generated assets (Input Actions, Shader Graph, URP renderer features), re-open the asset in the editor — auto-generated C# may be stale.
 5. For visual changes, capture a screenshot. The MCP success was about the tool call, not the rendered result. See `unity-3d-verification`.
 6. If still wrong, revert the last change and report what you saw to the user before trying again. Do not stack speculative fixes.

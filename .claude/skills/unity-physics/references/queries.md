@@ -1,6 +1,6 @@
 # Queries reference
 
-Detail companion to `SKILL.md` > Queries. Every shape-cast and overlap call exists in 3D (`Physics.*`) and 2D (`Physics2D.*`) variants; pick the one matching the scene paradigm. For tooling-driven (no-script) lookups call `manage_physics` with raycast / raycast_all / linecast / shapecast / overlap actions instead of authoring code.
+Detail companion to `SKILL.md` > Queries. Every shape-cast and overlap call exists in 3D (`Physics.*`) and 2D (`Physics2D.*`) variants; pick the one matching the scene paradigm. For tooling-driven (no-script) lookups, run a raycast / raycast_all / linecast / shapecast / overlap directly instead of authoring code.
 
 ## 3D queries
 

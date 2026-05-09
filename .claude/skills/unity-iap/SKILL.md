@@ -13,12 +13,12 @@ Read `unity-best-practices` first. Cross-link `unity-persistence` (entitlement c
 
 Unity 6+ projects should use **Unity IAP v5** as the primary path. IAP v5 splits the old monolithic initialization flow into explicit store connection, product fetching, purchase fetching, and event-driven order handling.
 
-MCP sequence:
+Sequence:
 
-1. `manage_packages` add `com.unity.purchasing`.
-2. `manage_editor` enable iOS **In-App Purchase** capability and Android billing setup through Player Settings / generated Gradle metadata.
-3. `create_script` or `apply_text_edits` for a small shop service built around `StoreController`.
-4. `read_console` after import and after code generation.
+1. Add `com.unity.purchasing` via the package manager.
+2. Enable iOS **In-App Purchase** capability and Android billing setup through Player Settings / generated Gradle metadata.
+3. Author a small shop service built around `StoreController`.
+4. Editor console clean after import and code generation.
 5. Verify only on real store test tracks: TestFlight / Xcode device for iOS, Play Internal Testing or Internal App Sharing for Android.
 
 ## Products
@@ -224,7 +224,7 @@ Full webhook verification recipe: see `references/server-validation.md`.
 
 ## Promotional / introductory pricing
 
-**iOS** — App Store Connect authors introductory offers, promotional offers, and offer codes. In IAP v5, prefer the Apple extended store service APIs exposed by the package version in the project. Use `unity_reflect` against the installed package if docs and local API names diverge.
+**iOS** — App Store Connect authors introductory offers, promotional offers, and offer codes. In IAP v5, prefer the Apple extended store service APIs exposed by the package version in the project. Reflect on the installed package if docs and local API names diverge.
 
 **Google** — subscription offers configured in Play Console; query product/offer details from fetched product metadata and let Google enforce eligibility.
 
@@ -243,7 +243,7 @@ Full webhook verification recipe: see `references/server-validation.md`.
 - Forgetting to confirm a validated pending order causes repeat delivery and a stuck transaction.
 - Google purchase acknowledgement is time-limited; make validation and confirmation part of the launch checklist.
 - Bundle ID mismatch between dev/prod builds makes store validation reject otherwise valid transactions.
-- Package docs and local package APIs can drift; use `unity_reflect` on the installed `com.unity.purchasing` assembly before writing platform-specific extended-service calls.
+- Package docs and local package APIs can drift; reflect on the installed `com.unity.purchasing` assembly before writing platform-specific extended-service calls.
 
 ## Legacy migration notes
 
@@ -261,7 +261,7 @@ Keep the old implementation compiling only long enough to migrate one product pa
 
 ## Verification
 
-- `read_console` is clean after package install and shop-service compile.
+- Editor console is clean after package install and shop-service compile.
 - Product fetch returns every SKU expected for the active store track.
 - Sandbox purchase succeeds end-to-end on a real iOS device and real Android device.
 - Server validation roundtrip succeeds; entitlement row is written; client confirms the pending order.

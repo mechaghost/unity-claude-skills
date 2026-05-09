@@ -1,6 +1,6 @@
 # AudioManager and music crossfade
 
-Reference patterns called out from SKILL.md. Drop these in via `create_script` and wire components with `manage_components`.
+Reference patterns called out from SKILL.md. Author the scripts and attach the components in the scene.
 
 ## Singleton AudioManager with pooled SFX
 

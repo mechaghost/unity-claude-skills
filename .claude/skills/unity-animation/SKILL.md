@@ -31,7 +31,7 @@ A `.controller` asset contains:
 - **Parameters** — global values driving conditions: Float, Int, Bool, Trigger.
 - **Layers** — independent state machines blended into the final pose; layer 0 is the base.
 
-Add the controller via `manage_asset` (create as AnimatorController) and assign to the GameObject's `Animator.runtimeAnimatorController` via `manage_components`. Edit graph topology via `manage_animation`.
+Create the controller asset (AnimatorController) and assign it to the GameObject's `Animator.runtimeAnimatorController`. Edit graph topology with the Animator / Timeline tooling.
 
 ## Generic vs Humanoid rigs
 
@@ -43,7 +43,7 @@ Add the controller via `manage_asset` (create as AnimatorController) and assign 
 
 Humanoid retargeting maps muscles, not raw bones — proportions shift between skeletons. If a retarget looks broken (twisted limb, sunken hip), fix bone mappings in the FBX importer's Avatar > Configure window.
 
-Set rig type on the FBX importer's Rig tab; create the controller and Avatar via `manage_asset`.
+Set rig type on the FBX importer's Rig tab; create the controller and Avatar as new assets.
 
 ## Parameters and transitions
 
@@ -84,7 +84,7 @@ For locomotion, 2D Freeform Cartesian on (MoveX, MoveZ) is the workhorse — sam
 - **Blending Mode**: `Override` (replace) or `Additive` (add to base).
 - **Avatar Mask** — per-bone include/exclude. Classic case: an "Upper Body" mask on an aim/shoot layer so it doesn't disturb leg locomotion on layer 0.
 
-Create the AvatarMask asset (`manage_asset`), check the bones to include in its Humanoid or Transform tab, then assign it to the layer in the Animator Controller.
+Create the AvatarMask asset, check the bones to include in its Humanoid or Transform tab, then assign it to the layer in the Animator Controller.
 
 ## Root motion
 
@@ -111,7 +111,7 @@ Common uses:
 - Projectile spawn frame.
 - Camera shake trigger.
 
-Verify wiring via `read_console` — Unity logs `AnimationEvent has no receiver` when the method is missing or misspelled.
+Verify wiring in the Editor console — Unity logs `AnimationEvent has no receiver` when the method is missing or misspelled.
 
 ## IK and Animation Rigging
 
@@ -138,7 +138,7 @@ The state must have **IK Pass** enabled (per-layer checkbox). Use sparingly — 
 | `OverrideTransform`     | force a bone to a specific pose post-anim     |
 | `BoneRenderer`          | debug gizmo — assign Skeleton bones array     |
 
-Install via `manage_packages`. Use Animation Rigging for: aim layers, foot IK with terrain raycast, secondary-hand grip on a weapon, prop attachment to a hand bone.
+Install via the package manager. Use Animation Rigging for: aim layers, foot IK with terrain raycast, secondary-hand grip on a weapon, prop attachment to a hand bone.
 
 Bone Renderer requires manually populating its `Transforms` array; the gizmo shows nothing if empty.
 
@@ -159,7 +159,7 @@ A subclass of an Animator Controller that swaps individual clips while keeping t
 
 Use case: one base "Humanoid" controller; per-character override controllers swap in character-specific attack/idle clips. Saves duplicating the entire controller graph per character.
 
-Create via `manage_asset` (Animator Override Controller); set its `Controller` field to the base; replace clips in the override list. Assign as `Animator.runtimeAnimatorController`.
+Create the Animator Override Controller asset, set its `Controller` field to the base, and replace clips in the override list. Assign as `Animator.runtimeAnimatorController`.
 
 ## Timeline
 
@@ -206,8 +206,8 @@ See `references/timeline.md` for track-binding and PlayableDirector wrap mode de
 
 ## Verification
 
-1. `read_console` for `Animator does not have parameter 'X'` and `AnimationEvent has no receiver` — both indicate broken wiring.
-2. Open the Animator window in Play mode (`execute_menu_item` Window/Animation/Animator) and observe state transitions in real time. Confirm parameters update and the active state highlights as expected.
+1. Editor console clean of `Animator does not have parameter 'X'` and `AnimationEvent has no receiver` — both indicate broken wiring.
+2. Open the Animator window in Play mode (Window > Animation > Animator) and observe state transitions in real time. Confirm parameters update and the active state highlights as expected.
 3. Frame-step through an attack combo (Pause + Step in the toolbar) — confirm the hitbox AnimationEvent fires on the intended frame.
 4. For 3D characters, invoke `unity-3d-verification` (4-shot orthographic) at key animation poses to confirm bone deformation and prop attachment look correct.
 5. For Timeline cutscenes, scrub the timeline preview in Edit mode before testing in Play.

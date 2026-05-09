@@ -90,13 +90,7 @@ Hard-coding scene names as strings is fragile. Prefer one of:
 - **ScriptableObject scene reference asset** — wraps the path string; gameplay code reads from the SO.
 - **Addressables** — scene assets become `AssetReference`. Load via `Addressables.LoadSceneAsync(reference, LoadSceneMode.Additive)`. Cross-link `unity-addressables`.
 
-To add scenes via MCP:
-
-```
-manage_editor (action: add_scene_to_build, scene_path: "Assets/Scenes/Level1.unity")
-```
-
-Or `execute_menu_item` with `File > Build Settings`, then inspect via `unity_reflect`.
+Add scenes through the build-settings editor — append the scene path (e.g. `Assets/Scenes/Level1.unity`) to `EditorBuildSettings.scenes`, or open `File > Build Settings` from the menu and edit there. Reflect on `EditorBuildSettings.scenes` afterwards to confirm.
 
 ## Cross-scene references
 
@@ -116,7 +110,7 @@ Drag multiple scene assets into the Hierarchy to open them simultaneously in the
 - Author a base lighting scene that artists own, plus gameplay scenes that designers own.
 - Test additive loads at edit time without entering Play mode.
 
-`manage_scene` supports adding scenes to the active editor session via `add_to_session`.
+Add scenes to the active editor session through the scene-management capability.
 
 ## Scene transitions and fades
 
@@ -175,7 +169,7 @@ public class SceneTransition : MonoBehaviour
 
 ## Verification
 
-- `read_console` — search for "Scene 'X' couldn't be loaded", "DontDestroyOnLoad only work for root GameObjects", "ArgumentException: Scene to unload is invalid".
-- `manage_editor` — confirm Build Settings scene list contains every scene loaded by name. Inspect with `unity_reflect` on `EditorBuildSettings.scenes`.
-- Play-mode test — enter Play, watch console, trigger a scene load, confirm `.progress` ramps 0 to 0.9 and managers persist after the load via `find_gameobjects` for the singleton root.
-- After a scripted boot test, `find_gameobjects` (active: true) should return one and only one of each manager — duplicates indicate a missing singleton guard.
+- Editor console clean of "Scene 'X' couldn't be loaded", "DontDestroyOnLoad only work for root GameObjects", "ArgumentException: Scene to unload is invalid".
+- Confirm the Build Settings scene list contains every scene loaded by name — inspect `EditorBuildSettings.scenes` directly.
+- Play-mode test — enter Play, watch console, trigger a scene load, confirm `.progress` ramps 0 to 0.9 and managers persist after the load by querying for the singleton root.
+- After a scripted boot test, querying for active GameObjects should return one and only one of each manager — duplicates indicate a missing singleton guard.

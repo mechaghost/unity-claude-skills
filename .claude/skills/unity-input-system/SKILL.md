@@ -11,10 +11,10 @@ Cross-links: `unity-ugui` (EventSystem swap on UI prefabs), `unity-best-practice
 
 ## Setup
 
-- Install `com.unity.inputsystem` via `manage_packages` (or Package Manager UI). Unity 6+ projects should use it as the primary input stack.
-- `manage_editor` → Project Settings → Player → **Active Input Handling**: choose `Input System Package (New)` as the final state. Switching prompts an Editor restart.
+- Install `com.unity.inputsystem` via the package manager. Unity 6+ projects should use it as the primary input stack.
+- Project Settings → Player → **Active Input Handling**: choose `Input System Package (New)` as the final state. Switching prompts an Editor restart.
 - `Both` runs TWO input pipelines simultaneously. Use it only during a bounded migration from legacy `UnityEngine.Input`, then switch to `Input System Package (New)` once legacy call sites and the old Standalone Input Module are gone.
-- First use auto-creates `Assets/InputSystem_Actions.inputactions`. Otherwise create one yourself: `manage_asset` create with type `InputActionAsset`, or `Assets > Create > Input Actions`.
+- First use auto-creates `Assets/InputSystem_Actions.inputactions`. Otherwise create one yourself as an `InputActionAsset`, or via `Assets > Create > Input Actions`.
 
 ## Input Actions asset
 
@@ -63,7 +63,7 @@ Apply at the binding level (per-binding) or the action level (all bindings).
 
 ## Consuming input (3 paths)
 
-**a) PlayerInput component** — drag the `.inputactions` onto a `PlayerInput` on a GameObject (`manage_components`). Behavior modes:
+**a) PlayerInput component** — add a `PlayerInput` component to the GameObject and assign the `.inputactions` asset. Behavior modes:
 
 - **Send Messages** — calls `OnJump(InputValue value)` on this GameObject's components by reflection.
 - **Broadcast Messages** — same but recurses into children.
@@ -94,7 +94,7 @@ var move = Keyboard.current.aKey.isPressed ? -1f
 
 ## PlayerInput component
 
-Fields you set via `manage_components`:
+Configurable fields:
 
 - **Actions** — the `.inputactions` asset.
 - **Default Map** / **Default Scheme** — which Action Map and Control Scheme are active on spawn.
@@ -113,11 +113,11 @@ Fields you set via `manage_components`:
 
 ## UI integration
 
-Replace EventSystem's `Standalone Input Module` with **Input System UI Input Module**. The new module references the same `.inputactions` and binds UI actions: `Navigate`, `Submit`, `Cancel`, `Point`, `Click`, `ScrollWheel`, `MiddleClick`, `RightClick`, `TrackedDevicePosition`, `TrackedDeviceOrientation`. Without the swap, UI either does not receive input or warnings flood `read_console`. Use `manage_components` (or `manage_ui` for UI prefabs) to remove the legacy module and add the new one. See `unity-ugui`.
+Replace EventSystem's `Standalone Input Module` with **Input System UI Input Module**. The new module references the same `.inputactions` and binds UI actions: `Navigate`, `Submit`, `Cancel`, `Point`, `Click`, `ScrollWheel`, `MiddleClick`, `RightClick`, `TrackedDevicePosition`, `TrackedDeviceOrientation`. Without the swap, UI either does not receive input or warnings flood the Editor console. Remove the legacy module and add the new one. See `unity-ugui`.
 
 ## Mobile and on-screen controls
 
-- **OnScreenButton**, **OnScreenStick** — components on UI Image / Button GameObjects, pointed at a Control Path (`<Gamepad>/buttonSouth`). They synthesize device input as if a real gamepad were connected. Add via `manage_components`.
+- **OnScreenButton**, **OnScreenStick** — components on UI Image / Button GameObjects, pointed at a Control Path (`<Gamepad>/buttonSouth`). They synthesize device input as if a real gamepad were connected.
 - **EnhancedTouch** — `using UnityEngine.InputSystem.EnhancedTouch;` then `EnhancedTouchSupport.Enable();` for multi-touch APIs.
 - Raw `Touchscreen` device: `Touchscreen.current.touches`, `Touchscreen.current.primaryTouch`.
 
@@ -170,7 +170,7 @@ Do not migrate piecemeal — switch the map for an entire feature in one PR so t
 
 ## Gotchas
 
-- **Active Input Handling = Input Manager (Old)** → the new package does not deliver events; the asset works but actions silently never fire. PlayerInput shows a yellow warning; verify via `read_console`.
+- **Active Input Handling = Input Manager (Old)** → the new package does not deliver events; the asset works but actions silently never fire. PlayerInput shows a yellow warning; verify in the Editor console.
 - **Generated C# class is stale** until you regenerate after every asset edit.
 - **Send Messages is reflective** — typo on the method name = silent no-op. Prefer Invoke C# Events.
 - **`performed` fires repeatedly for Value actions** (every value change). For one-shot, use Button type or filter on `started`.
@@ -184,8 +184,8 @@ Do not migrate piecemeal — switch the map for an entire feature in one PR so t
 
 ## Verification
 
-- Open the **Input Debugger** via `execute_menu_item` (`Window > Analysis > Input Debugger`) to confirm devices are detected and actions fire. The Actions tab shows live phase transitions.
+- Open the **Input Debugger** (`Window > Analysis > Input Debugger`) to confirm devices are detected and actions fire. The Actions tab shows live phase transitions.
 - For a feature, log on `OnEnable` of the consumer to confirm the expected map is active, or watch the Actions tab.
-- `read_console` for `InputSystem` warnings (missing UI module, action asset not assigned, no devices paired).
-- Confirm legacy calls are gone: search migrated files for `Input.GetKey`, `Input.GetAxis`, `Input.GetButton`, `Input.mousePosition`, `Input.touchCount` (use `find_in_file` / grep). Any hit means the migration is incomplete.
-- Use `unity_reflect` / `unity_docs` when an API or path string is uncertain rather than guessing binding paths.
+- Editor console clean of `InputSystem` warnings (missing UI module, action asset not assigned, no devices paired).
+- Confirm legacy calls are gone: search migrated files for `Input.GetKey`, `Input.GetAxis`, `Input.GetButton`, `Input.mousePosition`, `Input.touchCount`. Any hit means the migration is incomplete.
+- Reflect on the live type or consult the Unity manual when an API or path string is uncertain rather than guessing binding paths.

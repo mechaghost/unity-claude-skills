@@ -1,6 +1,6 @@
 # Timeline reference
 
-Package: `com.unity.timeline` (install via `manage_packages` if absent).
+Package: `com.unity.timeline` (install via the package manager if absent).
 
 Window: `Window > Sequencing > Timeline`.
 

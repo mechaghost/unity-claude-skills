@@ -23,13 +23,7 @@ These are non-negotiable for any Unity project under git. Set them before the fi
 - **Asset Serialization mode**: `Force Text` — Edit > Project Settings > Editor > Asset Serialization. Without this, `.unity` and `.prefab` files are binary and impossible to diff or merge.
 - **Version Control mode**: `Visible Meta Files` — same panel. Ensures `.meta` files exist on disk for every asset (so git can see them).
 
-Apply via MCP with `manage_editor` (EditorSettings):
-
-```
-manage_editor: serializationMode = ForceText, externalVersionControl = Visible Meta Files
-```
-
-These write into `ProjectSettings/EditorSettings.asset`, which itself must be committed.
+Apply through Project Settings → Editor: set `serializationMode = ForceText` and `externalVersionControl = Visible Meta Files`. These write into `ProjectSettings/EditorSettings.asset`, which itself must be committed.
 
 ## .gitignore for Unity
 
@@ -204,7 +198,7 @@ Order matters — set serialization before the first scene gets saved.
 1. `git lfs install` (once per machine, before anything else).
 2. `git init` (or clone).
 3. Drop in `.gitignore` and `.gitattributes` from above.
-4. Open the project in Unity, then via MCP `manage_editor`: set `Asset Serialization = Force Text` and `Version Control = Visible Meta Files`.
+4. Open the project in Unity, then under Project Settings → Editor set `Asset Serialization = Force Text` and `Version Control = Visible Meta Files`.
 5. `git add .gitignore .gitattributes ProjectSettings/ Packages/manifest.json Packages/packages-lock.json`
 6. `git commit -m "Initial Unity project skeleton"`
 7. Add `Assets/` and continue.
@@ -236,7 +230,7 @@ Order matters — set serialization before the first scene gets saved.
 - `git lfs ls-files` lists all expected binaries; running it after a fresh clone confirms LFS pulled bytes (not pointers).
 - Open a scene, move a GameObject, save, and run `git diff` — the diff should be readable YAML, not binary noise.
 - Branch test: `git checkout -b vcs-test`, edit a scene, commit, switch back to `main`, edit the same scene differently, merge — SmartMerge should resolve cleanly when the two edits touch different GameObjects.
-- `read_console` after pulling — no "missing script" or "missing prefab" errors means GUIDs survived.
+- Editor console clean after pulling — no "missing script" or "missing prefab" errors means GUIDs survived.
 
 ## Cross-links
 

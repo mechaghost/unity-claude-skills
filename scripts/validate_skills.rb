@@ -51,7 +51,10 @@ stale_patterns = [
   /forward reference — skill in progress/,
   # URP 14/15 are pre-Unity-6 versions — the skill set targets URP 17 only.
   /\bURP 14\b/,
-  /\bURP 15\b/
+  /\bURP 15\b/,
+  # Skills must not reference specific MCP tool names — the tool surface
+  # changes too fast across competing servers. Describe capabilities instead.
+  /`(manage_[a-z_]+|read_console|apply_text_edits|find_gameobjects|create_script|delete_script|validate_script|execute_menu_item|execute_custom_tool|set_active_instance|refresh_unity|run_tests|get_test_job|get_sha|batch_execute|unity_reflect|unity_docs|debug_request_context|script_apply_edits|find_in_file)`/
 ]
 
 Dir[File.join(ROOT, "{README.md,.claude/skills/**/*.md}")].sort.each do |path|

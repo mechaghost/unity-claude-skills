@@ -13,7 +13,7 @@ Use the **AI Navigation package** (`com.unity.ai.navigation`). It adds the compo
 
 The legacy "Navigation Static" flag plus `Window > AI > Navigation (Obsolete)` panel still exists in Unity 6 but is deprecated. Don't use it for new content — bakes live in the scene rather than as assets, can't be parameterized per-object cleanly, and don't support runtime rebakes.
 
-Install: `manage_packages` add `com.unity.ai.navigation`. The component inspectors replace the old window.
+Install: add `com.unity.ai.navigation` via the package manager. The component inspectors replace the old window.
 
 ## Setup
 
@@ -124,7 +124,7 @@ Pattern: spawn level geometry → `BuildNavMesh()` → spawn AI agents (after sa
 ## Verification
 
 - Scene view: enable the AI Navigation overlay (`View > AI Navigation` in Unity 6, or open the AI Navigation window). The blue surface should cover walkable area cleanly with no holes under stairs/ramps.
-- `read_console` for `Failed to create agent because there is no valid NavMesh` and `SetDestination called on agent that is not on NavMesh` — both indicate the agent spawned off-mesh.
+- Editor console clean of `Failed to create agent because there is no valid NavMesh` and `SetDestination called on agent that is not on NavMesh` — both indicate the agent spawned off-mesh.
 - In Play mode, draw `agent.path.corners` as `Debug.DrawLine` segments to visualize the active path.
 - For procedural levels, time the runtime bake (`Stopwatch` around `BuildNavMesh`); ensure it fits the level-transition budget.
 - Smoke test: place an agent at spawn, set a destination across the level, confirm it arrives without warping or stalling.
@@ -134,4 +134,4 @@ Pattern: spawn level geometry → `BuildNavMesh()` → spawn AI agents (after sa
 - `unity-animation` — jump traversal animation while off-mesh-link is active.
 - `unity-physics` — collider geometry source when `Use Geometry = PhysicsColliders`; layer matrix interactions.
 - `unity-scenes` — per-scene NavMesh assets and additive scene loading.
-- `unity-best-practices` — read console after every bake, prefer `batch_execute`, pick one paradigm.
+- `unity-best-practices` — read console after every bake, batch related calls, pick one paradigm.

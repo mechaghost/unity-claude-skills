@@ -67,6 +67,6 @@ Sensors are disabled by default — `InputSystem.EnableDevice(Sensor.current)` f
 1. Add `com.unity.inputsystem`, set Active Input Handling to `Both`.
 2. Author the `.inputactions` asset for ONE feature (e.g. Player movement).
 3. Replace all legacy `Input` calls in that feature.
-4. Verify via `read_console` and Input Debugger.
+4. Verify in the Editor console and Input Debugger.
 5. Repeat per feature. Do NOT mix per-call.
 6. Once every feature is migrated, switch Active Input Handling to `Input System Package (New)` and delete the legacy `InputManager.asset` axes you no longer need.

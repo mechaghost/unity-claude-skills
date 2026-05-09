@@ -2,7 +2,7 @@
 
 Detail companion to `SKILL.md` > Joints. Joints connect exactly two bodies. The first body is the GameObject that holds the joint component; the second is `connectedBody` (null = world). Anchor points are in each body's local space. All joints expose a `breakForce` / `breakTorque` (3D) or `breakForce`/`breakTorque` (2D) — the joint destroys itself when exceeded.
 
-Add joints with `manage_physics` (the action selects the joint type). Tune fields with `manage_components`. For exotic combinations not covered here, route through `unity_reflect` against the joint's C# type to enumerate every field.
+Add the joint component matching the type you need. Tune its fields directly. For exotic combinations not covered here, reflect on the joint's C# type to enumerate every field.
 
 ## 3D joints
 

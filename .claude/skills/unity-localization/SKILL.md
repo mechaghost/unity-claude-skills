@@ -18,13 +18,7 @@ Shipping English-only caps your TAM hard. Spanish + Portuguese (BR) + Simplified
 
 ## Package install
 
-Via `manage_packages`:
-
-```
-manage_packages (action: add, package: "com.unity.localization")
-```
-
-After install, open `Window > Asset Management > Localization Tables` and `Edit > Project Settings > Localization` (`execute_menu_item`).
+Add `com.unity.localization` via the package manager. After install, open `Window > Asset Management > Localization Tables` and `Edit > Project Settings > Localization`.
 
 ## Project setup
 

@@ -37,7 +37,7 @@ Decision tree for any moving/colliding object:
 
 Anti-pattern: a Collider on a moving GameObject without any Rigidbody is a "static collider being moved" — Unity rebuilds the static tree every frame the transform changes. Fix: add a kinematic Rigidbody.
 
-Add bodies and colliders via `manage_components` (component add/configure). Read or write transform via `manage_gameobject`. Wrap edits in undo via `manage_editor`.
+Add bodies and colliders by adding the components to the GameObject. Read or write the transform on the same GameObject. Wrap edits in undo so changes can be reverted.
 
 ## Colliders
 
@@ -73,11 +73,11 @@ Joints connect exactly two bodies. If `connectedBody` is null the second "body" 
 | `TargetJoint2D`     | drag a body toward a world-space target       |
 | `WheelJoint2D`      | suspension + driven wheel for 2D vehicles     |
 
-For full configuration fields, motor/limit setup, and break-force tuning see `references/joints.md`. Add joints with `manage_physics` (action selects the joint type).
+For full configuration fields, motor/limit setup, and break-force tuning see `references/joints.md`. Add the joint component matching the type you need.
 
 ## Forces and motion
 
-All physics writes belong in `FixedUpdate` (or in `manage_physics` actions that run on the next physics step). Reads for visuals belong in `Update`/`LateUpdate`.
+All physics writes belong in `FixedUpdate` (or in physics tooling that runs on the next physics step). Reads for visuals belong in `Update`/`LateUpdate`.
 
 3D `Rigidbody.AddForce(Vector3, ForceMode)` modes:
 
@@ -108,7 +108,7 @@ void FixedUpdate() {
 
 Velocity field: Unity 6 `Rigidbody` and `Rigidbody2D` use `linearVelocity` (and `angularVelocity`). The legacy `velocity` property is deprecated and emits an obsolescence warning — always write new code against `linearVelocity`. If you encounter `.velocity` in older code being ported, rename it.
 
-For one-shot force application from tooling (no script), use `manage_physics` AddForce / AddTorque / AddExplosionForce actions.
+For one-shot force application from tooling (no script), apply the force directly through physics tooling — AddForce, AddTorque, or AddExplosionForce.
 
 ## Queries (raycasts and overlaps)
 
@@ -130,11 +130,11 @@ if (Physics.Raycast(origin, dir, out RaycastHit hit, maxDist, mask,
 
 Globals: `Physics.queriesHitTriggers` (default true) and `Physics.queriesHitBackfaces` (default false). Override per call with the `QueryTriggerInteraction` argument.
 
-For tooling-driven queries use `manage_physics` raycast / raycast_all / linecast / shapecast / overlap actions — these return hit GameObjects without authoring a script.
+For tooling-driven queries, run a raycast / raycast_all / linecast / shapecast / overlap directly to return hit GameObjects without authoring a script.
 
 ## Layers and collision matrix
 
-Unity has exactly 32 layers (0–31). Layer 0 is `Default`. The collision matrix decides which pairs of layers can collide; toggle pairs off rather than putting collision logic in scripts. Edit via `manage_physics` (3D matrix) or the same action with the 2D variant — they are separate matrices.
+Unity has exactly 32 layers (0–31). Layer 0 is `Default`. The collision matrix decides which pairs of layers can collide; toggle pairs off rather than putting collision logic in scripts. Edit the 3D and 2D matrices separately — they are independent.
 
 Suggested baseline layout: `Default` for static world, plus dedicated layers for `Player`, `Enemy`, `Projectile`, `Trigger`, `IgnoreRaycast`. Then disable Enemy↔Enemy if enemies should pass through each other, Projectile↔OwnerFaction so a shooter doesn't hit themselves, etc.
 
@@ -146,7 +146,7 @@ Layer-based collision is configured ONLY through the matrix. Setting fields on t
 
 2D `PhysicsMaterial2D` fields: `friction`, `bounciness`, `frictionCombine`, `bounceCombine` (combine modes: Average, Minimum, Maximum, Multiply — same set as 3D). No static/dynamic friction split.
 
-Create or edit material assets via `manage_material`. The 3D and 2D assets are different file types — do not assign one to the other's collider.
+Create or edit the physics material asset directly. The 3D and 2D assets are different file types — do not assign one to the other's collider.
 
 Edits to existing material fields do not retroactively affect contacts already in progress; reassign `Collider.sharedMaterial` (or briefly disable/enable the collider) to refresh.
 
@@ -180,8 +180,8 @@ Rules that follow:
 
 After any physics change, run a layered check:
 
-1. `read_console` for warnings (non-convex MeshCollider, missing Rigidbody on trigger, etc.).
-2. Sanity-cast a ray through the configured area with `manage_physics` raycast/overlap and inspect what was hit. If a collider doesn't show up, layer mask or matrix is wrong.
+1. Editor console clean of warnings (non-convex MeshCollider, missing Rigidbody on trigger, etc.).
+2. Sanity-cast a ray or overlap through the configured area and inspect what was hit. If a collider doesn't show up, layer mask or matrix is wrong.
 3. Enable Gizmos in the Game view to see collider outlines, then capture a screenshot.
 4. For 3D, invoke the `unity-3d-verification` skill (4-shot orthographic) to confirm collider shapes line up with the visible mesh.
-5. For motion or stability concerns use `manage_profiler` (Profiler / Frame Debugger) to confirm the physics step cost and step count are sane (look at the "Physics" CPU module).
+5. For motion or stability concerns, use the Profiler / Frame Debugger to confirm the physics step cost and step count are sane (look at the "Physics" CPU module).

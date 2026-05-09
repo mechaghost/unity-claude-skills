@@ -132,4 +132,4 @@ Clients retry token uploads (boot, foreground after long background, `OnTokenRef
 - unity-scenes — deep-link routing from notification payload to the right scene.
 - unity-analytics-events — log `notification_open` events with campaign ID and deep-link target.
 - unity-build — Info.plist `UIBackgroundModes`, AndroidManifest `POST_NOTIFICATIONS`, push capability stamping.
-- unity-best-practices — read console, batch_execute, render-pipeline detection still apply.
+- unity-best-practices — read console, batch related calls, render-pipeline detection still apply.

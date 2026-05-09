@@ -52,7 +52,7 @@ Cross-link `unity-addressables` for the actual remote content split.
 
 ## Audio voices
 
-Default `Project Settings > Audio > Real Voice Count` is 32. Drop to **16-24 on mobile** — every active voice costs CPU and battery, and the cap usually isn't audible. Configure via `manage_editor` per platform. Cross-link `unity-audio` for mixer / snapshot / spatial-blend setup.
+Default `Project Settings > Audio > Real Voice Count` is 32. Drop to **16-24 on mobile** — every active voice costs CPU and battery, and the cap usually isn't audible. Configure through Project Settings per platform. Cross-link `unity-audio` for mixer / snapshot / spatial-blend setup.
 
 ## Shader variants and warmup
 

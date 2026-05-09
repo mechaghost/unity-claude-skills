@@ -22,13 +22,7 @@ Companion skills: `unity-scenes` (scene Addressables and additive loading), `uni
 
 ## Package install
 
-Via `manage_packages`:
-
-```
-manage_packages (action: add, package: "com.unity.addressables")
-```
-
-Pulls `com.unity.scriptablebuildpipeline` automatically. After install, open `Window > Asset Management > Addressables > Groups` (`execute_menu_item`) and click **Create Addressables Settings** if prompted. This creates `Assets/AddressableAssetsData/` — commit it.
+Add `com.unity.addressables` via the package-manager capability. It pulls `com.unity.scriptablebuildpipeline` automatically. After install, open `Window > Asset Management > Addressables > Groups` and click **Create Addressables Settings** if prompted. This creates `Assets/AddressableAssetsData/` — commit it.
 
 ## Authoring (groups, labels, addresses)
 
@@ -184,9 +178,9 @@ public class AddressablesPreBuild : IPreprocessBuildWithReport
 
 ## Verification
 
-- `read_console` — search for "Addressable asset failed to load", "Operation failed: Asset not found", "RemoteProviderException", "Exception encountered in operation".
+- **Editor console** — search for "Addressable asset failed to load", "Operation failed: Asset not found", "RemoteProviderException", "Exception encountered in operation".
 - **Memory Profiler** — capture in Play mode; bundle memory shows up under the Addressables provider. Drift across scene loads = leaked handle.
 - **Play mode round-trip** — switch the Groups window to "Use Existing Build", run a fresh Addressables build, enter Play, exercise every load path. Failures surface only in this mode.
 - **Remote offline test** — block the CDN URL (firewall or fake DNS) and confirm the offline fallback handles the load failure gracefully instead of soft-locking.
 - **Inspect catalog** — open `Library/com.unity.addressables/aa/<platform>/catalog.json` after a build. Every expected address should be present; a missing entry means the asset slipped out of the addressable group.
-- `unity_reflect` — query `AddressableAssetSettingsDefaultObject.Settings.groups` to confirm group composition matches expectations after authoring changes.
+- **Reflect on settings** — inspect `AddressableAssetSettingsDefaultObject.Settings.groups` to confirm group composition matches expectations after authoring changes.

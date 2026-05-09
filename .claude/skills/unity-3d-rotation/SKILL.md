@@ -19,33 +19,23 @@ Avoid setting `eulerAngles` repeatedly in a loop. Unity stores rotation as a Qua
 
 ## Workflow
 
-1. `find_gameobjects` to locate the target by name, tag, or component.
+1. Locate the target by name, tag, or component.
 2. Decide world vs local space and Quaternion vs Euler from the decision tree.
-3. For one-shot rotations: `manage_gameobject` to write `rotation`, `eulerAngles`, `localRotation`, or `localEulerAngles`.
-4. For continuous or computed rotations: `create_script` (or `script_apply_edits`) to attach a MonoBehaviour, then `manage_components` to add it to the GameObject.
-5. For physics-driven rotation: `manage_components` to set Rigidbody fields, `manage_physics` for `freezeRotation` / constraints / joint limits.
-6. Run `read_console` after applying to catch null-reference or missing-component errors.
+3. For one-shot rotations: write `rotation`, `eulerAngles`, `localRotation`, or `localEulerAngles`.
+4. For continuous or computed rotations: author a MonoBehaviour and attach it to the GameObject.
+5. For physics-driven rotation: set Rigidbody fields, then `freezeRotation` / constraints / joint limits as needed.
+6. Check the Editor console for null-reference or missing-component errors.
 7. Verify visually (see Verification).
 
 ## Common patterns
 
 ### Set absolute rotation (one-shot, editor or runtime)
 
-`manage_gameobject` with a transform write. Either form works; prefer Quaternion if you have one in hand:
+Write the transform field directly. Either form works; prefer Quaternion if you have one in hand:
 
-```
-# Euler form (degrees, world space)
-manage_gameobject(action="set_transform", target="Turret",
-                  eulerAngles=[0, 90, 0])
-
-# Quaternion form (xyzw, world space)
-manage_gameobject(action="set_transform", target="Turret",
-                  rotation=[0, 0.7071, 0, 0.7071])
-
-# Local space
-manage_gameobject(action="set_transform", target="Turret/Barrel",
-                  localEulerAngles=[10, 0, 0])
-```
+- Euler (degrees, world space): set `eulerAngles` to `[0, 90, 0]` on `Turret`.
+- Quaternion (xyzw, world space): set `rotation` to `[0, 0.7071, 0, 0.7071]` on `Turret`.
+- Local space: set `localEulerAngles` to `[10, 0, 0]` on `Turret/Barrel`.
 
 ### Rotate by delta over time (script)
 
@@ -59,7 +49,7 @@ public class SpinY : MonoBehaviour {
 }
 ```
 
-Create with `create_script`, attach with `manage_components`. `Space.Self` rotates around the object's local axes; `Space.World` rotates around world axes.
+Create the script and attach the component to the GameObject. `Space.Self` rotates around the object's local axes; `Space.World` rotates around world axes.
 
 ### Look at a target (instant)
 
@@ -101,11 +91,11 @@ void FixedUpdate() {
 }
 ```
 
-Freeze axes through `manage_physics` setting `Rigidbody.constraints` (e.g. `FreezeRotationX | FreezeRotationZ` for an upright character).
+Freeze axes by setting `Rigidbody.constraints` (e.g. `FreezeRotationX | FreezeRotationZ` for an upright character).
 
 ### Reading live quaternion math
 
-`unity_reflect` can read fields the standard tools do not expose, e.g. inspecting a Quaternion component-wise to debug a slerp.
+Reflect on the live Transform to inspect the Quaternion component-wise — useful when debugging a slerp where the standard inspector view hides the raw values.
 
 ## Gotchas
 

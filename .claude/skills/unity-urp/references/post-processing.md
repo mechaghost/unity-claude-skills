@@ -1,6 +1,6 @@
 # URP post-processing reference
 
-Volume Profile overrides edited via `manage_graphics` (post-processing actions) or by editing the Volume Profile `.asset` directly with `manage_asset`. Each override has a checkbox per parameter — only ticked parameters override; unticked ones inherit from lower-priority volumes or defaults.
+Edit Volume Profile overrides through post-processing tooling or by editing the Volume Profile `.asset` directly. Each override has a checkbox per parameter — only ticked parameters override; unticked ones inherit from lower-priority volumes or defaults.
 
 ## Effect catalog
 

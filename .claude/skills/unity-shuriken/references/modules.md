@@ -1,6 +1,6 @@
 # Shuriken module reference
 
-Field-level detail for each `ParticleSystem` sub-module. Names match the inspector and the C# `ParticleSystem.*Module` API used via `unity_reflect` or generated scripts.
+Field-level detail for each `ParticleSystem` sub-module. Names match the inspector and the C# `ParticleSystem.*Module` API used via reflection or generated scripts.
 
 ## Main (`ParticleSystem.MainModule`)
 

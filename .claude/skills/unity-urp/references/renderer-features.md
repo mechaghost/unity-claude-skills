@@ -2,7 +2,7 @@
 
 Renderer features extend a Universal Renderer asset with extra render passes. Add them in the renderer asset inspector (`Add Renderer Feature`). Each feature is a `ScriptableRendererFeature` that injects one or more `ScriptableRenderPass` instances into the frame at a chosen event.
 
-Edit renderer assets via `manage_asset`. Author custom feature/pass C# via `create_script` and `apply_text_edits`. Inspect actual frame ordering with `manage_profiler` Frame Debugger.
+Edit renderer assets directly. Author custom feature/pass C# in your project. Inspect actual frame ordering with the Frame Debugger.
 
 ## Built-in features
 
@@ -36,7 +36,7 @@ Unity 6 ships URP 17, which **defaults to the RenderGraph backend**. New custom 
 
 ### RenderGraph path (URP 17 / Unity 6 — the only supported path here)
 
-Skeleton, dropped into a C# file via `create_script`:
+Skeleton, dropped into a C# file in the project:
 
 ```csharp
 using UnityEngine;
@@ -123,7 +123,7 @@ Key points:
 - `PassData` is a per-pass POCO captured by the render-func lambda; the graph allocates and pools it.
 - `builder.UseRendererList` and `builder.SetRenderAttachment` declare data flow; without these the pass is culled or the resources are not in the right state when your render-func runs.
 
-After saving, add the feature to the renderer asset (inspector → Add Renderer Feature → MyOutlineFeature) via `manage_asset`. The renderer asset `.asset` file gains a serialized reference — commit it.
+After saving, add the feature to the renderer asset (inspector → Add Renderer Feature → MyOutlineFeature). The renderer asset `.asset` file gains a serialized reference — commit it.
 
 ### Out of scope: legacy `Execute`-based passes
 
