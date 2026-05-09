@@ -28,7 +28,7 @@ Use for everything between signed artifact and live binary: TestFlight / Play tr
 
 - **Internal Testing**: <=100 ASC members, no Apple review, appears after processing.
 - **External Testing**: <=10,000 testers; first build/version needs Beta App Review.
-- **Upload**: Xcode Organizer, `xcodebuild -exportArchive`, or `fastlane pilot upload`.
+- **Upload**: Xcode Organizer / Transporter, `xcodebuild -exportArchive` followed by Transporter or fastlane upload, or `fastlane pilot upload`.
 - **Builds expire 90 days** after upload.
 - **Feedback**: testers submit screenshots + comments per build from the TestFlight app.
 

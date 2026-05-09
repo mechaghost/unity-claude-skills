@@ -1,6 +1,6 @@
 ---
 name: unity-ads-mediation
-description: 'Use for Unity 6+ mobile ad mediation: AppLovin MAX, LevelPlay/ironSource, AdMob, Unity Ads, rewarded/interstitial/banner/MREC/app-open ads, eCPM waterfalls/bidding, frequency caps, test ads, ATT/consent handoff. Not IAP, analytics, or consent UI.'
+description: 'Use for Unity 6+ mobile ad mediation: AppLovin MAX, LevelPlay/ironSource, AdMob, Unity Ads, rewarded/interstitial/banner/MREC/app-open ads, eCPM waterfalls/bidding, frequency caps, test ads, ATT/consent handoff. Not IAP or analytics. Do NOT use for ATT/GDPR consent dialogs; use unity-consent-att-gdpr.'
 ---
 
 F2P revenue depends on ads. Mediation routes each request through a waterfall (or in-app bidding auction); higher eCPM wins. This skill covers integration plumbing only — consent, analytics, and remote-config tuning live in their own skills.

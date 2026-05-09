@@ -1,6 +1,6 @@
 ---
 name: unity-ab-testing
-description: 'Use for Unity F2P experiments: A/B or multivariate tests, sticky bucketing, holdouts, variant exposure, feature/monetization/balance treatments, Firebase/GameAnalytics/Optimizely/Statsig, metrics, sample size, significance. Not plain remote config or dashboards.'
+description: 'Use for Unity 6+ F2P experiments: A/B or multivariate tests, sticky bucketing, holdouts, variant exposure, feature/monetization/balance treatments, Firebase/GameAnalytics/Optimizely/Statsig, metrics, sample size, significance. Not plain remote config or dashboards. URP-only, new Input System only.'
 ---
 
 # Unity A/B Testing & Experiments

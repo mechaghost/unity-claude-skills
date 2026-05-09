@@ -2,16 +2,18 @@
 
 Companion to `unity-build` covering browser runtime gotchas. Unity 6, URP-only, new Input System only. Cross-link `unity-build/SKILL.md` (build pipeline), `unity-audio` (context unlock), `unity-addressables` (lazy content), `unity-persistence` (IndexedDB), `unity-input-system` (browser input quirks).
 
-## No threads
+## Threading
 
-Browser is single-threaded for Unity's runtime — `WebAssembly` ships without threads enabled in production browsers due to Spectre mitigations. Practical consequences:
+Web builds do not support arbitrary managed C# threading because WebAssembly lacks the multithreaded garbage collection Unity would need. Practical consequences:
 
 - `System.Threading.Thread` constructor crashes at runtime.
 - `Task.Run` runs delegate **on the main thread**, synchronously inlined into the next yield point. Doesn't parallelize.
 - `Parallel.For`/`Parallel.ForEach` execute serially on the main thread.
-- Background loaders block the frame.
+- Managed background loaders block the frame.
 
 Plan async work through coroutines, `UnityWebRequestAsyncOperation`, or `Awaitable` (Unity 6) — those yield to the engine's main loop without blocking. See `unity-patterns` for async/coroutine patterns that survive WebGL.
+
+Unity 6.4+ adds Web multithreading for compatible Burst-compiled C# jobs. Those jobs must stay inside the Burst/HPC# subset (blittable structs and `NativeContainer` data, no managed allocations or object references) and still schedule from the main thread. Non-Burst jobs and managed threads remain main-thread/unsupported on Web.
 
 ## IndexedDB persistence
 
@@ -107,9 +109,9 @@ Browsers cache `.wasm`, `.data`, `.framework.js`, `.loader.js` based on HTTP cac
 
 Test in Chrome, Safari (Mac), Firefox, and on actual iOS Safari before shipping.
 
-## Unity 6 Web vs WebGL
+## Unity 6 Web, WebGL, and WebGPU
 
-Unity 6 introduced a separate **Web** build target alongside WebGL. As of Unity 6 LTS, Web is still in **preview**; WebGL remains production-ready. Prefer WebGL today; revisit Web when Unity ships GA support.
+Unity 6 browser builds use the **Web** platform in Build Profiles. For production, target Web with WebGL2 today; keep WebGPU for experiments or narrow audiences until browser and Unity support mature.
 
 ## WebGPU
 

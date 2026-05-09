@@ -1,6 +1,6 @@
 ---
 name: unity-best-practices
-description: 'Use ALWAYS before any Unity 6+ MCP work. Preflight: read console, detect Editor/project, render pipeline, input mode, physics dimension, batch when possible, respect Undo, avoid Play mode unless asked, verify 3D visually. Triggers any Unity scene/prefab/asset/package/script/build task.'
+description: 'Use ALWAYS before any Unity 6+ MCP work. Preflight: read console, detect Editor/project, render pipeline, input mode, physics dimension, batch when possible, respect Undo, avoid Play mode unless asked, verify 3D visually. Triggers: Unity Editor, GameObject, Component, MonoBehaviour, ScriptableObject, scene, prefab, asset, package, script, build, Project Settings, URP, HDRP, Built-in, asmdef, manifest.json, Play mode, Edit mode.'
 ---
 
 Cross-cutting rules. Loaded with every domain skill.

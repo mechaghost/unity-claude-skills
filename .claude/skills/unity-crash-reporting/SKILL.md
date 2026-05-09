@@ -41,7 +41,7 @@ Utils.ForceCrash(ForcedCrashCategory.FatalError);    // verification only
 
 ## Sentry integration
 
-`com.unity.sentry` via Package Manager. Configure DSN in `Tools > Sentry > Configuration`. Sentry auto-captures `Debug.LogError`, `Debug.LogException`, native crashes — no global handler needed.
+Install the Sentry Unity SDK from Sentry's UPM package / current docs (for example the `getsentry/unity` package URL), not a Unity-registry `com.unity.sentry` package. Configure DSN in `Tools > Sentry > Configuration`. Sentry auto-captures `Debug.LogError`, `Debug.LogException`, native crashes — no global handler needed.
 
 ```csharp
 SentrySdk.CaptureException(ex);

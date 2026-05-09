@@ -180,9 +180,9 @@ Reference covers: render scale, thermal, texture/RAM tiers, audio voices, shader
 
 ## WebGL platform gotchas
 
-`references/webgl.md`: no threads, IndexedDB + `FS.syncfs`, audio unlock, build size, memory cap, browser quirks, API blocklist.
+`references/webgl.md`: managed-thread limits, Burst/job multithreading caveats, IndexedDB + `FS.syncfs`, audio unlock, build size, memory cap, browser quirks, API blocklist.
 
-Unity 6 also has a preview **Web** target. For production browser builds, ship WebGL2; WebGPU/URP remains experimental.
+Unity 6 browser builds use the **Web** platform. For production, target Web with WebGL2; WebGPU remains experimental and narrow-audience.
 
 ## Desktop gotchas
 

@@ -1,6 +1,6 @@
 ---
 name: unity-shuriken
-description: 'Use for Unity 6+ Shuriken/ParticleSystem effects: emission, sub-emitters, sparks, smoke, fire, dust, muzzle flashes, weather, trails, texture-sheet animation, collisions/triggers, pooling, billboards. Use VFX Graph for >5000 GPU particles or SDF/mesh/texture sampling.'
+description: 'Use for Unity 6+ Shuriken/ParticleSystem effects: emission, sub-emitters, sparks, smoke, fire, dust, muzzle flashes, weather, trails, texture-sheet animation, collisions/triggers, pooling, billboards. Do NOT use for >5000 GPU-driven particles or texture/SDF/mesh sampling; use unity-vfx-graph.'
 ---
 
 ## When to use
