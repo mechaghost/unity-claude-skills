@@ -1,6 +1,6 @@
 ---
 name: unity-navmesh
-description: Use when working with Unity AI navigation and pathfinding through Unity MCP — NavMesh, NavMeshAgent, NavMeshObstacle, NavMeshSurface, NavMeshLink, NavMesh Components, NavMesh Modifier, AI Navigation, com.unity.ai.navigation, pathfinding, agent radius, agent height, agent slope, area mask, area cost, off-mesh link, runtime bake, NavMeshHit, SamplePosition, CalculatePath, NavMesh.Raycast, agent stopping distance, agent acceleration, agent angular speed, navmesh bake, walkable area, jump links, drop links. Unity 6, URP-only, new Input System only.
+description: 'Use when working with Unity AI navigation and pathfinding through Unity MCP — NavMesh, NavMeshAgent, NavMeshObstacle, NavMeshSurface, NavMeshLink, NavMesh Components, NavMesh Modifier, AI Navigation, com.unity.ai.navigation, pathfinding, agent radius, agent height, agent slope, area mask, area cost, off-mesh link, runtime bake, NavMeshHit, SamplePosition, CalculatePath, NavMesh.Raycast, agent stopping distance, agent acceleration, agent angular speed, navmesh bake, walkable area, jump links, drop links. Unity 6, URP-only, new Input System only.'
 ---
 
 ## When to use

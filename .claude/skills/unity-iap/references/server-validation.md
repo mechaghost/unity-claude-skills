@@ -116,7 +116,7 @@ def verify_apple_jws(jws_compact):
 
 ### Acknowledgement deadline
 
-Google requires acknowledgement within 3 days or auto-refunds. Unity IAP acknowledges on `Complete` but NOT on `Pending` — the server flow must trigger acknowledgement (or trigger client `ConfirmPendingPurchase`) before the deadline.
+Google requires acknowledgement within 3 days or auto-refunds. In Unity IAP v5, do not leave a validated `PendingOrder` unconfirmed — the server flow must trigger acknowledgement or the client must call `StoreController.ConfirmPurchase(order)` before the deadline.
 
 ### Server-side validation pseudo-code (Google)
 
@@ -189,17 +189,17 @@ Pub/Sub wraps the notification — base64-decode `message.data` to get the JSON 
 ## Cross-platform end-to-end flow
 
 ```
-client.InitiatePurchase
-  -> Unity IAP ProcessPurchase fires (PurchaseProcessingResult.Pending)
-  -> client POST {receipt, productId, userId} -> backend
+client StoreController.Purchase(product)
+  -> Unity IAP v5 OnPurchasePending(PendingOrder)
+  -> client POST {order receipt/JWS, productId, userId} -> backend
   -> backend mints store JWT/token, calls App Store Server API or Play Developer API
   -> backend verifies bundleId/packageName + productId match expectations
   -> backend INSERT INTO entitlements (txId UNIQUE) VALUES (...) -- idempotency
-  -> backend responds OK -> client.ConfirmPendingPurchase(product)
+  -> backend responds OK -> client StoreController.ConfirmPurchase(order)
   -> grant in-game item AFTER entitlement row exists server-side
 ```
 
-If the server says no, do NOT call `ConfirmPendingPurchase` — Unity IAP will re-deliver on next launch and you can retry.
+If the server says no, do NOT confirm the pending order. Keep retry state explicit in the client and surface a supportable "purchase pending validation" state rather than double-granting.
 
 ## Environment / staging
 

@@ -1,6 +1,6 @@
 # Mobile platform reference
 
-Companion reference for `unity-build` covering Android + iOS runtime gotchas. Unity 6, URP-only, new Input System only. Cross-link `unity-build/SKILL.md` for the build pipeline itself, `unity-persistence` for save-on-pause, `unity-audio` for audio interruption, `unity-ugui` for safe-area UI, `unity-input-system` for touch input, `unity-urp` for mobile rendering budgets, `unity-shuriken` for particle ceilings.
+Companion reference for `unity-build` covering Android + iOS runtime gotchas. Unity 6+ / 6000.x, URP-only, new Input System only. Cross-link `unity-build/SKILL.md` for the build pipeline itself, `unity-persistence` for save-on-pause, `unity-audio` for audio interruption, `unity-ugui` for safe-area UI, `unity-input-system` for touch input, `unity-urp` for mobile rendering budgets, `unity-shuriken` for particle ceilings.
 
 ## Frame rate
 
@@ -44,8 +44,8 @@ ASTC is the modern format — supported on iOS (all current devices) and Android
 
 ## App size budgets
 
-- **Google Play (Android)** — base APK / install footprint cap is **150 MB**. Anything larger ships as AAB with Play Asset Delivery (install-time / fast-follow / on-demand asset packs) or via Addressables remote groups (cross-link `unity-addressables`). Total AAB ceiling: **4 GB** across all configurations.
-- **Apple App Store (iOS)** — IPA hard ceiling is **4 GB** uncompressed. Cellular OTA download cap is **200 MB**; over that, the user must be on Wi-Fi, which crushes day-1 install conversion. Ship the binary under 200 MB and stream the rest via Addressables / on-demand resources.
+- **Google Play (Android)** — app bundle limits are based on compressed download size: **200 MB** base module, **200 MB** per feature module, **1.5 GB** per asset pack, and **4 GB** total for install-time modules plus asset packs. Legacy APK publishing is capped at **100 MB**. Apps above **200 MB** show a mobile-data size dialog. Split large content with Play Asset Delivery or Addressables remote groups (cross-link `unity-addressables`).
+- **Apple App Store (iOS)** — IPA hard ceiling is **4 GB** uncompressed. Keep the first download small anyway; large downloads hurt conversion. Stream large optional content via Addressables / on-demand resources.
 - **Ad-mediation SDK weight** is consistently the largest single contributor to base-binary size after the Unity runtime — AppLovin MAX, IronSource LevelPlay, and AdMob each pull 8-20 MB of native code plus per-network adapters. Audit the linked SDKs before chasing texture size. Cross-link `unity-ads-mediation`.
 
 Cross-link `unity-addressables` for the actual remote content split.

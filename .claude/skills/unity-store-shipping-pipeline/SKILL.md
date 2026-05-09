@@ -1,6 +1,6 @@
 ---
 name: unity-store-shipping-pipeline
-description: Use when promoting a Unity build artifact (.ipa / .aab) into the App Store or Play Store — store shipping, App Store, Play Store, TestFlight, Play Console, internal testing, closed testing, open testing, phased rollout, staged rollout, App Store Connect API, Google Play Publisher API, fastlane, fastlane match, fastlane deliver, fastlane supply, fastlane pilot, fastlane gym, store metadata, store listing, screenshots, preview videos, app icon submission, App Store Connect screenshots, Play Console screenshots, version code, bundle version, build number, semver, signing, keystore, Apple provisioning, App Store Connect API key, P8 file, Google service account JSON, store submission, app review, Apple review, Play review, expedited review, hotfix release, patch release. Disambiguator — NOT for build pipeline mechanics (use unity-build), NOT for crash symbol upload (use unity-crash-reporting), NOT for keystore secret storage (use unity-vcs).
+description: 'Use when promoting a Unity build artifact (.ipa / .aab) into the App Store or Play Store — store shipping, App Store, Play Store, TestFlight, Play Console, internal testing, closed testing, open testing, phased rollout, staged rollout, App Store Connect API, Google Play Publisher API, fastlane, fastlane match, fastlane deliver, fastlane supply, fastlane pilot, fastlane gym, store metadata, store listing, screenshots, preview videos, app icon submission, App Store Connect screenshots, Play Console screenshots, version code, bundle version, build number, semver, signing, keystore, Apple provisioning, App Store Connect API key, P8 file, Google service account JSON, store submission, app review, Apple review, Play review, expedited review, hotfix release, patch release. Disambiguator — NOT for build pipeline mechanics (use unity-build), NOT for crash symbol upload (use unity-crash-reporting), NOT for keystore secret storage (use unity-vcs).'
 ---
 
 ## When to use
@@ -130,7 +130,7 @@ The first session of a freshly installed F2P game has to wire up six-plus subsys
 6. Initialize Unity Authentication (or Firebase Auth) — anonymous sign-in if no linked credential. Cross-link unity-auth-account-linking.
 7. Initialize Remote Config + fetch. Block boot or proceed with defaults if fetch fails. Cross-link unity-remote-config-flags.
 8. Initialize ad SDK (AppLovin MAX / LevelPlay) with consent string from step 4. Cross-link unity-ads-mediation.
-9. Initialize IAP (UnityPurchasing.Initialize). Cross-link unity-iap.
+9. Initialize IAP v5: connect store, fetch products, fetch purchases/entitlements. Cross-link unity-iap.
 10. Initialize push notifications (request permission contextually, NOT here). Cross-link unity-push-local-notifications.
 11. Now safe to log first analytics event ('first_session_start').
 ```

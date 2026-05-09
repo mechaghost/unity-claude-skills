@@ -1,6 +1,6 @@
 # Domain skill router (full reference)
 
-The deeper-dive routing table for all 42 skills in this set, grouped by category. The always-on `unity-best-practices` SKILL.md keeps a 6-row "Common cases" cheat-sheet that covers ~80% of routing without bloating every Unity prompt; reach for this file when the cheat-sheet's collapsed groupings aren't specific enough.
+The deeper-dive routing table for all 43 skills in this set, grouped by category. The always-on `unity-best-practices` SKILL.md keeps a 6-row "Common cases" cheat-sheet that covers ~80% of routing without bloating every Unity prompt; reach for this file when the cheat-sheet's collapsed groupings aren't specific enough.
 
 Hand off to the matching skill. `unity-best-practices` stays loaded alongside.
 
@@ -55,4 +55,4 @@ Hand off to the matching skill. `unity-best-practices` stays loaded alongside.
 | Anti-cheat / IAP fraud / tampering | `unity-anti-cheat-iap-fraud` |
 | In-game bug reports + GDPR deletion | `unity-support-and-bug-capture` |
 | **DevOps / CI** | |
-| CI / build automation (forward reference — skill in progress) | `unity-ci` |
+| CI / build automation | `unity-ci` |

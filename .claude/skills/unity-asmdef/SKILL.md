@@ -1,6 +1,6 @@
 ---
 name: unity-asmdef
-description: Use when partitioning Unity C# code into Assembly Definition files via Unity MCP — anything involving asmdef, assembly definition, .asmdef, asmref, version define, define constraint, auto-referenced, override references, precompiled assembly, plugin DLL, hot reload, compilation time, iteration time, circular dependency, EditorOnly assembly, test assembly. Unity 6 / 2023.2 LTS, URP-only, new Input System only.
+description: 'Use when partitioning Unity C# code into Assembly Definition files via Unity MCP — anything involving asmdef, assembly definition, .asmdef, asmref, version define, define constraint, auto-referenced, override references, precompiled assembly, plugin DLL, hot reload, compilation time, iteration time, circular dependency, EditorOnly assembly, test assembly. Unity 6+ / 6000.x, URP-only, new Input System only.'
 ---
 
 # unity-asmdef

@@ -1,6 +1,6 @@
 ---
 name: unity-profiling
-description: Use when measuring or optimizing Unity performance through Unity MCP — Unity Profiler, Profiler window, frame debugger, deep profile, profiler markers, ProfilerMarker, BeginSample, EndSample, GC.Alloc, allocations, memory profiler, Memory Profiler package, hierarchy view, timeline view, callstack, frame timing, FPS, MonoBehaviour callbacks, render passes, Player vs Editor profiler, remote profiler, attach to player, Frame Time, Profile Analyzer, performance regression. Unity 6 / 2023.2 LTS, URP-only, new Input System only.
+description: 'Use when measuring or optimizing Unity performance through Unity MCP — Unity Profiler, Profiler window, frame debugger, deep profile, profiler markers, ProfilerMarker, BeginSample, EndSample, GC.Alloc, allocations, memory profiler, Memory Profiler package, hierarchy view, timeline view, callstack, frame timing, FPS, MonoBehaviour callbacks, render passes, Player vs Editor profiler, remote profiler, attach to player, Frame Time, Profile Analyzer, performance regression. Unity 6+ / 6000.x, URP-only, new Input System only.'
 ---
 
 ## When to use

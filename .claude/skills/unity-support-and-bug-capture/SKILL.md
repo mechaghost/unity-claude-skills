@@ -1,6 +1,6 @@
 ---
 name: unity-support-and-bug-capture
-description: Use when wiring in-game bug reports, customer support tooling, and account-deletion UX into a shipped Unity game — bug report, in-game bug report, support ticket, customer support, Helpshift, Zendesk, Freshdesk, log capture, device info, log dump, FAQ, support chat, in-app messaging, account deletion, delete my data, GDPR deletion, data deletion request, support ID, player ID display, customer support flow, screenshot upload, attach log, bug capture. Unity 6 / 2023.2 LTS / URP-only / new Input System only. NOT for crash reporting auto-capture (use unity-crash-reporting), NOT for analytics events (use unity-analytics-events).
+description: 'Use when wiring in-game bug reports, customer support tooling, and account-deletion UX into a shipped Unity game — bug report, in-game bug report, support ticket, customer support, Helpshift, Zendesk, Freshdesk, log capture, device info, log dump, FAQ, support chat, in-app messaging, account deletion, delete my data, GDPR deletion, data deletion request, support ID, player ID display, customer support flow, screenshot upload, attach log, bug capture. Unity 6+ / 6000.x / URP-only / new Input System only. NOT for crash reporting auto-capture (use unity-crash-reporting), NOT for analytics events (use unity-analytics-events).'
 ---
 
 ## When to use

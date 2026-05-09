@@ -1,6 +1,6 @@
 ---
 name: unity-vcs
-description: Use when setting up or operating version control on a Unity project via Unity MCP — anything involving git, version control, .gitignore, Git LFS, scene merge, prefab merge, YAML merge, smart merge, UnityYAMLMerge, force text serialization, asset serialization mode, meta files, GUID, Visible Meta Files, EditorSettings, conflict resolution, .gitattributes, Plastic SCM, Perforce. Unity 6 / 2023.2 LTS, URP-only, new Input System only.
+description: 'Use when setting up or operating version control on a Unity project via Unity MCP — anything involving git, version control, .gitignore, Git LFS, scene merge, prefab merge, YAML merge, smart merge, UnityYAMLMerge, force text serialization, asset serialization mode, meta files, GUID, Visible Meta Files, EditorSettings, conflict resolution, .gitattributes, Plastic SCM, Perforce. Unity 6+ / 6000.x, URP-only, new Input System only.'
 ---
 
 # unity-vcs

@@ -2,7 +2,7 @@
 
 A 43-skill Claude Code skill set for working in Unity through Unity MCP. Covers rendering, gameplay, input, UI, audio, physics, animation, persistence, build, store shipping, live-ops, CI, and DOTS.
 
-Stack assumptions: **Unity 6 / 2023.2 LTS, URP-only, new Input System only.** HDRP and the Built-in pipeline are out of scope; legacy `Input` is supported only in migration guidance.
+Stack assumptions: **Unity 6+ / 6000.x, URP-only, new Input System only.** HDRP and the Built-in pipeline are out of scope; legacy `Input` is supported only in migration guidance.
 
 ## Install
 
@@ -22,6 +22,16 @@ git subtree add --prefix=.claude/skills/ unity-skills main --squash
 ```
 
 You also need a Unity MCP server connected to your Claude Code session. See [CoplayDev/unity-mcp](https://github.com/CoplayDev/unity-mcp) (the upstream of justinpbarnett/unity-mcp).
+
+## Source of truth
+
+This repository is a Claude Code skill pack. The canonical, hand-edited skill tree is:
+
+```text
+.claude/skills/
+```
+
+Do not edit `.agents/skills/` as a second source of truth. If an `.agents/` tree exists locally, treat it as an optional generated export for agent runtimes that expect that layout. It is ignored by git to prevent drift between two copies of the same skills.
 
 ## How the skills work
 
@@ -114,13 +124,15 @@ Domain skills load when their trigger keywords appear in the user's prompt. The 
 
 Each skill is self-contained. Cross-links between skills are by name (`unity-physics`, `unity-iap`, etc.). Reference files hold deep cookbook content that the parent SKILL.md links into when relevant.
 
+`.agents/` is not part of the source layout. Generate or copy it only as an export artifact when a downstream runtime needs it.
+
 ## Editorial conventions
 
 - No emojis.
 - Direct, imperative prose. No marketing fluff. No "this skill helps you..."
 - Frontmatter `description` is one trigger paragraph plus explicit "Do NOT use for X" disambiguators where overlap exists.
 - Code in C# fenced blocks. YAML, shell, XML, JSON, HLSL where appropriate.
-- Stack: Unity 6 / 2023.2 LTS, URP, new Input System. Anything older (2022 LTS, Built-in pipeline, legacy Input) appears only as migration guidance.
+- Stack: Unity 6+ / 6000.x, URP, new Input System. Anything older (2022 LTS, Built-in pipeline, legacy Input) appears only as migration guidance.
 
 ## What's not covered
 

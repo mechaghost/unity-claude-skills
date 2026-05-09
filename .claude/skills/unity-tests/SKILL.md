@@ -1,6 +1,6 @@
 ---
 name: unity-tests
-description: Use when authoring or running Unity tests through Unity MCP — Unity Test Framework, UTF, Test Runner, EditMode test, PlayMode test, NUnit, [Test], [UnityTest], [SetUp], [TearDown], [TestFixture], [TestCase], TestRunner, code coverage, run tests, test asmdef, Test Assemblies flag, mock, fake, integration test, scene test, performance test, IPrebuildSetup, IPostBuildCleanup, Coverage package. Unity 6 / 2023.2 LTS, URP-only, new Input System only.
+description: 'Use when authoring or running Unity tests through Unity MCP — Unity Test Framework, UTF, Test Runner, EditMode test, PlayMode test, NUnit, [Test], [UnityTest], [SetUp], [TearDown], [TestFixture], [TestCase], TestRunner, code coverage, run tests, test asmdef, Test Assemblies flag, mock, fake, integration test, scene test, performance test, IPrebuildSetup, IPostBuildCleanup, Coverage package. Unity 6+ / 6000.x, URP-only, new Input System only.'
 ---
 
 ## When to use

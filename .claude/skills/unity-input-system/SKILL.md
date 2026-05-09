@@ -1,6 +1,6 @@
 ---
 name: unity-input-system
-description: Use when wiring input through Unity's NEW Input System package via Unity MCP — anything involving InputAction assets, action maps, control schemes, bindings, composites, interactions, processors, PlayerInput / PlayerInputManager, the Input System UI Input Module, on-screen controls, runtime rebinding, or migrating code that calls legacy `Input.GetKey/GetAxis/GetButton/mousePosition/touchCount`. (trigger: input system, new input system, InputAction, Input Actions, action map, control scheme, binding, composite, interaction, processor, PlayerInput, PlayerInputManager, OnScreenStick, OnScreenButton, Input System UI Input Module, Gamepad.current, Keyboard.current, Touchscreen.current, Mouse.current, generate C# class, .inputactions, migrate from legacy Input, Input.GetAxis, Input.GetKey, local multiplayer, rebinding)
+description: 'Use when wiring input through Unity''s NEW Input System package via Unity MCP — anything involving InputAction assets, action maps, control schemes, bindings, composites, interactions, processors, PlayerInput / PlayerInputManager, the Input System UI Input Module, on-screen controls, runtime rebinding, or migrating code that calls legacy `Input.GetKey/GetAxis/GetButton/mousePosition/touchCount`. (trigger: input system, new input system, InputAction, Input Actions, action map, control scheme, binding, composite, interaction, processor, PlayerInput, PlayerInputManager, OnScreenStick, OnScreenButton, Input System UI Input Module, Gamepad.current, Keyboard.current, Touchscreen.current, Mouse.current, generate C# class, .inputactions, migrate from legacy Input, Input.GetAxis, Input.GetKey, local multiplayer, rebinding)'
 ---
 
 ## When to use
@@ -11,9 +11,9 @@ Cross-links: `unity-ugui` (EventSystem swap on UI prefabs), `unity-best-practice
 
 ## Setup
 
-- Install `com.unity.inputsystem` via `manage_packages` (or Package Manager UI). Unity 2022 LTS+ ships it as a verified package.
-- `manage_editor` → Project Settings → Player → **Active Input Handling**: choose `Input System Package (New)`, `Both`, or `Input Manager (Old)`. Switching prompts an Editor restart.
-- `Both` runs TWO input pipelines simultaneously — convenient during migration, but pick a target and migrate fully so you do not double-handle events.
+- Install `com.unity.inputsystem` via `manage_packages` (or Package Manager UI). Unity 6+ projects should use it as the primary input stack.
+- `manage_editor` → Project Settings → Player → **Active Input Handling**: choose `Input System Package (New)` as the final state. Switching prompts an Editor restart.
+- `Both` runs TWO input pipelines simultaneously. Use it only during a bounded migration from legacy `UnityEngine.Input`, then switch to `Input System Package (New)` once legacy call sites and the old Standalone Input Module are gone.
 - First use auto-creates `Assets/InputSystem_Actions.inputactions`. Otherwise create one yourself: `manage_asset` create with type `InputActionAsset`, or `Assets > Create > Input Actions`.
 
 ## Input Actions asset

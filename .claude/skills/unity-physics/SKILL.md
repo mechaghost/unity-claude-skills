@@ -1,6 +1,6 @@
 ---
 name: unity-physics
-description: Use when working with Unity physics through Unity MCP — adding a Rigidbody/Rigidbody2D, configuring colliders or triggers, setting kinematic vs dynamic, freezing rotation, tweaking gravity, applying force or torque (AddForce, AddTorque, AddExplosionForce, MovePosition), raycasts and overlap queries, joints (3D or 2D), layer collision matrix edits, physics materials, FixedUpdate vs Update timing, or OnCollisionEnter/OnTriggerEnter callbacks. Covers both 3D and 2D physics; pick the fork that matches the scene. For rotation-specific tasks (Quaternion math, Atan2 facing, RectTransform pivot rotation) use unity-3d-rotation, unity-2d-rotation, or unity-ugui-rotation.
+description: 'Use when working with Unity physics through Unity MCP — adding a Rigidbody/Rigidbody2D, configuring colliders or triggers, setting kinematic vs dynamic, freezing rotation, tweaking gravity, applying force or torque (AddForce, AddTorque, AddExplosionForce, MovePosition), raycasts and overlap queries, joints (3D or 2D), layer collision matrix edits, physics materials, FixedUpdate vs Update timing, or OnCollisionEnter/OnTriggerEnter callbacks. Covers both 3D and 2D physics; pick the fork that matches the scene. For rotation-specific tasks (Quaternion math, Atan2 facing, RectTransform pivot rotation) use unity-3d-rotation, unity-2d-rotation, or unity-ugui-rotation.'
 ---
 
 ## When to use
@@ -144,7 +144,7 @@ Layer-based collision is configured ONLY through the matrix. Setting fields on t
 
 3D `PhysicsMaterial` fields: `dynamicFriction`, `staticFriction`, `bounciness`, `frictionCombine`, `bounceCombine` (combine modes: Average, Minimum, Maximum, Multiply). Apply via `Collider.sharedMaterial` (preferred — does not duplicate the asset) or `Collider.material` (auto-instantiates a per-collider copy).
 
-2D `PhysicsMaterial2D` fields (Unity 6 / 2023.2+): `friction`, `bounciness`, `frictionCombine`, `bounceCombine` (combine modes: Average, Minimum, Maximum, Multiply — same set as 3D). No static/dynamic friction split. Footnote: on Unity 2022 LTS the combine fields are not exposed and contacts always average — this skill set targets Unity 6, so the combine fields are available.
+2D `PhysicsMaterial2D` fields (Unity 6+): `friction`, `bounciness`, `frictionCombine`, `bounceCombine` (combine modes: Average, Minimum, Maximum, Multiply — same set as 3D). No static/dynamic friction split. Footnote: on Unity 2022 LTS the combine fields are not exposed and contacts always average — this skill set targets Unity 6, so the combine fields are available.
 
 Create or edit material assets via `manage_material`. The 3D and 2D assets are different file types — do not assign one to the other's collider.
 

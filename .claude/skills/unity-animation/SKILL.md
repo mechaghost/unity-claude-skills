@@ -1,6 +1,6 @@
 ---
 name: unity-animation
-description: Use when working with Unity animation through Unity MCP — Animator, AnimationClip, Animator Controller, state machine, animation state, transition, parameter, blend tree, Animator parameter, layer, avatar mask, IK, OnAnimatorIK, root motion, AnimationEvent, .anim, .controller, animator override controller, generic vs humanoid, Mecanim, Animation Rigging, Rig component, Bone Renderer, Two Bone IK, Multi-Aim Constraint, Timeline, PlayableDirector, signal, signal receiver, animation track, Cinemachine track, Activation track, animation bake, retarget. Unity 6 / URP / new Input System. For Cinemachine-track-driven cinematics or virtual-camera blends, use unity-cinemachine.
+description: 'Use when working with Unity animation through Unity MCP — Animator, AnimationClip, Animator Controller, state machine, animation state, transition, parameter, blend tree, Animator parameter, layer, avatar mask, IK, OnAnimatorIK, root motion, AnimationEvent, .anim, .controller, animator override controller, generic vs humanoid, Mecanim, Animation Rigging, Rig component, Bone Renderer, Two Bone IK, Multi-Aim Constraint, Timeline, PlayableDirector, signal, signal receiver, animation track, Cinemachine track, Activation track, animation bake, retarget. Unity 6+ / URP / new Input System. For Cinemachine-track-driven cinematics or virtual-camera blends, use unity-cinemachine.'
 ---
 
 ## When to use

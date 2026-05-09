@@ -1,6 +1,6 @@
 ---
 name: unity-addressables
-description: Use when working with Unity Addressables through Unity MCP — Addressables, AssetReference, AssetReferenceT, Addressables.LoadAssetAsync, Addressables.InstantiateAsync, Addressables.LoadSceneAsync, Addressables.Release, addressable group, label, content catalog, remote group, local group, build remote catalog, async asset loading, lazy load, Resources alternative, AsyncOperationHandle, asset bundle, content update, smart bundle compression, BuildPipelineProfile.
+description: 'Use when working with Unity Addressables through Unity MCP — Addressables, AssetReference, AssetReferenceT, Addressables.LoadAssetAsync, Addressables.InstantiateAsync, Addressables.LoadSceneAsync, Addressables.Release, addressable group, label, content catalog, remote group, local group, build remote catalog, async asset loading, lazy load, Resources alternative, AsyncOperationHandle, asset bundle, content update, smart bundle compression, BuildPipelineProfile.'
 ---
 
 Companion skills: `unity-scenes` (scene Addressables and additive loading), `unity-persistence` (data versioning across content updates), `unity-build` (CI build hook for `BuildPlayerContent`), `unity-best-practices` (foundational MCP rules).

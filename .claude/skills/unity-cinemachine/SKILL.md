@@ -1,6 +1,6 @@
 ---
 name: unity-cinemachine
-description: Use when authoring or tuning Unity Cinemachine cameras through Unity MCP — Cinemachine, CinemachineCamera, CinemachineVirtualCamera, virtual camera, vcam, CinemachineBrain, camera blend, follow target, look at target, dolly track, FreeLook, Free Look camera, third person camera, framing transposer, Position Composer, Rotation Composer, Cinemachine noise, screen shake, impulse, CinemachineImpulseSource, CinemachineImpulseListener, dolly cart, spline cart, CinemachineSplineCart, smart camera, priority, blend list, state-driven camera, Cinemachine Confiner, ClearShot. Unity 6 / Cinemachine 3.x, URP-only, new Input System only. For Animator state machines, AnimationEvents, blend trees, or non-camera Timeline tracks, use unity-animation.
+description: 'Use when authoring or tuning Unity Cinemachine cameras through Unity MCP — Cinemachine, CinemachineCamera, CinemachineVirtualCamera, virtual camera, vcam, CinemachineBrain, camera blend, follow target, look at target, dolly track, FreeLook, Free Look camera, third person camera, framing transposer, Position Composer, Rotation Composer, Cinemachine noise, screen shake, impulse, CinemachineImpulseSource, CinemachineImpulseListener, dolly cart, spline cart, CinemachineSplineCart, smart camera, priority, blend list, state-driven camera, Cinemachine Confiner, ClearShot. Unity 6+ / Cinemachine 3.x, URP-only, new Input System only. For Animator state machines, AnimationEvents, blend trees, or non-camera Timeline tracks, use unity-animation.'
 ---
 
 ## When to use

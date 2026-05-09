@@ -1,6 +1,6 @@
 ---
 name: unity-auth-account-linking
-description: Use when wiring player identity, sign-in, and account linking in Unity through Unity MCP — authentication, auth, sign in, login, anonymous auth, anonymous user, Unity Authentication, Firebase Auth, Apple Sign In, Sign in with Apple, Google Sign In, Google Play Games sign in, Facebook Login, account linking, link account, unlink account, account merge, account recovery, password reset, OAuth, identity provider, IDP, JWT, token refresh, custom auth token, GUID, player GUID, player ID. NOT for save data (use unity-persistence + unity-cloud-save-conflict), NOT for IAP receipt user binding (use unity-iap). Unity 6 / 2023.2 LTS, URP-only, new Input System only.
+description: 'Use when wiring player identity, sign-in, and account linking in Unity through Unity MCP — authentication, auth, sign in, login, anonymous auth, anonymous user, Unity Authentication, Firebase Auth, Apple Sign In, Sign in with Apple, Google Sign In, Google Play Games sign in, Facebook Login, account linking, link account, unlink account, account merge, account recovery, password reset, OAuth, identity provider, IDP, JWT, token refresh, custom auth token, GUID, player GUID, player ID. NOT for save data (use unity-persistence + unity-cloud-save-conflict), NOT for IAP receipt user binding (use unity-iap). Unity 6+ / 6000.x, URP-only, new Input System only.'
 ---
 
 ## When to use

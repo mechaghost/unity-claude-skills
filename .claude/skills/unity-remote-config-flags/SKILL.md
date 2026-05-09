@@ -1,6 +1,6 @@
 ---
 name: unity-remote-config-flags
-description: Use when wiring server-driven runtime configuration and feature flags into a Unity F2P game through Unity MCP — anything involving remote config, Firebase Remote Config, Unity Cloud Code, Game Overrides, feature flag, killswitch, server-driven config, runtime config, config update, parameter override, conditional value, segmentation, audience, A/B parameter, default values, fetched values, fetch and activate, GameAnalytics Remote Config, in-app default, hotfix flag, feature toggle, config schema, parameter group, config version, config exposure. Unity 6 / 2023.2 LTS, URP-only, new Input System only. NOT for A/B test variant assignment with metrics analysis (use unity-ab-testing — though they pair on the same backend).
+description: 'Use when wiring server-driven runtime configuration and feature flags into a Unity F2P game through Unity MCP — anything involving remote config, Firebase Remote Config, Unity Cloud Code, Game Overrides, feature flag, killswitch, server-driven config, runtime config, config update, parameter override, conditional value, segmentation, audience, A/B parameter, default values, fetched values, fetch and activate, GameAnalytics Remote Config, in-app default, hotfix flag, feature toggle, config schema, parameter group, config version, config exposure. Unity 6+ / 6000.x, URP-only, new Input System only. NOT for A/B test variant assignment with metrics analysis (use unity-ab-testing — though they pair on the same backend).'
 ---
 
 # Unity Remote Config & Feature Flags

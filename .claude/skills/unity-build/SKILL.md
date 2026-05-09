@@ -1,6 +1,6 @@
 ---
 name: unity-build
-description: Use when shipping or platform-targeting a Unity project through Unity MCP — BuildPipeline.BuildPlayer, build profile, build settings, PlayerSettings, IL2CPP, Mono backend, code stripping, managed stripping, link.xml, scripting backend, target platform, target architecture, ARM64, Universal, switch platform, Android build, iOS build, WebGL build, mobile build, desktop build, BuildReport, post-build, OnPostprocessBuild, PostProcessBuildAttribute, build symbol, define symbol, scripting define, Development Build, Script Debugging, deep profiling, build size, app icon, splash screen, bundle ID, application identifier, version, build number, app version, signing, Android keystore, iOS provisioning, IPA, APK, AAB, app bundle, target frame rate, safe area, OnApplicationPause, OnApplicationFocus, app lifecycle, runInBackground, audio context unlock, IndexedDB, FS.syncfs.
+description: 'Use when shipping or platform-targeting a Unity project through Unity MCP — BuildPipeline.BuildPlayer, build profile, build settings, PlayerSettings, IL2CPP, Mono backend, code stripping, managed stripping, link.xml, scripting backend, target platform, target architecture, ARM64, Universal, switch platform, Android build, iOS build, WebGL build, mobile build, desktop build, BuildReport, post-build, OnPostprocessBuild, PostProcessBuildAttribute, build symbol, define symbol, scripting define, Development Build, Script Debugging, deep profiling, build size, app icon, splash screen, bundle ID, application identifier, version, build number, app version, signing, Android keystore, iOS provisioning, IPA, APK, AAB, app bundle, target frame rate, safe area, OnApplicationPause, OnApplicationFocus, app lifecycle, runInBackground, audio context unlock, IndexedDB, FS.syncfs.'
 ---
 
 ## When to use
@@ -20,7 +20,7 @@ Under `Edit > Project Settings > Player`. Per-platform tabs:
 - **Identification** — Company Name, Product Name, Version (semver, user-visible), Bundle Identifier (e.g. `com.studio.game`), Build Number (Android `bundleVersionCode`, iOS `CFBundleVersion`).
 - **Resolution and Presentation** — orientation (mobile), default resolution and Fullscreen Mode (desktop), splash screen.
 - **Splash Image** — Show Unity Logo. Pro can disable; Personal cannot.
-- **Other Settings** — Scripting Backend (IL2CPP/Mono), Api Compatibility Level (`.NET Standard 2.1` is the default and what asmdef-driven projects expect), Active Input Handling (must be `Input System Package` or `Both` — see `unity-input-system`), Target Architectures (Android: ARM64 required for Play Store; iOS: ARM64).
+- **Other Settings** — Scripting Backend (IL2CPP/Mono), Api Compatibility Level (`.NET Standard 2.1` is the default and what asmdef-driven projects expect), Active Input Handling (final builds should use `Input System Package (New)`; `Both` is migration-only — see `unity-input-system`), Target Architectures (Android: ARM64 required for Play Store; iOS: ARM64).
 - **Publishing Settings** (Android) — Keystore path, key alias, signing config, AAB vs APK toggle.
 - **Capabilities** (iOS) — Push Notifications (cross-link `unity-push-local-notifications`), In-App Purchase (cross-link `unity-iap`), Sign in with Apple (cross-link `unity-auth-account-linking`), Game Center, etc. Each capability flips an entitlement in the generated Xcode project; missing capabilities are a frequent cause of post-archive upload errors.
 - **Icon** — per-platform icon sets; Android adaptive icons need foreground/background mipmap layers.
@@ -193,7 +193,7 @@ If you need anonymous-type or dictionary serialization, reach for `Newtonsoft.Js
 See `references/mobile.md` for the full list. Two essentials worth surfacing here:
 
 - **Frame rate** — mobile defaults to 30 fps. Set `Application.targetFrameRate = 60` (or `30`) at boot AND `QualitySettings.vSyncCount = 0` so the target actually applies. 60 fps roughly doubles thermal load; most F2P titles target 30 with adaptive 60 on flagship devices.
-- **App size budgets** — Google Play base APK install footprint cap is 150 MB (anything larger needs AAB + Play Asset Delivery or Addressables remote groups). AAB total ceiling is 4 GB. Apple App Store IPA cap is 4 GB binary, but the cellular OTA download limit is 200 MB — over that, install conversion craters. Cross-link `unity-addressables`.
+- **App size budgets** — Google Play app bundles use compressed download-size limits: 200 MB for the base module, 200 MB per feature module, 1.5 GB per asset pack, and 4 GB for install-time modules plus asset packs. Legacy APK publishing is capped at 100 MB. Apple App Store IPA cap is 4 GB binary, but smaller cellular downloads still convert better. Cross-link `unity-addressables`.
 
 `references/mobile.md` covers the rest: `OnDemandRendering`, Adaptive Performance, texture/RAM tiers, audio voice counts, shader warmup, thermal throttling, `OnApplicationPause` save semantics, `Screen.safeArea`, touch input, orientation, particle ceilings, render-scale and shadow budgets.
 
@@ -237,7 +237,7 @@ Pair with `unity-persistence` for the actual save/flush implementation.
 - IL2CPP compile time is 5–15 min for non-trivial projects; cache the local IL2CPP toolchain (`%LOCALAPPDATA%/Unity/cache/il2cpp`) on CI runners.
 - Android keystore lost = cannot update the Play Store listing. Back up keystore + password to multiple secure locations.
 - iOS provisioning profile expires yearly; renew before submission or the upload fails.
-- Build size > 150 MB on Android Play Store requires AAB + dynamic delivery or Play Asset Delivery; cross-link `unity-addressables` for runtime content.
+- Android Play builds above the base-module budget need Play Asset Delivery, feature modules, or Addressables remote groups; cross-link `unity-addressables` for runtime content.
 - WebGL does not support `System.Diagnostics.Process`, `System.Net.Sockets` (use `UnityWebRequest`), or `BinaryFormatter`.
 - Auto-reference assemblies in asmdef can balloon build time; prune unused references — cross-link `unity-asmdef`.
 - Active Input Handling left at `Input Manager (Old)` after installing the Input System package → new-Input-System code compiles but reads no devices at runtime. Cross-link `unity-input-system`.

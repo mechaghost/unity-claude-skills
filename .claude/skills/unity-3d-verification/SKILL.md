@@ -1,6 +1,6 @@
 ---
 name: unity-3d-verification
-description: Use after creating or modifying a 3D GameObject in Unity via MCP (primitive, imported model, instantiated prefab, ProBuilder edit, transform/scale/rotation change, material swap) and before declaring the task done. Captures four orthographic screenshots (left, right, top, bottom) of the object, reads the PNGs, and visually verifies the result. Trigger keywords: verify a Unity object looks correct, 4-shot capture, orthographic screenshots, confirm 3D creation, check Unity GameObject visually.
+description: 'Use after creating or modifying a 3D GameObject in Unity via MCP (primitive, imported model, instantiated prefab, ProBuilder edit, transform/scale/rotation change, material swap) and before declaring the task done. Captures four orthographic screenshots (left, right, top, bottom) of the object, reads the PNGs, and visually verifies the result. Trigger keywords: verify a Unity object looks correct, 4-shot capture, orthographic screenshots, confirm 3D creation, check Unity GameObject visually.'
 ---
 
 ## When to use

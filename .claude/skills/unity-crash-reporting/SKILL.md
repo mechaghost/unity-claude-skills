@@ -1,6 +1,6 @@
 ---
 name: unity-crash-reporting
-description: Use when wiring crash and non-fatal exception reporting into a shipped Unity game — Firebase Crashlytics, Sentry, Sentry Unity, Bugsnag, Backtrace, Unity Cloud Diagnostics, dSYM, libil2cpp.sym, line-mappings.json, NDK symbols, ProGuard mapping, R8 mapping, Symbols.zip, BCSymbolMap, native crash, managed crash, exception logging, LogException, Application.logMessageReceived, Debug.LogException, non-fatal exception, breadcrumb, custom keys, user identifier, crash-free users, ANR, application not responding, OOM, out of memory, IL2CPP symbol upload. Unity 6 / 2023.2 LTS / URP-only / new Input System only. NOT for analytics events (use unity-analytics-events), NOT for performance profiling (use unity-profiling).
+description: 'Use when wiring crash and non-fatal exception reporting into a shipped Unity game — Firebase Crashlytics, Sentry, Sentry Unity, Bugsnag, Backtrace, Unity Cloud Diagnostics, dSYM, libil2cpp.sym, line-mappings.json, NDK symbols, ProGuard mapping, R8 mapping, Symbols.zip, BCSymbolMap, native crash, managed crash, exception logging, LogException, Application.logMessageReceived, Debug.LogException, non-fatal exception, breadcrumb, custom keys, user identifier, crash-free users, ANR, application not responding, OOM, out of memory, IL2CPP symbol upload. Unity 6+ / 6000.x / URP-only / new Input System only. NOT for analytics events (use unity-analytics-events), NOT for performance profiling (use unity-profiling).'
 ---
 
 ## When to use

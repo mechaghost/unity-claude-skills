@@ -1,6 +1,6 @@
 ---
 name: unity-best-practices
-description: Use ALWAYS at the start of ANY Unity work through Unity MCP — before reading, modifying, or creating anything in a Unity project. Foundational rules: detect render pipeline, read the console, prefer batch_execute, respect Undo, never enter Play mode unprompted, pick one paradigm (Input System, render pipeline, physics dimension), verify visually with screenshots after 3D changes. Trigger keywords — Unity, Unity MCP, Unity Editor, GameObject, Component, MonoBehaviour, ScriptableObject, scene, prefab, asset, package, build, render pipeline, URP, HDRP, Built-in, Project Settings, scripting, Assembly Definition, Library, Assets folder, Packages folder, Play mode, Edit mode, asmdef, manifest.json, .unityproj.
+description: 'Use ALWAYS at the start of ANY Unity work through Unity MCP — before reading, modifying, or creating anything in a Unity project. Foundational rules: detect render pipeline, read the console, prefer batch_execute, respect Undo, never enter Play mode unprompted, pick one paradigm (Input System, render pipeline, physics dimension), verify visually with screenshots after 3D changes. Trigger keywords — Unity, Unity MCP, Unity Editor, GameObject, Component, MonoBehaviour, ScriptableObject, scene, prefab, asset, package, build, render pipeline, URP, HDRP, Built-in, Project Settings, scripting, Assembly Definition, Library, Assets folder, Packages folder, Play mode, Edit mode, asmdef, manifest.json, .unityproj.'
 ---
 
 This skill loads alongside any domain-specific Unity skill. It encodes the cross-cutting rules. Violate them and every other skill produces wrong results.
@@ -13,7 +13,7 @@ Before any modification — including the very first read — run this preflight
 2. `set_active_instance` if more than one Unity Editor is open. Pick the project the user actually means.
 3. `refresh_unity` if there have been out-of-band file edits since the last MCP call (anything written by `apply_text_edits`, `create_script`, or your shell). Without a refresh, the editor is reading stale assets.
 4. Detect the render pipeline. See `## Detect the project paradigm`.
-5. Detect the input handling mode (Old / New / Both).
+5. Detect the input handling mode (Old / New / Both). Unity 6+ final state is New only; Both is migration mode.
 6. Detect the physics dimension in the active scene (3D Rigidbody vs 2D Rigidbody2D — they are separate worlds).
 7. Note the Unity version via `unity_reflect` on `Application.unityVersion`. API names drift between major versions; the most common bite is `Rigidbody.velocity` → `Rigidbody.linearVelocity` in Unity 6+.
 
@@ -49,7 +49,7 @@ If a tool fails or is unavailable on the connected MCP server, fall back to `exe
 
 Run these checks once per session and cache the answer in your working notes.
 
-> **Skill-set policy.** This skill set assumes **URP** and the **new Input System**. Built-in / HDRP and legacy `Input.GetKey/GetAxis` are out of scope except where explicitly called out as migration guidance. If detection finds the project on an unsupported paradigm, warn the user before proceeding.
+> **Skill-set policy.** This skill set assumes **Unity 6+ / 6000.x**, **URP**, and the **new Input System** as the final project state. Built-in / HDRP and legacy `Input.GetKey/GetAxis` are out of scope except where explicitly called out as migration guidance. If detection finds the project on an unsupported paradigm, warn the user before proceeding.
 
 - **Render pipeline** — `unity_reflect` on `UnityEngine.Rendering.GraphicsSettings.defaultRenderPipeline`.
   - `null` → Built-in. **Out of scope.** Warn the user that this skill set targets URP and recommend installing URP and running `Edit > Rendering > Materials > Convert All Built-in Materials to URP` before proceeding. See `unity-urp` for the migration steps.
@@ -57,8 +57,9 @@ Run these checks once per session and cache the answer in your working notes.
   - type name contains `HD` → HDRP. **Out of scope.** Warn the user that this skill set does not cover HDRP and recommend either switching the project to URP or using a different toolchain. Do not attempt HDRP-specific edits.
   Every shader, material, and particle decision hinges on this. Pink materials at runtime almost always mean a pipeline mismatch.
 - **Input handling** — Project Settings → Player → Active Input Handling. Read via `manage_editor` or `unity_reflect` on `UnityEditor.PlayerSettings`.
-  - "Input System Package (New)" or "Both" → proceed; the `unity-input-system` skill applies. Legacy `Input.GetKey` is dead under "Input System Package (New)".
-  - "Input Manager (Old)" → **out of scope** as the *primary* paradigm. Warn the user that this skill set assumes the new Input System; the only legacy support is migration guidance for code that calls `Input.GetKey/GetAxis/GetButton/mousePosition/touchCount`. Recommend switching Active Input Handling to "Both" or "Input System Package (New)" before proceeding.
+  - "Input System Package (New)" → proceed; the `unity-input-system` skill applies.
+  - "Both" → migration mode only. Proceed only for migration work, search for legacy `Input.GetKey/GetAxis/GetButton/mousePosition/touchCount` call sites, and finish by switching to "Input System Package (New)" once the legacy calls and old UI module are gone.
+  - "Input Manager (Old)" → **out of scope** as the *primary* paradigm. Warn the user that this skill set assumes the new Input System; the only legacy support is migration guidance for code that calls `Input.GetKey/GetAxis/GetButton/mousePosition/touchCount`. Recommend switching Active Input Handling to "Both" only for a bounded migration, then to "Input System Package (New)" as the final state.
 - **Physics dimension** — `find_gameobjects` with type filter for `Rigidbody` and again for `Rigidbody2D`. A scene mixing both is a red flag worth surfacing to the user. Cross-link `unity-physics`.
 
 ## Read the console

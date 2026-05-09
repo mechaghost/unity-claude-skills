@@ -1,6 +1,6 @@
 ---
 name: unity-ugui
-description: Use when authoring Unity UGUI through Unity MCP — Canvas, RectTransform, anchors, pivots, Image, Button, Toggle, Slider, ScrollRect, Dropdown, InputField, TextMeshPro, TMP_Text, HorizontalLayoutGroup, VerticalLayoutGroup, GridLayoutGroup, ContentSizeFitter, AspectRatioFitter, LayoutElement, EventSystem, Graphic Raycaster, Canvas Scaler, Mask, RectMask2D, Sorting Layer, Sorting Order, screen space UI, world space UI, HUD, menu, dialog, popup, tooltip, modal, safe area. See unity-ugui-rotation for rotating RectTransforms, unity-input-system for the new-Input-System EventSystem swap, and unity-3d-verification when world-space UI is sitting in a 3D scene.
+description: 'Use when authoring Unity UGUI through Unity MCP — Canvas, RectTransform, anchors, pivots, Image, Button, Toggle, Slider, ScrollRect, Dropdown, InputField, TextMeshPro, TMP_Text, HorizontalLayoutGroup, VerticalLayoutGroup, GridLayoutGroup, ContentSizeFitter, AspectRatioFitter, LayoutElement, EventSystem, Graphic Raycaster, Canvas Scaler, Mask, RectMask2D, Sorting Layer, Sorting Order, screen space UI, world space UI, HUD, menu, dialog, popup, tooltip, modal, safe area. See unity-ugui-rotation for rotating RectTransforms, unity-input-system for the new-Input-System EventSystem swap, and unity-3d-verification when world-space UI is sitting in a 3D scene.'
 ---
 
 ## UGUI vs UI Toolkit

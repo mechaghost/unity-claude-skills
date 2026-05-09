@@ -1,6 +1,6 @@
 ---
 name: unity-lighting
-description: Use when working with Unity lighting and global illumination through Unity MCP — lighting, light, Light component, directional light, point light, spot light, area light, baked light, realtime light, mixed light, baked GI, realtime GI, GI cache, lightmap, lightmapper, GPU lightmapper, Progressive Lightmapper, light probe, light probe group, reflection probe, ambient lighting, environment lighting, skybox, fog, lighting window, Window Rendering Lighting, lightmap UV, UV2, lightmap resolution, mixed lighting mode, Baked Indirect, Subtractive, Shadowmask, light layer, rendering layer, GI, global illumination, lighting bake, light cookie, IES profile. Unity 6 / URP only / new Input System only.
+description: 'Use when working with Unity lighting and global illumination through Unity MCP — lighting, light, Light component, directional light, point light, spot light, area light, baked light, realtime light, mixed light, baked GI, realtime GI, GI cache, lightmap, lightmapper, GPU lightmapper, Progressive Lightmapper, light probe, light probe group, reflection probe, ambient lighting, environment lighting, skybox, fog, lighting window, Window Rendering Lighting, lightmap UV, UV2, lightmap resolution, mixed lighting mode, Baked Indirect, Subtractive, Shadowmask, light layer, rendering layer, GI, global illumination, lighting bake, light cookie, IES profile. Unity 6+ / URP only / new Input System only.'
 ---
 
 # unity-lighting

@@ -1,6 +1,6 @@
 ---
 name: unity-scenes
-description: Use when working with Unity scene loading, multi-scene editing, or persistence patterns through Unity MCP — SceneManager, LoadScene, LoadSceneAsync, additive scene, persistent scene, boot scene, scene transition, scene streaming, multi-scene editing, DontDestroyOnLoad, scene fade, scene reference, scene index, scene path, build settings scene list, scene unload, OnSceneLoaded, scene validation, async scene loading, level loading, level streaming.
+description: 'Use when working with Unity scene loading, multi-scene editing, or persistence patterns through Unity MCP — SceneManager, LoadScene, LoadSceneAsync, additive scene, persistent scene, boot scene, scene transition, scene streaming, multi-scene editing, DontDestroyOnLoad, scene fade, scene reference, scene index, scene path, build settings scene list, scene unload, OnSceneLoaded, scene validation, async scene loading, level loading, level streaming.'
 ---
 
 Companion skill: `unity-persistence` for save data; the boot scene pattern below pairs with the SaveManager singleton there. See `unity-best-practices` for foundational MCP rules and `unity-addressables` for scene loading via `AssetReference`.
