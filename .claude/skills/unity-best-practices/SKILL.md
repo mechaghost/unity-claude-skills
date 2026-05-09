@@ -30,20 +30,24 @@ Rotation work is split across four sibling skills because the underlying APIs an
 
 When in doubt, identify the component type that holds the visual (`MeshRenderer`, `SpriteRenderer`, `RectTransform`) and pick the matching skill.
 
-## MCP tools available
+## MCP server and tool catalog
 
-This skill set assumes the following Unity MCP tools are exposed by the connected server. Names are canonical; group is informational.
+This skill set targets Unity's **official Unity MCP**, shipped with the `com.unity.ai.assistant` package. The package drops a relay binary under `~/.unity/relay/` that Claude Code launches as a stdio MCP server; the first connection has to be approved from Unity's Project Settings → AI → MCP panel.
 
-- GameObject / scene: `manage_gameobject`, `manage_components`, `manage_prefabs`, `manage_scene`, `find_gameobjects`
-- Editor / project: `manage_editor`, `manage_packages`, `manage_asset`, `set_active_instance`, `refresh_unity`, `execute_menu_item`, `execute_custom_tool`
-- Rendering: `manage_camera`, `manage_graphics`, `manage_material`, `manage_shader`, `manage_texture`
-- Specialized: `manage_physics`, `manage_animation`, `manage_vfx`, `manage_ui`, `manage_probuilder`, `manage_scriptable_object`, `manage_build`, `manage_tools`, `manage_profiler`
-- Code: `apply_text_edits`, `script_apply_edits`, `create_script`, `delete_script`, `validate_script`
-- Diagnostics: `read_console`, `debug_request_context`, `unity_reflect`, `unity_docs`
-- Tests: `run_tests`, `get_test_job`
-- Misc: `get_sha`, `batch_execute`
+Tools on the official server use a `Unity_PascalCase` naming convention. Confirmed names from the public docs include `Unity_ManageScene`, `Unity_ManageGameObject`, and `Unity_ReadConsole`; the rest of the catalog is discovered at runtime via the MCP `tools/list` response and grows with package versions.
 
-If a tool fails or is unavailable on the connected MCP server, fall back to `execute_menu_item`, `unity_reflect`, or generated scripts via `create_script`. Different MCP server forks expose different subsets.
+The role table below names the *capability* each skill expects. Match each role against whatever the connected server actually advertises (the `Unity_*` tool whose description matches), and if the server does not expose an equivalent, fall back to the listed alternatives.
+
+- GameObject / scene roles: `manage_gameobject`, `manage_components`, `manage_prefabs`, `manage_scene`, `find_gameobjects` → on the official server look for `Unity_ManageGameObject`, `Unity_ManageScene`, etc.
+- Editor / project roles: `manage_editor`, `manage_packages`, `manage_asset`, `set_active_instance`, `refresh_unity`, `execute_menu_item`, `execute_custom_tool`
+- Rendering roles: `manage_camera`, `manage_graphics`, `manage_material`, `manage_shader`, `manage_texture`
+- Specialized roles: `manage_physics`, `manage_animation`, `manage_vfx`, `manage_ui`, `manage_probuilder`, `manage_scriptable_object`, `manage_build`, `manage_tools`, `manage_profiler`
+- Code roles: `apply_text_edits`, `script_apply_edits`, `create_script`, `delete_script`, `validate_script`
+- Diagnostics roles: `read_console` (confirmed `Unity_ReadConsole`), `debug_request_context`, `unity_reflect`, `unity_docs`
+- Test roles: `run_tests`, `get_test_job`
+- Misc roles: `get_sha`, `batch_execute` (server-specific — fall back to issuing each action as a separate call when the server does not expose a batch endpoint)
+
+If a role isn't satisfied by any exposed tool, fall back to `execute_menu_item` (drives any Editor menu), reflection over `UnityEditor`/`UnityEngine` (where the server exposes a reflect tool), or a generated Editor script via `create_script`. The other 42 skills in this pack write tool calls in the lower-case role form for readability — do not paste them as literal tool IDs without first confirming the official server's exact spelling.
 
 ## Detect the project paradigm
 

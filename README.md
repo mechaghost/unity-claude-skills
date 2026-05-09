@@ -21,7 +21,9 @@ git remote add unity-skills https://github.com/mechaghost/unity-claude-skills.gi
 git subtree add --prefix=.claude/skills/ unity-skills main --squash
 ```
 
-You also need a Unity MCP server connected to your Claude Code session. See [CoplayDev/unity-mcp](https://github.com/CoplayDev/unity-mcp) (the upstream of justinpbarnett/unity-mcp).
+You also need a Unity MCP server connected to your Claude Code session. The skills target Unity's **official Unity MCP**, shipped as part of the [`com.unity.ai.assistant`](https://docs.unity3d.com/Packages/com.unity.ai.assistant@latest/manual/integration/unity-mcp-landing.html) package. After installing the package via Unity Package Manager, point Claude Code at the relay binary the package drops at `~/.unity/relay/` (the docs walk through `claude mcp add unity-mcp ...` with the platform-specific binary), then accept the **Pending Connection** prompt in Unity's Project Settings the first time the client connects.
+
+> **Tool-name compatibility.** The official Unity MCP advertises tools with a `Unity_PascalCase` naming convention (e.g. `Unity_ManageScene`, `Unity_ManageGameObject`, `Unity_ReadConsole`). Throughout the per-skill content you'll see references to lower-case shorthand like `manage_gameobject`, `read_console`, `apply_text_edits`, `batch_execute`, `unity_reflect`. Treat those as **role names**, not literal tool IDs — match them against whatever the connected Unity MCP server returns from `tools/list` at runtime. If your server doesn't expose a one-to-one equivalent for a given role (for example `batch_execute` is server-specific), fall back to issuing the underlying actions as separate calls.
 
 ## Source of truth
 
