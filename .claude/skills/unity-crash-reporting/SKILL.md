@@ -32,6 +32,8 @@ Crashlytics.IsCrashlyticsCollectionEnabled = true;
 Common API:
 
 ```csharp
+using UnityEngine.Diagnostics; // for Utils.ForceCrash + ForcedCrashCategory
+
 Crashlytics.SetCustomKey("level", currentLevel);     // dashboard column
 Crashlytics.SetUserId(playerGUID);                   // anonymous, NOT PII
 Crashlytics.Log("entered shop");                     // last 64KB ships with crash
@@ -107,6 +109,25 @@ Crashlytics' ANR module plus Android system tracing covers Android out of the bo
 - Set a custom key on every scene transition.
 - Set the user ID after auth succeeds — see `unity-auth-account-linking`.
 - CI pipeline order: build → upload symbols → run smoke tests → upload artifact. Fail the build if symbol upload fails.
+
+## Release-only crash runbook
+
+The most common new-team failure mode: "it works in the Editor, crashes on device only in Release." Editor uses Mono with no managed stripping; release Android/iOS uses IL2CPP with `Managed Stripping Level = High` by default. Most release-only crashes are stripping casualties.
+
+Decision tree:
+
+1. **Reproduce on a release build, not the Editor.** Editor uses Mono, no stripping; release on Android/iOS uses IL2CPP plus High stripping by default.
+2. **First check: managed stripping.** Set `Player Settings > Other Settings > Managed Stripping Level = Low`. Rebuild. If the crash disappears it's a stripping issue — add a `link.xml` for the stripped types rather than shipping Low. Cross-link `unity-build`.
+3. **Common stripping victims** — `JsonUtility` on private fields without `[SerializeField]`, Newtonsoft.Json on dynamic types, reflection-based DI, Odin Inspector serialization, AssemblyDefinition reflection lookups.
+4. **adb logcat (Android)** — `adb logcat -s Unity:* AndroidRuntime:E DEBUG:E` shows native crashes plus Unity logs. Filter to your bundle ID with `adb logcat --pid=$(adb shell pidof com.studio.game)`.
+5. **iOS Console / Xcode device logs** — connect device, open Xcode → Window → Devices and Simulators → select device → View Device Logs. Filter by app name. dSYM symbolication via Xcode Organizer.
+6. **Crashlytics / Sentry** — confirm symbols uploaded (cross-link `unity-build` post-build hooks). Reproduce; the symbolicated stack should reveal the failing method. If the stack shows `libil2cpp.so + 0xABCD` without method names, your symbol upload failed.
+7. **Cross-platform divergence** — `#if UNITY_EDITOR` blocks that touch Editor-only APIs in runtime code = silent no-op in editor, NullRef in build. Search for `using UnityEditor;` in runtime asmdefs (cross-link `unity-asmdef`).
+8. **Memory pressure** — Android low-RAM devices may OOM-kill the app silently. Profile peak memory via Memory Profiler (cross-link `unity-profiling`).
+9. **Permission missing** — e.g. `INTERNET` permission needed for `UnityWebRequest`; absent in some custom `AndroidManifest.xml` = exception. Restore the default manifest or check `Player Settings > Android > Internet Access`.
+10. **Last resort** — Development Build with Script Debugging enabled, attach managed debugger (cross-link `unity-build`). Slowest but catches what stripping-Low doesn't reveal.
+
+Cross-link `unity-build` (managed stripping + link.xml), `unity-asmdef` (`using UnityEditor;` in runtime code), `unity-profiling` (Memory Profiler), `unity-tests` (PlayMode test on a device farm).
 
 ## Gotchas
 

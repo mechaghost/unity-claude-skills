@@ -19,6 +19,17 @@ Before any modification — including the very first read — run this preflight
 
 When you hand off to a domain skill, print a one-line paradigm summary so the receiving skill doesn't redo the work.
 
+## Rotation routing decision tree
+
+Rotation work is split across four sibling skills because the underlying APIs and pivot semantics diverge. Pick one before authoring code:
+
+- Rotating a `Transform` on a GameObject with a MeshRenderer (or a bare transform) → `unity-3d-rotation`.
+- Rotating a `SpriteRenderer`, or a GameObject driven by a `Rigidbody2D` → `unity-2d-rotation`.
+- Rotating a `RectTransform` under a Canvas → `unity-ugui-rotation`.
+- Building or styling Canvas UI more broadly (anchors, layout, sorting, masks) — not just rotating it → `unity-ugui`.
+
+When in doubt, identify the component type that holds the visual (`MeshRenderer`, `SpriteRenderer`, `RectTransform`) and pick the matching skill.
+
 ## MCP tools available
 
 This skill set assumes the following Unity MCP tools are exposed by the connected server. Names are canonical; group is informational.
@@ -49,8 +60,6 @@ Run these checks once per session and cache the answer in your working notes.
   - "Input System Package (New)" or "Both" → proceed; the `unity-input-system` skill applies. Legacy `Input.GetKey` is dead under "Input System Package (New)".
   - "Input Manager (Old)" → **out of scope** as the *primary* paradigm. Warn the user that this skill set assumes the new Input System; the only legacy support is migration guidance for code that calls `Input.GetKey/GetAxis/GetButton/mousePosition/touchCount`. Recommend switching Active Input Handling to "Both" or "Input System Package (New)" before proceeding.
 - **Physics dimension** — `find_gameobjects` with type filter for `Rigidbody` and again for `Rigidbody2D`. A scene mixing both is a red flag worth surfacing to the user. Cross-link `unity-physics`.
-
-If you need more depth on these probes, see `references/paradigm-detection.md`.
 
 ## Read the console
 
@@ -120,19 +129,56 @@ Hand off to the matching skill. This skill stays loaded alongside.
 
 | Task | Skill |
 | --- | --- |
-| 3D rotation (Transform, quaternion, look-at, MoveRotation) | `unity-3d-rotation` |
-| 2D rotation (SpriteRenderer, Rigidbody2D, Atan2 facing) | `unity-2d-rotation` |
-| UI rotation (RectTransform under Canvas) | `unity-ugui-rotation` |
-| General UI / Canvas / RectTransform / TMP / layout | `unity-ugui` |
-| Input / actions / gamepad / keyboard / touch | `unity-input-system` |
-| Particles / Shuriken / VFX | `unity-shuriken` |
-| Materials / shaders / Shader Graph / HLSL | `unity-shaders` |
-| URP pipeline asset / renderer features / Volumes | `unity-urp` |
-| Rigidbody / colliders / joints / queries (3D and 2D) | `unity-physics` |
-| 3D verification (4-shot orthographic capture) | `unity-3d-verification` |
-| Foundational rules (this) | `unity-best-practices` — always loaded |
-
-If the routing decision is non-obvious, see `references/router.md` for the longer disambiguation table.
+| **Foundations** | |
+| Always-on primer (this skill) | `unity-best-practices` |
+| 4-shot 3D verification | `unity-3d-verification` |
+| Day-one indie patterns (pooling, singleton, SO events, FSM, pause, tweens) | `unity-patterns` |
+| **Rendering & visuals (URP-only)** | |
+| URP pipeline asset / renderer features / volumes | `unity-urp` |
+| Materials / shaders / Shader Graph | `unity-shaders` |
+| Lighting bake / probes / APV | `unity-lighting` |
+| Shuriken particles (CPU, <5000) | `unity-shuriken` |
+| VFX Graph (GPU, >5000) | `unity-vfx-graph` |
+| Animator / Timeline / IK / Animation Rigging | `unity-animation` |
+| Cinemachine 3.x cameras | `unity-cinemachine` |
+| **Gameplay** | |
+| 3D rotation (Transform / Quaternion) | `unity-3d-rotation` |
+| 2D rotation (SpriteRenderer / Rigidbody2D) | `unity-2d-rotation` |
+| UI rotation (RectTransform) | `unity-ugui-rotation` |
+| Physics (Rigidbody, colliders, joints, queries; 3D + 2D) | `unity-physics` |
+| AI navigation / pathfinding | `unity-navmesh` |
+| **Input & UI** | |
+| New Input System | `unity-input-system` |
+| UGUI / Canvas / TMP / layout | `unity-ugui` |
+| **Audio** | |
+| AudioSource / Mixer / snapshots | `unity-audio` |
+| **Project hygiene & shipping** | |
+| Scenes (SceneManager, additive, boot scene) | `unity-scenes` |
+| Save data / persistence | `unity-persistence` |
+| Cloud save sync + conflict resolution | `unity-cloud-save-conflict` |
+| Build pipeline (IL2CPP, profiles, link.xml) | `unity-build` |
+| Store shipping (TestFlight, Play Console, fastlane) | `unity-store-shipping-pipeline` |
+| Addressables (lazy load, remote groups, content updates) | `unity-addressables` |
+| Assembly Definitions | `unity-asmdef` |
+| Version control (git, LFS, SmartMerge) | `unity-vcs` |
+| Tests (UTF, EditMode/PlayMode, coverage) | `unity-tests` |
+| Profiling (Profiler, Frame Debugger, GC budget) | `unity-profiling` |
+| **Live-ops** | |
+| In-app purchases | `unity-iap` |
+| Ad mediation | `unity-ads-mediation` |
+| Consent (ATT, GDPR/CCPA, COPPA) | `unity-consent-att-gdpr` |
+| Privacy manifests (Apple PrivacyInfo, Play Data Safety) | `unity-privacy-manifests` |
+| Crash reporting (Crashlytics/Sentry, IL2CPP symbols) | `unity-crash-reporting` |
+| Analytics events (Firebase, Adjust/AppsFlyer, SKAN) | `unity-analytics-events` |
+| Remote config / feature flags | `unity-remote-config-flags` |
+| A/B testing | `unity-ab-testing` |
+| Auth + account linking (anonymous, Apple/Google) | `unity-auth-account-linking` |
+| Push + local notifications | `unity-push-local-notifications` |
+| Localization | `unity-localization` |
+| Anti-cheat / IAP fraud / tampering | `unity-anti-cheat-iap-fraud` |
+| In-game bug reports + GDPR deletion | `unity-support-and-bug-capture` |
+| **DevOps / CI** | |
+| CI / build automation (forward reference — skill in progress) | `unity-ci` |
 
 ## Common cross-cutting gotchas
 

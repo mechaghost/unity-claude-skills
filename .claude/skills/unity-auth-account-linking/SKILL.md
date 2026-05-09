@@ -50,7 +50,30 @@ Anonymous UUID lives in app-private storage. PlayerPrefs is fine for the refresh
 Pattern in every SDK: user taps "Link Apple" -> identity provider returns a signed identity token -> SDK calls `LinkWithCredential(token)` -> server upgrades anonymous record to linked. The anonymous `playerID` survives; only the auth method changes.
 
 - **Apple Sign-In** — REQUIRED on iOS if you offer ANY 3rd-party login (App Store guideline 4.8). Returns Apple-signed identity token; server verifies via Apple JWKS. Use `com.lupidan.apple-signin-unity` or Unity's UGS Apple package. Needs Service ID + Team ID + Key ID + Private Key (.p8) configured on Apple Developer.
+
+  **Nonce verification (CRITICAL — replay attack defense).** Without this, captured Apple identity tokens can be replayed against your backend.
+  - Client generates a cryptographically random nonce (e.g. 32 bytes from `RandomNumberGenerator`), keeps the raw value, and sends `SHA256(nonce)` to Apple as the `nonce` parameter on the auth request.
+  - Apple's identity token (JWT) returns the SHA256(nonce) value in its `nonce` claim.
+  - Server verifies the JWT's `nonce` claim equals `SHA256(client_nonce)` for this exact auth attempt (the raw nonce must travel with the token to your backend; bind it to the user session).
+  - Reject the token if the nonce is missing, mismatched, or reused.
+
+  **Apple Sign-In JWT validation checklist** — server must check ALL of:
+  - Fetch JWKS from `https://appleid.apple.com/auth/keys`. Cache per the response's `Cache-Control` header. Re-fetch when a `kid` is missing (key rotation).
+  - Verify the JWT signature against the JWKS key matched by the `kid` in the JWT header.
+  - `iss == "https://appleid.apple.com"`.
+  - `aud == "<your bundle ID or services ID>"` (bundle ID for native, services ID for web).
+  - `exp` not expired; `iat` not in the future (allow small clock skew, e.g. 60s).
+  - `nonce` matches `SHA256(client_nonce)` per above.
+
 - **Google Sign-In** — Android + cross-platform. Returns Google ID token; server verifies via Google's public keys (`https://www.googleapis.com/oauth2/v3/certs`). Cross-platform variant uses `googlesignin-unity`; needs OAuth client ID per platform.
+
+  **Google ID token validation checklist** — server must check ALL of:
+  - Fetch JWKS from `https://www.googleapis.com/oauth2/v3/certs`. Cache per the response's `Cache-Control` header.
+  - Verify the JWT signature against the JWKS key matched by the `kid` in the JWT header.
+  - `iss in {"accounts.google.com", "https://accounts.google.com"}`.
+  - `aud == "<your OAuth client ID>"`.
+  - `exp` not expired (allow small clock skew).
+  - Strongly prefer a maintained library over hand-rolled JWT parsing: `google-auth-library` (Node), `google.auth.oauth2.IDTokenIssuer` / `id_token.verify_oauth2_token` (Python), or `GoogleIdTokenVerifier` (Java). They handle key rotation, leeway, and cert validation correctly.
 - **Google Play Games** — Android-specific; auto-detects existing Play account, smoother UX than generic Google Sign-In on Android. Use the GPGS plugin v2; sign-in returns a server auth code that your backend exchanges for an ID token.
 - **Facebook Login** — legacy but still widely used. Facebook SDK -> access token -> exchange server-side. ATT prompt required on iOS before SDK fires (cross-link `unity-consent-att-gdpr`).
 
@@ -79,7 +102,14 @@ The whole point of linking. Flow:
 
 Auth tokens (JWTs) expire — Apple ~1h, Google ~1h, Firebase 1h, Unity Auth 1h. SDK auto-refreshes on each call. On refresh failure (revoked, password changed, account deleted), sign user out and route to re-auth flow.
 
-Cache the refresh token (or session token, depending on SDK) so cold starts skip the IDP roundtrip. PlayerPrefs is acceptable for refresh tokens; they are device-scoped and replaceable. Don't cache the short-lived access token longer than its lifetime.
+Cache the refresh token (or session token, depending on SDK) so cold starts skip the IDP roundtrip. **Do NOT use PlayerPrefs for refresh tokens** — PlayerPrefs is plaintext (NSUserDefaults plist on iOS, SharedPreferences XML on Android) and accessible to anyone with filesystem access on a jailbroken / rooted device or via iCloud / Android auto-backup. Refresh tokens grant session resumption, which is high enough value to warrant secure storage:
+
+- **iOS** — Keychain (kSecClassGenericPassword with `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`). Use a Unity Keychain asset (asset-store wrappers like the community-maintained Keychain plugins) or a small native plugin around `SecItemAdd` / `SecItemCopyMatching`.
+- **Android** — `EncryptedSharedPreferences` (Jetpack Security) via JNI bridge or a native plugin. Backed by Android Keystore so the encryption key never leaves the TEE.
+- **Asset-store option** — pair with a robust HTTP client like "Best HTTP/2" (Tivadar György Nagy) for the network layer; that author and the community maintain Keychain wrappers as well.
+- **Access tokens** (short-lived, ~1 hour) can stay in process memory — losing them on cold start is fine because the refresh token will mint a new one. Only the refresh token needs secure storage.
+
+The anonymous-UUID cache is lower stakes (device-scoped, non-recoverable, no IDP value) and PlayerPrefs is acceptable there — but disable iCloud / Android auto-backup for the auth folder so a backed-up plaintext UUID doesn't leak across devices.
 
 ```csharp
 // Unity Auth — token expiry callback

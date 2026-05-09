@@ -36,17 +36,20 @@ long energyMax = FirebaseRemoteConfig.DefaultInstance
 ## Sticky bucketing
 Same user → same variant across every session for the experiment's lifetime. Firebase handles this via deterministic hashing of `(installation_id, experiment_id)`; Statsig hashes `(stable_id, experiment_name)`.
 
-Roll-your-own (when the SDK lacks it) using a stable user GUID:
+Do NOT use `string.GetHashCode()` for sticky bucketing. Since .NET Core 2.1 and modern Mono, `string.GetHashCode()` is randomized per process under IL2CPP/Mono — different launches of the same build produce different hash values for the same input. A `Mathf.Abs(userId.GetHashCode()) % 100` shortcut will silently re-bucket users on every cold start and destroy your experiment.
+
+Use a deterministic cryptographic or non-crypto stable hash. SHA-256 is the standard, ubiquitous choice; Unity 6 also ships `System.IO.Hashing` (xxHash) for faster non-crypto hashing. Roll-your-own:
 ```csharp
-public static int Bucket(string userGuid, string experimentId, int buckets) {
-    var key = $"{userGuid}:{experimentId}";
-    using var sha = System.Security.Cryptography.SHA256.Create();
-    var hash = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(key));
-    var n = System.BitConverter.ToUInt32(hash, 0);
-    return (int)(n % (uint)buckets);
+using System.Security.Cryptography;
+using System.Text;
+public static int Bucket(string userId, string experimentId, int buckets = 100) {
+    using var sha = SHA256.Create();
+    var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(userId + ":" + experimentId));
+    // Use first 4 bytes as a uint to avoid signed-mod issues
+    uint v = (uint)(bytes[0] | bytes[1] << 8 | bytes[2] << 16 | bytes[3] << 24);
+    return (int)(v % (uint)buckets);
 }
 ```
-A `Mathf.Abs(userGuid.GetHashCode() % 100)` shortcut works in a pinch but `GetHashCode` is process-stable in Unity, NOT hash-stable across runtimes — prefer SHA-256.
 
 ## Variant assignment
 Read the variant once at session start (or at the safe boundary the variant takes effect) and cache. Do not call `GetValue` every frame.

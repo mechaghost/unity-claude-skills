@@ -44,14 +44,15 @@ ASTC is the modern format — supported on iOS (all current devices) and Android
 
 ## App size budgets
 
-- **Google Play (Android)** — base APK / install footprint cap is **150 MB**. Anything larger ships as AAB with Play Asset Delivery (install-time / fast-follow / on-demand asset packs) or via Addressables remote groups. Total AAB ceiling: **4 GB** across all configurations.
+- **Google Play (Android)** — base APK / install footprint cap is **150 MB**. Anything larger ships as AAB with Play Asset Delivery (install-time / fast-follow / on-demand asset packs) or via Addressables remote groups (cross-link `unity-addressables`). Total AAB ceiling: **4 GB** across all configurations.
 - **Apple App Store (iOS)** — IPA hard ceiling is **4 GB** uncompressed. Cellular OTA download cap is **200 MB**; over that, the user must be on Wi-Fi, which crushes day-1 install conversion. Ship the binary under 200 MB and stream the rest via Addressables / on-demand resources.
+- **Ad-mediation SDK weight** is consistently the largest single contributor to base-binary size after the Unity runtime — AppLovin MAX, IronSource LevelPlay, and AdMob each pull 8-20 MB of native code plus per-network adapters. Audit the linked SDKs before chasing texture size. Cross-link `unity-ads-mediation`.
 
 Cross-link `unity-addressables` for the actual remote content split.
 
 ## Audio voices
 
-Default `Project Settings > Audio > Real Voice Count` is 32. Drop to **16-24 on mobile** — every active voice costs CPU and battery, and the cap usually isn't audible. Configure via `manage_editor` per platform. Cross-link `unity-audio`.
+Default `Project Settings > Audio > Real Voice Count` is 32. Drop to **16-24 on mobile** — every active voice costs CPU and battery, and the cap usually isn't audible. Configure via `manage_editor` per platform. Cross-link `unity-audio` for mixer / snapshot / spatial-blend setup.
 
 ## Shader variants and warmup
 
@@ -146,6 +147,11 @@ Never call legacy `Input.touchCount` / `Input.GetTouch` on a new-Input-System pr
 
 Android 6+ and all iOS versions require runtime permission prompts for camera, microphone, location, push notifications, photo library. Use the `com.unity.android-permissions` package on Android; on iOS, fill in the matching `NS<Permission>UsageDescription` strings in `PlayerSettings > iOS > Other Settings`. Missing iOS usage descriptions are an automatic App Store rejection.
 
+Two permissions need their own dedicated skills because the prompt copy, timing, and store-review surface are non-trivial:
+
+- **Push notifications** — Android 13+ requires `POST_NOTIFICATIONS` runtime permission; iOS uses `UNUserNotificationCenter.requestAuthorization`. Both must be requested at the right moment in onboarding (not at first launch). Cross-link `unity-push-local-notifications`.
+- **Tracking (IDFA)** — `NSUserTrackingUsageDescription` plus the ATT prompt; required for any SDK that fingerprints the device for attribution. Cross-link `unity-consent-att-gdpr`.
+
 ## Orientation
 
 `PlayerSettings > Resolution and Presentation > Default Orientation` for the boot orientation. Override at runtime:
@@ -169,3 +175,5 @@ Shuriken on mobile: **≤200 particles/system at peak**, hard-cap simultaneous e
 ## Verification
 
 Profile on the **lowest-supported device**, NOT in the Editor — Editor frame times have no relationship to ARM SoC frame times. Use a remote profiler attached to a release-mode IL2CPP build (Development Build is ~30% slower than Release). Frame Debugger and the Memory Profiler both work over the remote-profiler connection. Cross-link `unity-profiling`.
+
+Once the artifact passes on-device verification, the upload flow (TestFlight, Play Console internal testing, phased rollout, fastlane) is owned by `unity-store-shipping-pipeline`.

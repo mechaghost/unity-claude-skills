@@ -158,6 +158,37 @@ void TransitionTo(State next) {
 - For >10 states or hierarchical machines, consider Animator state machines (cross-link `unity-animation`), behavior trees (NodeCanvas / Behavior Designer), or a coded HFSM library.
 - Avoid coroutine-based state machines that hard-block control flow inside states — they're hard to interrupt cleanly.
 
+## Tweens
+
+This skill is the canonical home for tween / code-driven motion guidance. Reach for a tween when you need short, parametric motion that doesn't deserve an Animator state — UI bounces, panel slide-ins, button squash-and-stretch, camera shake, color flashes on hit, value counters, fade-in/out. For Animator-driven character/UI animation, cross-link `unity-animation`.
+
+- **DOTween (Demigiant)** — the asset-store standard. Dual-licensed: free tier covers the entire core API (transform, color, value, sequence) and is sufficient for most projects; DOTween Pro adds visual scripting + path tweens + TextMesh Pro shortcuts. Allocation-free after warm-up via internal pooling. Reach for it when you have more than a handful of tweens or need sequencing (`DOTween.Sequence().Append(...).Join(...)`).
+
+  ```csharp
+  transform.DOScale(1.2f, 0.15f).SetEase(Ease.OutBack)
+           .OnComplete(() => transform.DOScale(1f, 0.1f));
+  ```
+
+- **Built-in `Mathf.SmoothDamp` / `Vector3.Lerp` / `Vector3.SmoothDamp`** — cheap tweens with zero dependencies. Use for camera follow, single-value glides, and one-off lerps where pulling in DOTween is overkill.
+
+  ```csharp
+  Vector3 vel;
+  void LateUpdate() {
+      transform.position = Vector3.SmoothDamp(
+          transform.position, target.position, ref vel, 0.15f);
+  }
+  ```
+
+- **`Unity.Mathematics.math.smoothstep`** — shader-style easing in code (Hermite curve, S-shaped 0→1). Useful when you're driving a value manually (e.g. via `Awaitable` or coroutine progress) and want a non-linear feel without a tween library.
+
+  ```csharp
+  float t = math.smoothstep(0f, 1f, elapsed / duration);
+  panel.anchoredPosition = Vector2.LerpUnclamped(start, end, t);
+  ```
+
+- Always tween in unscaled time when the tween is UI-during-pause — DOTween: `.SetUpdate(true)`; manual: drive via `Time.unscaledDeltaTime`. See `Pause and unscaled time` below.
+- Kill tweens on object destroy — DOTween: `tween.Kill()` in `OnDestroy`, or `DOTween.Kill(targetTransform)` to kill all by target. Otherwise tweens fire on a destroyed transform and throw.
+
 ## Pause and unscaled time
 
 - `Time.timeScale = 0f` pauses physics, Animator, particle systems, and any `Time.deltaTime`-driven script. Set to `1f` to resume.
@@ -260,10 +291,12 @@ Avoid coroutines on disabled GameObjects — they pause silently when the host d
 ## Screenshot helpers
 
 - **Marketing capsule**: `ScreenCapture.CaptureScreenshot(path, superSize: 4)` — 4× resolution capture for Steam capsules.
-- **Debug snapshot**:
+- **Debug snapshot** (this skill set is new-Input-System-only; the legacy `Input` class is forbidden):
   ```csharp
+  using UnityEngine.InputSystem;
+
   #if UNITY_EDITOR || DEVELOPMENT_BUILD
-  if (Input.GetKeyDown(KeyCode.F12)) {
+  if (Keyboard.current != null && Keyboard.current.f12Key.wasPressedThisFrame) {
       ScreenCapture.CaptureScreenshot(
           $"shot_{System.DateTime.Now:yyyyMMdd_HHmmss}.png", 2);
   }

@@ -83,7 +83,8 @@ Without proper consent, ads serve at low fill (no personalization) and low eCPM 
 - **iOS ATT** — must show BEFORE first ad request. Apple rejects apps without proper ATT flow now. See unity-consent-att-gdpr.
 - **GDPR (EU)** — use Google UMP (Funding Choices) or AppLovin's built-in consent flow. Pass the consent string to the SDK before init.
 - **CCPA (California)** — pass the "do not sell" flag: `MaxSdk.SetDoNotSell(true)` (or LevelPlay/AdMob equivalents) when the user opts out.
-- **COPPA / age-gated** — `MaxSdk.SetIsAgeRestrictedUser(true)` for under-13 users; this disables personalization entirely.
+- **GDPR-without-consent** — when an EU user declines consent, signal it: `MaxSdk.SetHasUserConsent(false)`. Personalized ads are blocked; ads still serve in non-personalized mode at lower eCPM.
+- **COPPA / child-directed** — `MaxSdk.SetIsAgeRestrictedUser(...)` was deprecated and removed in AppLovin MAX 12+ (mid-2024). There is no per-call age-restricted toggle anymore. Configure child-directed status via the **AppLovin dashboard's privacy settings** (disables user-signal collection app-wide), and via the **tagged-for-children flag in each mediation network's dashboard config** (Meta, Google, Mintegral, etc.). Audience targeting is done via the dashboard's Audiences tool. Combine with `SetDoNotSell(true)` and `SetHasUserConsent(false)` for under-13 users where applicable.
 
 ## Test mode
 

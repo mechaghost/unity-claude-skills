@@ -46,13 +46,13 @@ public static class WebGLFs
 }
 ```
 
-Call `WebGLFs.Flush()` after every save write. Cross-link `unity-persistence`.
+Call `WebGLFs.Flush()` after every save write. The save-format design (atomic write + version field + JSON layout) is owned by `unity-persistence` — defer there for the structured save layer that sits above this `FS.syncfs` plumbing.
 
 ## Audio context unlock
 
 Browsers refuse audio playback until the page has received a user gesture (click, tap, key). Until then, `AudioSource.Play()` returns silently — no error, no audio.
 
-Pattern: a "Click to Start" gate on the title screen that calls a no-op `AudioSource.PlayOneShot(silentClip)` on the first input event. This satisfies the gesture requirement; subsequent music/SFX play normally. Cross-link `unity-audio`.
+Pattern: a "Click to Start" gate on the title screen that calls a no-op `AudioSource.PlayOneShot(silentClip)` on the first input event. This satisfies the gesture requirement; subsequent music/SFX play normally. The mixer / snapshot / volume-slider plumbing that wraps this gate is owned by `unity-audio`.
 
 ## Build size
 
@@ -123,3 +123,5 @@ URP has experimental WebGPU support in Unity 6. Desktop Chrome / Edge run it wel
 4. Save mid-session, hard-reload, confirm save persists (IndexedDB sync worked).
 5. Test in Chrome, Safari, Firefox; on actual iOS Safari and Android Chrome (mobile browsers cap memory lower than desktop).
 6. Profile WASM heap via the Memory Profiler attached to a Development Build before assuming you fit under the 256-512 MB mobile ceiling.
+
+Cross-link `unity-build/SKILL.md` for the broader build pipeline this reference fits into (build profiles, IL2CPP, link.xml, BuildReport).

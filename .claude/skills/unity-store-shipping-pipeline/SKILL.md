@@ -117,6 +117,32 @@ Automate via fastlane `snapshot` / `screengrab`: a scripted UI walkthrough rende
 - **Release notes** auto-generated from git commits since last tag (squash merges + conventional commits make this clean).
 - **Tag releases**: `git tag v1.2.3` at the release commit; the tag string must match the App Store version exactly so support can map crash reports back to source.
 
+## Live-ops boot-order checklist
+
+The first session of a freshly installed F2P game has to wire up six-plus subsystems in a specific order. Get it wrong and you get IDFA-less attribution, lost crash reports, consent violations, or a remote-config fetch racing the auth handshake. Each step crosses into a different skill — this is the connective tissue.
+
+```
+1. Boot scene loads: bring up Bootstrapper GameObject. Cross-link unity-scenes.
+2. Initialize Crashlytics/Sentry FIRST. Cross-link unity-crash-reporting. Catches bugs in everything that follows.
+3. Initialize Firebase (or chosen analytics SDK) — but do NOT log events yet. Cross-link unity-analytics-events.
+4. Show consent dialog if EU/EEA/UK user. UMP Form.show(). Block boot until dismissed. Cross-link unity-consent-att-gdpr.
+5. iOS only: show ATT prompt. Apple recommends after user understands the app, before any tracked ad init. Cross-link unity-consent-att-gdpr.
+6. Initialize Unity Authentication (or Firebase Auth) — anonymous sign-in if no linked credential. Cross-link unity-auth-account-linking.
+7. Initialize Remote Config + fetch. Block boot or proceed with defaults if fetch fails. Cross-link unity-remote-config-flags.
+8. Initialize ad SDK (AppLovin MAX / LevelPlay) with consent string from step 4. Cross-link unity-ads-mediation.
+9. Initialize IAP (UnityPurchasing.Initialize). Cross-link unity-iap.
+10. Initialize push notifications (request permission contextually, NOT here). Cross-link unity-push-local-notifications.
+11. Now safe to log first analytics event ('first_session_start').
+```
+
+Hard rules:
+
+- **ATT BEFORE ad SDK init** — otherwise IDFA-less attribution forever; the ad SDK caches the IDFA absence at init.
+- **Crashlytics FIRST** — catches everything else's init failures.
+- **Firebase BEFORE consent** — the consent SDK (UMP) may use Firebase under the hood.
+- **Auth BEFORE remote config** — remote config can target by user properties, which require an authenticated user.
+- **Block on consent in EU/EEA/UK; non-blocking elsewhere.** Don't block a US user on a UMP form they'll never see.
+
 ## Gotchas
 
 - **Apple signing certs lost** = cannot ship updates. Back up the Apple Developer account 2FA + signing certs to multiple secure locations. fastlane match in a private repo is the canonical fix.

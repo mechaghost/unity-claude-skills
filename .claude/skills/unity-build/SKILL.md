@@ -22,7 +22,7 @@ Under `Edit > Project Settings > Player`. Per-platform tabs:
 - **Splash Image** — Show Unity Logo. Pro can disable; Personal cannot.
 - **Other Settings** — Scripting Backend (IL2CPP/Mono), Api Compatibility Level (`.NET Standard 2.1` is the default and what asmdef-driven projects expect), Active Input Handling (must be `Input System Package` or `Both` — see `unity-input-system`), Target Architectures (Android: ARM64 required for Play Store; iOS: ARM64).
 - **Publishing Settings** (Android) — Keystore path, key alias, signing config, AAB vs APK toggle.
-- **Capabilities** (iOS) — Push Notifications, In-App Purchase, Game Center, etc.
+- **Capabilities** (iOS) — Push Notifications (cross-link `unity-push-local-notifications`), In-App Purchase (cross-link `unity-iap`), Sign in with Apple (cross-link `unity-auth-account-linking`), Game Center, etc. Each capability flips an entitlement in the generated Xcode project; missing capabilities are a frequent cause of post-archive upload errors.
 - **Icon** — per-platform icon sets; Android adaptive icons need foreground/background mipmap layers.
 
 Mutate via `manage_editor` rather than hand-editing `ProjectSettings/ProjectSettings.asset` — the editor normalizes values and re-serializes meta.
@@ -151,6 +151,12 @@ public class BuildHooks : IPreprocessBuildWithReport, IPostprocessBuildWithRepor
 
 Prefer the `IPreprocessBuildWithReport` / `IPostprocessBuildWithReport` interfaces over the legacy attribute when you need `BuildReport` access.
 
+The two highest-volume post-build hooks in production projects:
+
+- **Store upload** — TestFlight (iOS) and Play Console (Android) submission. The canonical pipeline lives in `unity-store-shipping-pipeline` (fastlane `pilot` / `supply`, App Store Connect API, Play Publisher API). Do not re-implement it here.
+- **Symbol upload for crash reporting** — IL2CPP `libil2cpp.sym` / line-mappings.json (Android), dSYM + BCSymbolMap (iOS) uploaded to Crashlytics / Sentry / Backtrace. Cross-link `unity-crash-reporting`.
+- **Privacy manifest generation** — Apple `PrivacyInfo.xcprivacy` is best emitted from a post-build hook so the manifest stays in sync with the SDKs the build actually links. Cross-link `unity-privacy-manifests`.
+
 ## BuildReport parsing
 
 `BuildPipeline.BuildPlayer` returns a `BuildReport`. Inspect:
@@ -160,16 +166,27 @@ Prefer the `IPreprocessBuildWithReport` / `IPostprocessBuildWithReport` interfac
 - `report.steps[]` — per-step duration, useful for finding slow asset imports.
 - `report.packedAssets[]` — every shipped asset with its packed size; sort by size to find bloat.
 
-Serialize a slim summary to JSON for CI dashboards:
+`report.summary.totalSize` plus the sorted `report.packedAssets[]` distribution is the canonical input to release-dashboard size budgets and CI size-regression gates (a forward-reference cross-link to `unity-ci` once that skill lands; until then, plumb it into your existing CI pipeline).
+
+Serialize a slim summary to JSON for CI dashboards. **Do not pass an anonymous type to `JsonUtility.ToJson`** — `JsonUtility` cannot serialize anonymous types and silently writes `"{}"` with no error. Use a `[Serializable]` POCO:
 
 ```csharp
-var json = JsonUtility.ToJson(new {
+[Serializable]
+class BuildSummary {
+    public string result;
+    public long sizeBytes;
+    public float durationSec;
+}
+
+var summary = new BuildSummary {
     result = report.summary.result.ToString(),
-    sizeBytes = report.summary.totalSize,
-    durationSec = (report.summary.buildEndedAt - report.summary.buildStartedAt).TotalSeconds,
-});
-File.WriteAllText("Builds/last-report.json", json);
+    sizeBytes = (long)report.summary.totalSize,
+    durationSec = (float)(report.summary.buildEndedAt - report.summary.buildStartedAt).TotalSeconds
+};
+File.WriteAllText("Builds/last-report.json", JsonUtility.ToJson(summary, prettyPrint: true));
 ```
+
+If you need anonymous-type or dictionary serialization, reach for `Newtonsoft.Json` (with the matching `link.xml` entry) instead of `JsonUtility`.
 
 ## Mobile platform gotchas
 

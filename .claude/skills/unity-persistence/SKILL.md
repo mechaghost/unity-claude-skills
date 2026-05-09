@@ -138,11 +138,9 @@ public static void EnsureSlot(int slot) =>
 
 ## Cloud saves
 
-- **Steam Cloud** — auto-backs `persistentDataPath` if Steamworks SDK is integrated. Whitelist files via Steam partner site (Auto-Cloud rules).
-- **iCloud** — `UnityEngine.iOS.iCloudKVStore` for key-value sync; for full files use `NSUbiquitousKeyValueStore` via a native plugin.
-- **Google Play Games Services** — Snapshots API via Google's Unity plugin.
+Cloud saves (Steam Cloud, iCloud, Google Play Saved Games, Unity Cloud Save, Firebase) are covered in `unity-cloud-save-conflict`. That skill owns conflict resolution, schema migration, and cross-device handoff. This skill (`unity-persistence`) covers local on-device save only.
 
-Out of scope for this skill — link to the platform's docs when you hit them. Design saves to be self-contained directories so cloud backends can sync them as units.
+For iCloud key-value sync specifically: there is no `UnityEngine.iOS.iCloudKVStore` API — that type does not exist in any Unity version. iCloud KV requires either a native plugin (e.g. Voxel Busters' "iCloud Cloud Save" on the Asset Store) or a custom Objective-C/Swift bridge calling `NSUbiquitousKeyValueStore`. Do not ship a hand-rolled bridge unless you understand the entitlement, container, and sync-notification surface.
 
 ## What NOT to use
 
@@ -228,6 +226,24 @@ public class SaveManager : MonoBehaviour
         if (!File.Exists(path)) return false;
         Current = JsonUtility.FromJson<SaveData>(File.ReadAllText(path));
         return true;
+    }
+
+    static string SlotDir(int slot) =>
+        Path.Combine(Application.persistentDataPath, $"Slot{slot}");
+
+    static void EnsureSlot(int slot) =>
+        Directory.CreateDirectory(SlotDir(slot));
+
+    static void AtomicWrite(string path, string contents)
+    {
+        string tmp = path + ".tmp";
+        string bak = path + ".bak";
+        File.WriteAllText(tmp, contents);
+
+        if (File.Exists(path))
+            File.Replace(tmp, path, bak);
+        else
+            File.Move(tmp, path);
     }
 }
 ```

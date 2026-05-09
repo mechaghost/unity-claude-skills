@@ -42,10 +42,39 @@ iOS equivalent via `iOSNotificationCenter.ScheduleNotification(...)`. Both suppo
 - Refresh on `OnTokenRefresh` and re-upload — the token rotates.
 - Server sends via Firebase Admin SDK → Google → device → app foreground/background handler.
 
+## Server-side FCM dispatch (HTTP v1)
+
+CRITICAL: the legacy FCM HTTP API (`https://fcm.googleapis.com/fcm/send` with `Authorization: key=<server_key>`) was sunset June 20, 2024. Any backend still on that path silently 404s — push delivery just stops. Migrate to HTTP v1.
+
+- **Endpoint**: `POST https://fcm.googleapis.com/v1/projects/{project_id}/messages:send`
+- **Auth**: OAuth2 access token minted from a service account JSON key. Scope: `https://www.googleapis.com/auth/firebase.messaging`. Tokens last ~1 hour; refresh before expiry from your backend (Google Auth libraries handle this — `google-auth-library` (Node), `google.oauth2.service_account.Credentials` (Python), `GoogleCredentials.fromStream` (Java)).
+- **Header**: `Authorization: Bearer <access_token>` and `Content-Type: application/json`.
+- **Payload shape**:
+
+```json
+{
+  "message": {
+    "token": "<device token>",
+    "notification": { "title": "...", "body": "..." },
+    "data": { "deeplink": "shop/coins" },
+    "android": { "priority": "high" },
+    "apns": { "payload": { "aps": { "content-available": 1 } } }
+  }
+}
+```
+
+- The old `https://fcm.googleapis.com/fcm/send` shape with `Authorization: key=<server_key>` is dead. If a backend you inherited still uses it, that is the bug — there is no "fall back" mode.
+
 ## APNs (iOS push)
 - Generate an APNs key (.p8) in Apple Developer; upload to Firebase Console → Cloud Messaging.
 - Same Firebase SDK on the client; Firebase routes through APNs under the hood.
 - Request `RemoteNotification` capability in iOSNotificationCenter setup; declare push capability in Xcode (unity-build can stamp this).
+- **Token-based vs cert-based auth.** Token-based (.p8) is the recommended path: one key per team, lasts indefinitely until revoked, signs JWTs your backend mints per request. Cert-based (.p12) expires yearly and forces a manual rotation cadence — avoid for new integrations.
+- **Direct APNs HTTP/2** (if you bypass Firebase): `https://api.push.apple.com/3/device/<token>` (production) and `https://api.sandbox.push.apple.com/3/device/<token>` (sandbox). One .p8 key allows ~10 simultaneous HTTP/2 connections per Apple's quota; pool connections aggressively.
+
+## Push token registration (idempotency)
+
+Clients retry token uploads (boot, foreground after long background, `OnTokenRefresh`). Your backend keys the token row by `(userId, deviceId)` and updates the token in place — never insert a new row per upload. Without this you accumulate stale tokens per user and end up sending duplicate pushes (or worse, pushing to a device the user uninstalled). Cross-link `unity-iap` for the same idempotency pattern on receipts.
 
 ## OneSignal (turn-key option)
 - Install `com.onesignal.unity`. Configure App ID in inspector.

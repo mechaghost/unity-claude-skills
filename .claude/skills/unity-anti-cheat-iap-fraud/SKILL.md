@@ -33,11 +33,11 @@ See also unity-iap for the basic IAP flow.
 
 - Client → server: send `receipt`, `productID`, `transactionID`.
 - Server → store:
-  - **Apple**: App Store Server API. Hit the production endpoint first; if it returns `21007`, retry against sandbox (Apple's official fallback).
-  - **Google**: Google Play Developer API `purchases.products.get` / `purchases.subscriptions.get`.
-- Server confirms `productID`, `transactionID`, amount, sandbox flag, refund/cancellation status.
-- **Idempotency** — store `transactionID` and never grant the same purchase twice.
-- **Webhooks** — subscribe to Apple Server Notifications V2 + Google Real-time Developer Notifications for refund/chargeback events. Revoke entitlements on refund.
+  - **Apple — App Store Server API**. The 21007-fallback dance is `verifyReceipt` behavior, NOT App Store Server API. ASSA uses **separate base URLs** by environment: `https://api.storekit.itunes.apple.com` (production) and `https://api.storekit-stage.itunes.apple.com` (sandbox). The client (or, on webhooks, the notification's `environment` field) tells you which base URL to hit — there is no retry-on-21007 path. Authenticate with an ES256 JWT (.p8 key); see `unity-iap` for the JWT contract.
+  - **Google**: Android Publisher API — full paths `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{packageName}/purchases/products/{productId}/tokens/{token}` (consumables / non-consumables) and `.../purchases/subscriptionsv2/tokens/{token}` (subscriptions).
+- Server confirms `productID`, `transactionID`, amount, environment, refund/cancellation status.
+- **Idempotency** — key grants by `originalTransactionId` (Apple) / `purchaseToken` (Google). Unique-indexed; second arrival no-ops to the existing entitlement. Detail in `unity-iap`.
+- **Webhooks** — subscribe to Apple Server Notifications V2 + Google Real-time Developer Notifications (Pub/Sub) for refund/chargeback events. Revoke entitlements on refund. Verify the JWS cert chain on Apple webhooks; dedupe Google webhooks by Pub/Sub `messageId`. Detail in `unity-iap`.
 
 ## Currency / score validation
 
@@ -56,10 +56,7 @@ A modified content catalog can swap a `weapon_X` prefab for `weapon_X_with_infin
 
 ## IL2CPP obfuscation
 
-- **Symbol renaming** — Beebyte's Obfuscator (or similar) renames methods/types in the IL2CPP build. Static analysis becomes painful.
-- **String encryption** — encrypt sensitive strings (API URLs, encryption keys, validation endpoints) at compile time, decrypt at runtime.
-- **Limits** — does not stop dynamic analysis (Frida hooks at runtime). Buys time, that's all.
-- See unity-build for IL2CPP build configuration.
+IL2CPP build configuration (scripting backend, code stripping, link.xml) lives in `unity-build`. This skill adds the obfuscation overlay on top: Beebyte's Obfuscator (or equivalent) for symbol renaming, plus string encryption and control-flow obfuscation for sensitive paths (API URLs, validation endpoints, anti-cheat hooks). Buys time against static analysis; does not stop runtime instrumentation (Frida).
 
 ## Root / jailbreak detection
 
@@ -69,9 +66,19 @@ A modified content catalog can swap a `weapon_X` prefab for `weapon_X_with_infin
 - **Action** — gate online features (leaderboards, IAP, ranked) on rooted devices; warn the user; allow offline play.
 - Don't outright ban — root users may be legitimate developers, accessibility tool users, or QA.
 
+**Filesystem checks alone are defeated by Magisk Hide / Shamiko / similar — treat them as a low-cost first gate, not a real defense.** The production-grade defense is platform attestation:
+
+- **Android — Play Integrity API** (modern replacement for SafetyNet Attestation, which Google deprecated in 2024 with shutdown phased through 2025). Client requests a token from Play services; Google returns a signed JWT that attests to app integrity (matches Play-distributed signature), device integrity (unmodified Android), and account licensing. Server verifies the JWT against Google's keys and rejects tampered devices on sensitive paths (IAP grant, leaderboard submit).
+- **iOS — DeviceCheck / App Attest**. App Attest (iOS 14+) is the equivalent: the device generates a hardware-backed key pair and signs server challenges; your server verifies via Apple's attestation roots. Use it on the same sensitive paths.
+
+Both systems fail closed: gate the request server-side on a fresh attestation, not just at boot.
+
 ## Network protection
 
-- **Certificate pinning** — pin the server's public key in client; reject MITM proxies (Charles, mitmproxy). Adds 1-2 days to an attacker's setup, not weeks. Ship a cert update path before you need it.
+- **Certificate pinning** — pin the server's public key in the client; reject MITM proxies (Charles, mitmproxy). Adds 1-2 days to an attacker's setup, not weeks. Ship a cert update path before you need it.
+  - **Pin both current AND backup**. Always ship the client knowing two pins: the current cert (or its SPKI) and a backup. When the cert rotates, the backup pin keeps the install alive while you push a build that learns the next backup. Without a backup pin, cert renewal becomes a self-DoS event — every install on the network bricks the moment the cert flips.
+  - **Pin the SPKI (Subject Public Key Info), not the cert**, when you can. Pinning the public key survives cert renewal as long as you reuse the same key on rotation — no client update needed.
+  - **Rotation cadence**: leaf certs are typically 1-year (matches public CA terms); intermediates are longer. Pinning the leaf forces yearly client updates; pinning intermediate or SPKI lets you rotate the leaf transparently.
 - **Encrypted payloads** — TLS is mandatory. Add app-level encryption (nonce + HMAC) on sensitive endpoints to defeat replay attacks even if pinning is bypassed.
 - **Rate limiting** — server-side per-user. Block brute-force currency or progression requests.
 

@@ -80,6 +80,17 @@ Prefer TMP for any new UI — better atlas, MSDF rendering, rich text, and shade
 
 Deeper material — atlas population modes (Static vs Dynamic), fallback chains, SDF tuning, missing-glyph behavior, the full rich-text tag list, RTL / Arabic shaping caveats, `BaseMeshEffect`, material presets, and recovery from poisoned dynamic atlases — lives in `references/textmeshpro.md`.
 
+## Localization handoff
+
+This skill stops at the layout / TMP-component boundary. Anything translation-related belongs to `unity-localization`:
+
+- All user-facing strings, `LocalizedString` field bindings on UI components, language switching at runtime.
+- TMP font fallback chains for CJK and emoji, RTL / Arabic shaping with the Arabic Text Plug-in, locale-specific font assets.
+- Plural and gender rules via Smart Format, locale-aware date / number / currency formatting.
+- Per-locale asset variants (sprites, layouts, audio) wired through `LocalizedAsset` and the Localization Tables system.
+
+When the request crosses that boundary — multi-language UI, RTL menus, font fallback, plural copy — consult `unity-localization` and stay in this skill only for the underlying RectTransform / TMP / layout work the localized content sits in.
+
 ## Canvas Scaler and resolution
 
 UI Scale Mode picks how pixel sizes map to physical screens:
