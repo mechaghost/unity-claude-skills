@@ -200,7 +200,7 @@ class StripUnusedVariants : IPreprocessShaders {
 
 Cross-link `unity-build` for where this slots into the pipeline and `unity-profiling` (Frame Debugger) for counting variants actually used in a frame.
 
-**Runtime warmup with `ShaderVariantCollection`.** Generate the collection in the editor (Project Settings -> Graphics, log shader variants while playing then `Save to asset`), include it in the build, and call `WarmUp()` during a loading scene before gameplay starts. This is essential on iOS Metal — the first time a variant is rendered without warmup, Metal compiles the shader on the GPU thread and stalls the frame.
+**Runtime warmup with `ShaderVariantCollection`.** Generate the collection in the editor (Project Settings -> Graphics, log shader variants while playing then `Save to asset`), include it in the build, and call `WarmUp()` during a loading scene before gameplay starts. This is essential on iOS Metal — without warmup, the first time each variant is rendered Metal compiles the pipeline state object on the GPU thread and stalls the frame for 100-300 ms (visible as first-encounter stutter the first time each enemy type, particle effect, or post-process volume appears).
 
 ```csharp
 [SerializeField] ShaderVariantCollection warmupSet;
@@ -212,18 +212,6 @@ IEnumerator WarmUpAllShaders() {
 ```
 
 **Mobile budget.** Aim for <500 variants per shader and total compiled shader binary <20 MB. Each `multi_compile` pragma doubles variant count; `shader_feature` only ships the combinations referenced by some material. Inspect `Library/ShaderCache/` after a build to gauge the binary size.
-
-### iOS Metal warmup gotcha
-
-Without warmup, the first time a shader variant is rendered on iOS Metal causes a 100-300 ms hitch as Metal compiles the pipeline state object on demand. Players see a stutter the first time each enemy type, particle effect, or post-process volume appears.
-
-Pattern:
-
-1. In Project Settings -> Graphics, click `Save to asset` next to the currently-tracked variants list (or use `Edit > Save current shader compile log`) to produce a `.shadervariants` asset.
-2. Include the asset in build (assign it to a serialized field on a loading-scene MonoBehaviour, or load via Addressables).
-3. During the loading screen, call `ShaderVariantCollection.WarmUp()` before showing the first frame of gameplay.
-
-Without this, expect first-encounter stutters on iPhone. Cross-link `unity-build` (build pipeline) and `unity-profiling` (Frame Debugger to verify variants).
 
 ## Common patterns
 

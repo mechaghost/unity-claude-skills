@@ -92,6 +92,27 @@ Run a separate job using `game-ci/unity-test-runner` with `testMode: editmode` a
 - **fastlane match** (recommended for iOS) — a private git repo holds encrypted certs / profiles; `match` decrypts on the CI runner using a `MATCH_PASSWORD` secret. Eliminates code-signing drift across machines and CI. Cross-link `unity-store-shipping-pipeline`.
 - **Never commit secrets**. Cross-link `unity-vcs` for `.gitignore` / `.gitattributes` rules that keep keystores and `.p12` files out of git.
 
+### Generating and encoding secrets
+
+```bash
+# Android keystore -> base64 for GitHub Secrets
+base64 -i my.keystore | pbcopy   # macOS
+base64 -w 0 my.keystore           # Linux
+
+# Decode in CI workflow:
+echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > my.keystore
+
+# iOS .p8 from App Store Connect:
+# Users and Access > Keys > tap "+" > download once (irretrievable after).
+# Then base64 -i AuthKey_XXX.p8 | pbcopy
+
+# fastlane match Personal Access Token:
+# GitHub > Settings > Developer settings > Personal access tokens > generate new (repo scope)
+# Pass to fastlane as MATCH_PASSWORD env var.
+```
+
+**Unity Personal license activation**: GameCI Personal license workflow: leave `UNITY_SERIAL` blank or omit; GameCI auto-runs `-createManualActivationFile` on first run, generates `.alf`, you upload to license.unity3d.com, get a `.ulf` file, paste contents into a `UNITY_LICENSE` secret. Pro/Enterprise: set `UNITY_EMAIL`, `UNITY_PASSWORD`, `UNITY_SERIAL` directly.
+
 ## fastlane orchestration
 
 After the Unity build step succeeds, call a fastlane lane to ship the artifact:

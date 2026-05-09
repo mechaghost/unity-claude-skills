@@ -43,6 +43,8 @@ Server flow: client calls `POST /api/account/delete` with the playerID + auth to
 
 Public web URL alternative: `https://yourstudio.com/data-deletion` — a form that takes player ID + email and queues the same backend job. Required if the in-app entry isn't available pre-login.
 
+**No-backend fallback**: if you have no backend, use the public web URL form route exclusively (`https://yourstudio.com/data-deletion` with a Google Form, Tally, or Typeform behind it that emails you). Required by Google Play 2024 listing field. The in-app endpoint is optional when the public URL is provided.
+
 GDPR rights beyond deletion: **data export** (machine-readable JSON or CSV — HTML/PDF doesn't qualify) and **rectification** (edit-profile screens for name, email, etc.). Wire both behind the same Settings → Account screen.
 
 ## Player support ID

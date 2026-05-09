@@ -101,6 +101,8 @@ GDPR Article 17 + CCPA + Google Play Data Deletion Policy 2024.
 - **Apple**: Privacy Policy URL must include data deletion contact.
 - **Google Play (since 2024)**: app must offer in-app deletion OR a public web URL referenced in Play Console listing. Both are fine; pick one and document it.
 
+**No-backend fallback** for the deletion endpoint: a public web form (Google Form, Tally, Typeform) that emails the team is sufficient for the Google Play listing requirement and Apple Privacy Policy reference. The in-app deletion entry remains best practice but is not strictly required if the URL is provided in the store listings.
+
 ## Common patterns
 
 - **`ConsentManager` singleton**: tracks state, persists last-seen consent string in PlayerPrefs (cross-link unity-persistence), passes consent to ad SDKs on init.

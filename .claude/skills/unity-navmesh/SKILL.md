@@ -92,6 +92,20 @@ Pattern: spawn level geometry → `BuildNavMesh()` → spawn AI agents (after sa
 - **Jump links**: `NavMeshLink` with `Area = Jump`, high cost so the pathfinder prefers ground; disable Auto Traverse and play a jump animation while moving the transform along a parabola, then `agent.CompleteOffMeshLink()`.
 - **Door**: `NavMeshObstacle` on the door with `Carve` enabled; toggle `obstacle.enabled` (or the carve flag) when door state changes. Surrounding NavMesh updates automatically.
 - **Multi-floor levels**: bake on a single `NavMeshSurface` with stairs/ramps included; use `NavMeshLink` for jump-downs between floors. Or one surface per floor connected by links — easier to rebake one floor.
+- **Driving an Animator from a NavMeshAgent**:
+  ```csharp
+  // Read the agent's velocity each frame and feed it to a Speed parameter on the Animator.
+  // Cache the Animator hash for zero-allocation SetFloat calls.
+  NavMeshAgent agent;
+  Animator animator;
+  static readonly int SpeedHash = Animator.StringToHash("Speed");
+  void Update() {
+      // Normalize agent velocity to 0..1 against agent.speed for blend-tree compatibility.
+      float normalizedSpeed = agent.velocity.magnitude / agent.speed;
+      animator.SetFloat(SpeedHash, normalizedSpeed, 0.1f, Time.deltaTime); // damping smooths transitions
+  }
+  ```
+  Note: `0.1f` damp time + Time.deltaTime smooths state transitions in the Animator's blend tree. For root-motion characters, set `Apply Root Motion = false` on the Animator and let NavMeshAgent drive position; otherwise the two fight.
 
 ## Gotchas
 

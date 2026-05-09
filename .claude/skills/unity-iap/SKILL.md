@@ -92,18 +92,10 @@ try {
 
 **Server-side (required for any real revenue)**:
 
-- **Apple — App Store Server API (primary)**. Endpoints: production `https://api.storekit.itunes.apple.com`, sandbox `https://api.storekit-stage.itunes.apple.com`. The notification's `environment` field (or which store the client transacted against) tells you which base URL to hit — there is no `21007` retry dance. Call `GET /inApps/v1/transactions/{transactionId}` to fetch a signed JWS-encoded transaction. Verify `bundleId`, `productId`, transaction uniqueness (store `originalTransactionId`). For subscription state use `GET /inApps/v1/subscriptions/{originalTransactionId}` (Get All Subscription Statuses).
-- **Apple — `verifyReceipt` (legacy)**. Deprecated by Apple; only useful for legacy receipts emitted before App Store Server API rollout. Do not build new integrations on it.
-- **Apple JWS auth (ES256)** — App Store Server API requires a short-lived ES256 JWT in the `Authorization` header.
-  - Generate the token with max 20-minute lifetime; rotate aggressively.
-  - Header: `{ "alg": "ES256", "kid": "<your key ID>", "typ": "JWT" }`
-  - Payload: `{ "iss": "<your issuer ID>", "iat": <unix>, "exp": <unix+1200>, "aud": "appstoreconnect-v1", "bid": "<your bundle ID>" }`
-  - Sign with the .p8 private key downloaded once from App Store Connect (Users and Access > Keys > In-App Purchase). Issuer ID and Key ID are on that same page.
-  - Send as `Authorization: Bearer <jwt>` on every request. Cache the JWT for its lifetime; do not regenerate per-call.
-- **Google — Android Publisher API**. Full REST paths:
-  - Products: `GET https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{packageName}/purchases/products/{productId}/tokens/{token}`
-  - Subscriptions V2: `GET https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{packageName}/purchases/subscriptionsv2/tokens/{token}`
-  Use a service account with the Android Publisher API enabled (`purchases.products.get` / `purchases.subscriptionsv2.get` are the SDK shorthand for these paths). Acknowledge within 3 days or Google auto-refunds.
+- **Apple — App Store Server API (primary)**. Use this; `verifyReceipt` is deprecated. Auth is a short-lived ES256 JWT signed with the `.p8` from App Store Connect. Reads: `GET /inApps/v1/transactions/{transactionId}` for one-off verification, `GET /inApps/v1/subscriptions/{originalTransactionId}` (Get All Subscription Statuses) for canonical subscription state.
+- **Google — Android Publisher API**. Service-account auth with scope `androidpublisher`. Reads: `purchases.products.get` and `purchases.subscriptionsv2.get`. Acknowledge within 3 days or Google auto-refunds.
+
+Full implementation cookbook with JWT generation, x5c chain verification, and Pub/Sub setup: see `references/server-validation.md`.
 
 End-to-end: client `InitiatePurchase` -> `ProcessPurchase` returns `Pending` -> POST `{receipt, productId, userId}` to your backend -> backend validates with the store -> backend writes entitlement to your DB -> client polls or listens (push / next entitlement sync) -> `ConfirmPendingPurchase`. Grant the in-game item only after the entitlement row exists server-side.
 
@@ -168,19 +160,11 @@ Always test: first purchase, restore on fresh install, network drop mid-purchase
 ## Refunds and deferred purchases
 
 **Refunds** — silent by default. Apple and Google notify your server, not the client. Without a webhook, a refunded user keeps the entitlement forever.
-- **Apple — App Store Server Notifications V2**. HTTPS endpoint receives a JWS compact form payload (`header.payload.signature`). Verification is mandatory before trusting the body:
-  - Decode the JWS header (base64url) and extract the `x5c` cert chain.
-  - The leaf cert in `x5c` verifies the JWS signature.
-  - Verify the cert chain ends at Apple's root CA (download from Apple's PKI page; pin the root and rotate annually).
-  - Verify `alg = ES256` in the header. Reject anything else — never accept `none`, RS256, or unexpected algs.
-  - Only after the chain validates do you parse and trust the payload (notification types: `REFUND`, `REVOKE`, `CONSUMPTION_REQUEST`, `DID_RENEW`, `EXPIRED`, `GRACE_PERIOD_EXPIRED`, ...).
-- **Google — Real-time Developer Notifications**. Notifications arrive via a Pub/Sub topic in your GCP project. Setup:
-  - Create the Pub/Sub topic in the same GCP project as the Play Console linked project.
-  - Grant the role `roles/pubsub.publisher` to `google-play-developer-notifications@system.gserviceaccount.com` on that topic.
-  - Subscribe to the topic via push (HTTPS endpoint with auth token) or pull from your backend.
-  - In Play Console > Monetization setup, point the topic name at the topic you created.
-  - Each Pub/Sub message includes attributes (`notificationType`, `purchaseToken`, ...) and a `messageId`. Dedupe by `messageId` — Pub/Sub guarantees at-least-once, not exactly-once.
-  - For consumable refunds use the voided-purchases API in addition to RTDN.
+
+- **Apple — App Store Server Notifications V2**. JWS-signed webhook payload (`header.payload.signature`). Verify the `x5c` cert chain to Apple's root CA, confirm `alg = ES256`, then trust the payload. Notification types include `REFUND`, `REVOKE`, `CONSUMPTION_REQUEST`, `DID_RENEW`, `EXPIRED`, `GRACE_PERIOD_EXPIRED`.
+- **Google — Real-time Developer Notifications**. Pub/Sub topic in your GCP project; grant `roles/pubsub.publisher` to `google-play-developer-notifications@system.gserviceaccount.com`, point Play Console at the topic, dedupe by Pub/Sub `messageId` (at-least-once delivery). Use the voided-purchases API alongside RTDN for consumable refunds.
+
+Full webhook verification recipe (x5c chain pinning, RTDN setup, payload shapes): see `references/server-validation.md`.
 
 On notification: revoke entitlement server-side. On client app boot, sync entitlements from server before unlocking gated content.
 

@@ -171,7 +171,35 @@ Animator on the panel with Idle/In/Out states, parameter-driven. Or DOTween for 
 
 ### Safe area (notches)
 
-Sample `Screen.safeArea` and rewrite a top RectTransform's anchors each frame or on orientation change. Snippet in `references/canvas-scaler.md`.
+Sample `Screen.safeArea` and rewrite a top RectTransform's anchors each frame or on orientation change.
+
+```csharp
+using UnityEngine;
+[RequireComponent(typeof(RectTransform))]
+public class SafeAreaFitter : MonoBehaviour {
+    RectTransform rt;
+    Rect lastSafeArea;
+    void Awake() => rt = GetComponent<RectTransform>();
+    void Update() {
+        if (Screen.safeArea != lastSafeArea) {
+            lastSafeArea = Screen.safeArea;
+            ApplySafeArea(lastSafeArea);
+        }
+    }
+    void ApplySafeArea(Rect area) {
+        Vector2 anchorMin = area.position;
+        Vector2 anchorMax = area.position + area.size;
+        anchorMin.x /= Screen.width;
+        anchorMin.y /= Screen.height;
+        anchorMax.x /= Screen.width;
+        anchorMax.y /= Screen.height;
+        rt.anchorMin = anchorMin;
+        rt.anchorMax = anchorMax;
+    }
+}
+```
+
+Attach to a top-level RectTransform that wraps your HUD content. The reference file (`references/canvas-scaler.md`) can keep a deeper variant for orientation-change handling.
 
 ### Tooltip near a 3D point
 

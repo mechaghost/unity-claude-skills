@@ -162,14 +162,14 @@ void TransitionTo(State next) {
 
 This skill is the canonical home for tween / code-driven motion guidance. Reach for a tween when you need short, parametric motion that doesn't deserve an Animator state — UI bounces, panel slide-ins, button squash-and-stretch, camera shake, color flashes on hit, value counters, fade-in/out. For Animator-driven character/UI animation, cross-link `unity-animation`.
 
-- **DOTween (Demigiant)** — the asset-store standard. Dual-licensed: free tier covers the entire core API (transform, color, value, sequence) and is sufficient for most projects; DOTween Pro adds visual scripting + path tweens + TextMesh Pro shortcuts. Allocation-free after warm-up via internal pooling. Reach for it when you have more than a handful of tweens or need sequencing (`DOTween.Sequence().Append(...).Join(...)`).
+- **DOTween (free, asset store)** — pick when you want one-line tweens like `transform.DOMoveX(5, 1f)` or chained sequencing (`DOTween.Sequence().Append(...).Join(...)`). Allocation-free after warm-up.
 
   ```csharp
   transform.DOScale(1.2f, 0.15f).SetEase(Ease.OutBack)
            .OnComplete(() => transform.DOScale(1f, 0.1f));
   ```
 
-- **Built-in `Mathf.SmoothDamp` / `Vector3.Lerp` / `Vector3.SmoothDamp`** — cheap tweens with zero dependencies. Use for camera follow, single-value glides, and one-off lerps where pulling in DOTween is overkill.
+- **Without DOTween**, use `Mathf.SmoothDamp` / `Vector3.SmoothDamp` for camera-style smoothing, or coroutines with `Mathf.Lerp`+`SmoothStep` (or `Unity.Mathematics.math.smoothstep`) for one-shot animations. Zero dependencies.
 
   ```csharp
   Vector3 vel;
@@ -177,13 +177,6 @@ This skill is the canonical home for tween / code-driven motion guidance. Reach 
       transform.position = Vector3.SmoothDamp(
           transform.position, target.position, ref vel, 0.15f);
   }
-  ```
-
-- **`Unity.Mathematics.math.smoothstep`** — shader-style easing in code (Hermite curve, S-shaped 0→1). Useful when you're driving a value manually (e.g. via `Awaitable` or coroutine progress) and want a non-linear feel without a tween library.
-
-  ```csharp
-  float t = math.smoothstep(0f, 1f, elapsed / duration);
-  panel.anchoredPosition = Vector2.LerpUnclamped(start, end, t);
   ```
 
 - Always tween in unscaled time when the tween is UI-during-pause — DOTween: `.SetUpdate(true)`; manual: drive via `Time.unscaledDeltaTime`. See `Pause and unscaled time` below.
@@ -307,21 +300,13 @@ Avoid coroutines on disabled GameObjects — they pause silently when the host d
 
 ## In-game debug console
 
-When not pulling in third-party (IngameDebugConsole, SRDebugger, Quantum Console):
-
-- Roll a minimal one: a UGUI input field + scrollable Text. On submit, parse first token as command, dispatch to a `Dictionary<string, Action<string[]>>`.
-- Gate behind `DEVELOPMENT_BUILD` define and a key-combo (Tilde, F1, three-finger tap on mobile).
-- Common commands: `god`, `noclip`, `give <item>`, `tp <x> <y> <z>`, `kill all`, `setflag <name>`, `dumpsave`.
-- Cheats also expose hard-to-test states quickly during dev — keep them, ship them stripped behind the define.
+For an in-game debug console, install `IngameDebugConsole` (asset store, free) or `Quantum Console`. Roll-your-own is a UGUI InputField + a `Dictionary<string, Action<string[]>>` command map; gate behind `DEVELOPMENT_BUILD` define and a key-combo (Tilde, F1, three-finger tap on mobile). Common commands: `god`, `noclip`, `give <item>`, `tp <x> <y> <z>`, `kill all`, `setflag <name>`, `dumpsave`.
 
 ## Common patterns
 
 - **DontDestroyOnLoad bootstrapper**: scene 0 has a Managers GameObject; `Awake` calls `DontDestroyOnLoad` on each manager and loads main scene additively. Cross-link `unity-scenes`.
-- **Init order via `[DefaultExecutionOrder(-100)]`**: pin singleton `Awake`s early.
 - **Lazy-found references**: never call `Object.FindAnyObjectByType<T>()` in `Update`; cache in `OnEnable`.
-- **Cache `WaitForSeconds`**: `private static readonly WaitForSeconds wait1s = new WaitForSeconds(1f);` — every fresh `new WaitForSeconds(t)` is a 16-byte alloc that GCs.
 - **`[SerializeField] private` fields > public fields** — inspector exposure without API surface.
-- **`Mathf.SmoothDamp`** for camera follow and tweens that handle `deltaTime` correctly.
 - **`Application.targetFrameRate = 60`** in a startup script — mobile defaults to 30; desktop defaults to vsync.
 
 ## Gotchas

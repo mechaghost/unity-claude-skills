@@ -12,7 +12,7 @@ Reach for this skill any time you are writing automated tests in Unity, configur
 1. Create a folder like `Assets/Tests/EditMode/` or `Assets/Tests/PlayMode/`.
 2. Add a Tests asmdef inside it (`manage_asset` create asmdef, see unity-asmdef).
 3. In the asmdef inspector, check Test Assemblies. This automatically scopes the asmdef and hides it from non-test builds.
-4. Add precompiled references: `nunit.framework.dll`, `UnityEngine.TestRunner`, `UnityEditor.TestRunner` (the Editor one only when the asmdef includes the Editor platform).
+4. Add precompiled references: `nunit.framework.dll`, `UnityEngine.TestRunner`, `UnityEditor.TestRunner` (the Editor one only when the asmdef includes the Editor platform). **Note**: the `Override References` checkbox in the asmdef inspector must be enabled before the precompiled-references list field appears. Without that toggle, the field is hidden and adding nunit/TestRunner fails silently. For the canonical Tests asmdef JSON template see `unity-asmdef`.
 5. Reference the asmdef under test (e.g. `Game.Runtime`).
 6. EditMode Tests asmdef: include only Editor platform OR all platforms with the Test Assemblies flag set.
 7. PlayMode Tests asmdef: include Standalone or Any Platform so it compiles into a built Player when needed.

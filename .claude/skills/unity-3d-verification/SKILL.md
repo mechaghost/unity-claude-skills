@@ -69,11 +69,11 @@ Notes:
 
 ## Capture mechanism
 
-The exact screenshot tool name varies by Unity MCP fork. The upstream CoplayDev/unity-mcp server (justinpbarnett/unity-mcp now redirects there) lists `manage_camera`, `execute_menu_item`, `unity_reflect`, `manage_script`, `execute_custom_tool`, and `batch_execute` as the relevant primitives but does not document a top-level `capture_screenshot` tool publicly. Discover before assuming:
+The exact screenshot tool name varies by Unity MCP fork. The upstream CoplayDev/unity-mcp server (justinpbarnett/unity-mcp now redirects there) lists `manage_camera`, `execute_menu_item`, `unity_reflect`, `create_script`, `apply_text_edits`, `execute_custom_tool`, and `batch_execute` as the relevant primitives but does not document a top-level `capture_screenshot` tool publicly. Discover before assuming:
 
 1. Enumerate available MCP tools (the harness lists them at session start). Match against `/screenshot|capture|render|snapshot|view/i`. If a dedicated tool exists, use it.
 2. If not, try `manage_camera` with an action like `capture`, `render`, or `screenshot` — some forks add it there.
-3. If still nothing, fall back to `Camera.Render()` into a `RenderTexture` and `Texture2D.EncodeToPNG`, executed via `execute_custom_tool` or by writing a temporary editor script with `manage_script` and invoking it through `execute_menu_item`. Pseudocode for the fallback:
+3. If still nothing, fall back to `Camera.Render()` into a `RenderTexture` and `Texture2D.EncodeToPNG`, executed via `execute_custom_tool` or by writing a temporary editor script with `create_script` (or `apply_text_edits` to amend an existing one) and invoking it through `execute_menu_item`. Pseudocode for the fallback:
 
    ```csharp
    var rt = new RenderTexture(1024, 1024, 24);
