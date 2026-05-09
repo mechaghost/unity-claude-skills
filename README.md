@@ -1,8 +1,10 @@
 # unity-claude-skills
 
-A 43-skill Claude Code skill set for working in Unity through Unity MCP. Covers rendering, gameplay, input, UI, audio, physics, animation, persistence, build, store shipping, live-ops, CI, and DOTS.
+A 43-skill Claude Code skill set for working in Unity through Unity MCP. Covers rendering, gameplay, input, UI, audio, physics, animation, persistence, build, Web/mobile/desktop shipping, live-ops, CI, and DOTS.
 
 Stack assumptions: **Unity 6+ / 6000.x, URP-only, new Input System only.** HDRP and the Built-in pipeline are out of scope; legacy `Input` is supported only in migration guidance.
+
+Browser-build policy: Unity 6 uses the **Web** platform in Build Profiles. Production guidance targets Web with WebGL2; WebGPU is treated as experimental / narrow-audience until Unity and browser support mature.
 
 ## Install
 
@@ -53,7 +55,7 @@ Domain skills load when their trigger keywords appear in the user's prompt. The 
 ### Rendering and visuals (URP-only)
 | Skill | Use for |
 | --- | --- |
-| `unity-urp` | Pipeline asset, renderer features, post-processing volumes, camera stacks, 2D Renderer, light layers. |
+| `unity-urp` | Pipeline asset, renderer features, Forward / Forward+ / Deferred paths, post-processing volumes, camera stacks, 2D Renderer, light layers. |
 | `unity-shaders` | Materials, Shader Graph, HLSL, MaterialPropertyBlock, SRP Batcher, variant stripping, iOS Metal warmup. |
 | `unity-lighting` | Light components, Mixed lighting modes, lightmappers, Light Probes, Reflection Probes, APV, fog, skybox. |
 | `unity-shuriken` | CPU particles (ParticleSystem). Use when count <5000. |
@@ -74,7 +76,7 @@ Domain skills load when their trigger keywords appear in the user's prompt. The 
 | Skill | Use for |
 | --- | --- |
 | `unity-input-system` | New Input System: Action assets, control schemes, composites, PlayerInput, rebinding, migration from legacy `Input`. |
-| `unity-ugui` | Canvas, RectTransform, Selectables, layout, EventSystem, TMP, masks, sorting. |
+| `unity-ugui` | Canvas, RectTransform, Selectables, layout, EventSystem, TMP, masks, sorting. Contrasts UGUI with built-in UI Toolkit APIs (`UIDocument`, `VisualElement`, USS, UXML). |
 | `unity-audio` | AudioSource, AudioMixer, snapshots, ducking, mobile / WebGL audio context. |
 
 ### Project hygiene and shipping
@@ -83,8 +85,8 @@ Domain skills load when their trigger keywords appear in the user's prompt. The 
 | `unity-scenes` | SceneManager, additive loading, boot scene, scene transitions, cross-scene references. |
 | `unity-persistence` | PlayerPrefs, JsonUtility, atomic save, save slots, save versioning. |
 | `unity-cloud-save-conflict` | Cross-device sync, schema migration, conflict resolution (Steam Cloud, iCloud, Play Saved Games, UGS, Firebase). |
-| `unity-build` | BuildPipeline, IL2CPP vs Mono, code stripping, link.xml, Build Profiles. References for mobile and WebGL. |
-| `unity-store-shipping-pipeline` | TestFlight, Play Console, fastlane, App Store Connect API, phased rollout. Includes live-ops boot-order checklist. |
+| `unity-build` | BuildPipeline, IL2CPP vs Mono, code stripping, link.xml, Build Profiles, profile-based CI, Web/WebGL2/WebGPU notes. References for mobile and browser builds. |
+| `unity-store-shipping-pipeline` | TestFlight, Play Console, fastlane, App Store Connect API, phased rollout, current screenshot classes. Includes consent-safe live-ops boot order. |
 | `unity-addressables` | AssetReference, async load, content catalogs, remote groups, content updates. |
 | `unity-asmdef` | Assembly Definitions, version defines, Editor / Runtime / Test split. |
 | `unity-vcs` | Git, LFS, .gitignore, force-text serialization, UnityYAMLMerge / SmartMerge. |
@@ -96,10 +98,10 @@ Domain skills load when their trigger keywords appear in the user's prompt. The 
 | Skill | Use for |
 | --- | --- |
 | `unity-iap` | In-app purchases, App Store Server API, Google Play Developer API, idempotency, refund webhooks. |
-| `unity-ads-mediation` | AppLovin MAX, LevelPlay, AdMob, frequency caps, consent integration. |
+| `unity-ads-mediation` | AppLovin MAX, LevelPlay 9.x, AdMob, adapter installation, frequency caps, consent integration. |
 | `unity-consent-att-gdpr` | iOS ATT, GDPR / CCPA via UMP, COPPA age-gating, data deletion. |
 | `unity-privacy-manifests` | Apple PrivacyInfo.xcprivacy (Required Reason APIs), Google Play Data Safety. |
-| `unity-crash-reporting` | Crashlytics / Sentry, IL2CPP symbol upload, ANR detection, release-only crash runbook. |
+| `unity-crash-reporting` | Crashlytics / Sentry, consent-safe collection gating, IL2CPP symbol upload, ANR detection, release-only crash runbook. |
 | `unity-analytics-events` | Firebase Analytics, Adjust / AppsFlyer, SKAN, event taxonomy, funnels. |
 | `unity-remote-config-flags` | Firebase Remote Config / Unity Game Overrides, killswitches, hotfix flags. |
 | `unity-ab-testing` | Variant assignment, sticky bucketing (SHA-256, not GetHashCode), exposure events, holdouts. |
