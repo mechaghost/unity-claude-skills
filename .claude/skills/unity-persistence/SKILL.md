@@ -1,6 +1,6 @@
 ---
 name: unity-persistence
-description: 'Use when working with Unity save data and persistence through Unity MCP — PlayerPrefs, JsonUtility, save data, save game, save slot, load game, persistentDataPath, dataPath, BinaryFormatter, Newtonsoft Json, JSON save, save file, cloud save, Steam Cloud, encrypted save, savefile path, application persistent data, ES3, Easy Save, atomic save, save slot UI, scriptable object save.'
+description: 'Use when working with Unity save data and persistence through Unity MCP — PlayerPrefs, JsonUtility, save data, save game, save slot, load game, persistentDataPath, dataPath, BinaryFormatter, Newtonsoft Json, JSON save, save file, cloud save, Steam Cloud, encrypted save, savefile path, application persistent data, ES3, Easy Save, atomic save, save slot UI, scriptable object save. Unity 6+ / 6000.x, URP-only, new Input System only.'
 ---
 
 Companion skill: `unity-scenes` for the boot scene that owns the SaveManager singleton; `unity-patterns` for singleton structure; `unity-build` for shipping save format compatibility across builds.

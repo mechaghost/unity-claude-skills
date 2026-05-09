@@ -1,6 +1,6 @@
 ---
 name: unity-shaders
-description: 'Use when working with Unity shaders, materials, or Shader Graph (trigger: shader, material, ShaderGraph, HLSL, ShaderLab, pink material, missing shader, normal map, render queue, blend mode, transparent, cutout, GPU instancing, batching, MaterialPropertyBlock, custom shader, surface shader, Lit shader, Unlit shader, _BaseColor, _BaseMap, dissolve, outline, fresnel, hologram, triplanar, vertex wave, SRP Batcher, shader keyword, shader variant)'
+description: 'Use when working with Unity shaders, materials, or Shader Graph (trigger: shader, material, ShaderGraph, HLSL, ShaderLab, pink material, missing shader, normal map, render queue, blend mode, transparent, cutout, GPU instancing, batching, MaterialPropertyBlock, custom shader, surface shader, Lit shader, Unlit shader, _BaseColor, _BaseMap, dissolve, outline, fresnel, hologram, triplanar, vertex wave, SRP Batcher, shader keyword, shader variant). Unity 6+ / 6000.x, URP-only, new Input System only.'
 ---
 
 ## When to use

@@ -1,6 +1,6 @@
 ---
 name: unity-3d-rotation
-description: 'Use when rotating 3D GameObjects in Unity through Unity MCP — setting transform.rotation/eulerAngles/localRotation, look-at behavior, smooth slerp, character or turret aim, camera framing, gimbal-lock issues, Rigidbody MoveRotation, or any quaternion math on a 3D Transform. Do NOT use for SpriteRenderers (use unity-2d-rotation), RectTransforms under Canvas (use unity-ugui-rotation), or general UI/Canvas work (use unity-ugui). For Rigidbody-driven rotation prefer unity-3d-rotation; for general Rigidbody / collider / joint setup use unity-physics.'
+description: 'Use when rotating 3D GameObjects in Unity through Unity MCP — setting transform.rotation/eulerAngles/localRotation, look-at behavior, smooth slerp, character or turret aim, camera framing, gimbal-lock issues, Rigidbody MoveRotation, or any quaternion math on a 3D Transform. Do NOT use for SpriteRenderers (use unity-2d-rotation), RectTransforms under Canvas (use unity-ugui-rotation), or general UI/Canvas work (use unity-ugui). For Rigidbody-driven rotation prefer unity-3d-rotation; for general Rigidbody / collider / joint setup use unity-physics. Unity 6+ / 6000.x, URP-only, new Input System only.'
 ---
 
 ## When to use

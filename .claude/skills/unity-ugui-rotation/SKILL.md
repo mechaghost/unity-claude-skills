@@ -1,6 +1,6 @@
 ---
 name: unity-ugui-rotation
-description: 'Use when rotating UGUI elements in Unity through Unity MCP — Image, Text, Button, Panel, or any RectTransform under a Canvas. Z-axis rotation around the RectTransform pivot, with caveats for anchors, layout groups, masks, and Canvas render modes. Do NOT use for general UGUI work like building HUDs/menus/layouts (use unity-ugui), 3D Transform rotation (use unity-3d-rotation), or SpriteRenderer rotation (use unity-2d-rotation).'
+description: 'Use when rotating UGUI elements in Unity through Unity MCP — Image, Text, Button, Panel, or any RectTransform under a Canvas. Z-axis rotation around the RectTransform pivot, with caveats for anchors, layout groups, masks, and Canvas render modes. Do NOT use for general UGUI work like building HUDs/menus/layouts (use unity-ugui), 3D Transform rotation (use unity-3d-rotation), or SpriteRenderer rotation (use unity-2d-rotation). Unity 6+ / 6000.x, URP-only, new Input System only.'
 ---
 
 ## When to use

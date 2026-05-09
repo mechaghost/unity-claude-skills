@@ -5,7 +5,7 @@ description: 'Use when authoring Unity UGUI through Unity MCP — Canvas, RectTr
 
 ## UGUI vs UI Toolkit
 
-This skill is UGUI (the GameObject-based Canvas / RectTransform stack under `UnityEngine.UI` and `TMPro`). Unity also ships **UI Toolkit** (UITK, package `com.unity.ui`) — a retained-mode UI system based on `UIDocument`, `VisualElement`, USS stylesheets, and UXML. UITK is the future-direction system for editor tooling and, on 2022.2+, an increasingly viable choice for runtime UI. Pick **UGUI** for: World Space canvases, Animator-driven UI states, complex per-Graphic shader effects (custom Image materials, `BaseMeshEffect` chains), and anything that leans on the mature UGUI ecosystem (TMP, DOTween, Unity Ads/IAP prefabs, third-party scroll-pool assets). Pick **UITK** for: dense data-bound lists with virtualization, USS-styled dashboards, editor windows / inspectors, and runtime UI on 2022.2+ where you do not need a world-space surface. If the user describes a UITK problem (`UIDocument`, `VisualElement`, `UQuery`, USS, UXML), this skill is the wrong file — note the mismatch rather than forcing the request into UGUI.
+This skill is UGUI (the GameObject-based Canvas / RectTransform stack under `UnityEngine.UI` and `TMPro`). Unity 6 also ships **UI Toolkit** (UITK, package `com.unity.ui`) — a retained-mode UI system based on `UIDocument`, `VisualElement`, USS stylesheets, and UXML. UITK is the future-direction system for editor tooling and a viable runtime UI choice in Unity 6 when no world-space surface is needed. Pick **UGUI** for: World Space canvases, Animator-driven UI states, complex per-Graphic shader effects (custom Image materials, `BaseMeshEffect` chains), and anything that leans on the mature UGUI ecosystem (TMP, DOTween, Unity Ads/IAP prefabs, third-party scroll-pool assets). Pick **UITK** for: dense data-bound lists with virtualization, USS-styled dashboards, editor windows / inspectors, and runtime UI where you do not need a world-space surface. If the user describes a UITK problem (`UIDocument`, `VisualElement`, `UQuery`, USS, UXML), this skill is the wrong file — note the mismatch rather than forcing the request into UGUI.
 
 ## When to use
 
@@ -124,8 +124,8 @@ Reference Pixels Per Unit pairs with sprite import `Pixels Per Unit` — mismatc
 
 One `EventSystem` per scene; UI input does not work without it.
 
-- **Standalone Input Module**: legacy. Reads via `Input.GetAxis("Horizontal")` etc.
-- **Input System UI Input Module**: required when Project Settings > Active Input Handling is `New` (or `Both` with new preferred). Cross-link `unity-input-system` for the swap and the action asset wiring.
+- **Standalone Input Module**: legacy, reads via `Input.GetAxis("Horizontal")`. This skill set assumes the new Input System, so this module is out of scope — replace it with the Input System UI Input Module when porting older scenes.
+- **Input System UI Input Module**: the only supported module under this skill set. Required because Project Settings > Active Input Handling is `Input System Package (New)`. Cross-link `unity-input-system` for the swap and the action asset wiring.
 - **Graphic Raycaster** is required on every Canvas that should receive pointer events. World Space canvases also need an `Event Camera` reference, otherwise no clicks register.
 - **GraphicRaycaster settings**:
   - `ignoreReversedGraphics`: when ON (default), Graphics whose normal points away from the camera (rotated past 90 degrees) are ignored. Turn OFF for double-sided world-space UI.
@@ -223,7 +223,7 @@ Pool N visible items in a ScrollRect and reposition them as the user scrolls ins
 - **anchoredPosition vs position**: writing `RectTransform.position` (world) bypasses the anchor system. Prefer `anchoredPosition` for UI math.
 - **World Space Canvas authoring**: small `sizeDelta` (e.g. 2 units) plus a 100x Transform scale gives blurry text and broken atlas sampling. Author at native pixel size (1920x1080) and scale the Transform.
 - **Layout cycle warning**: "Layout is being rebuilt during a layout rebuild" = ContentSizeFitter on a parent that drives children that drive its size. Break the cycle with a fixed size somewhere.
-- **Mixing input systems**: Standalone Input Module + Input System package → events fire twice or not at all. Swap to Input System UI Input Module when adopting the new system; see `unity-input-system`.
+- **Mixing input systems**: this skill set assumes the new Input System exclusively. A leftover Standalone Input Module on the EventSystem will double-fire or swallow events when paired with the Input System UI Input Module — delete the Standalone module. See `unity-input-system`.
 - **Missing Graphic Raycaster** on a Canvas = no clicks. World Space additionally needs `Event Camera` set.
 - **Legacy `Text`**: no clean autosize. Migrate to TMP for any new UI.
 - **TMP Essentials import**: first use of any TMP component prompts an import. Run it; do not move the resulting `Assets/TextMesh Pro/` folder.

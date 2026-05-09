@@ -31,6 +31,11 @@ skill_files.each do |path|
 
   errors << "#{rel}: missing frontmatter name" unless parsed.is_a?(Hash) && parsed["name"].to_s.match?(/\Aunity-[a-z0-9-]+\z/)
   errors << "#{rel}: missing frontmatter description" unless parsed.is_a?(Hash) && parsed["description"].to_s.start_with?("Use ")
+
+  # The skill set targets Unity 6+ / 6000.x exclusively. Every SKILL.md must
+  # state that explicitly somewhere in its body so users on older Unity versions
+  # are warned before relying on the skill.
+  errors << "#{rel}: must mention 'Unity 6' or '6000.x' (skill set targets Unity 6+ only)" unless content.match?(/Unity 6\b|6000\.x\b/)
 end
 
 stale_patterns = [
@@ -43,7 +48,10 @@ stale_patterns = [
   /ConfirmPendingPurchase/,
   /full 42 skills/,
   /all 42 skills/,
-  /forward reference — skill in progress/
+  /forward reference — skill in progress/,
+  # URP 14/15 are pre-Unity-6 versions — the skill set targets URP 17 only.
+  /\bURP 14\b/,
+  /\bURP 15\b/
 ]
 
 Dir[File.join(ROOT, "{README.md,.claude/skills/**/*.md}")].sort.each do |path|

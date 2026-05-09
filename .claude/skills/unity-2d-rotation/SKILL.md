@@ -1,6 +1,6 @@
 ---
 name: unity-2d-rotation
-description: 'Use when rotating 2D content in Unity through Unity MCP — sprites, SpriteRenderers, Rigidbody2D-driven bodies, top-down or side-scroller facing, projectiles aimed via Atan2, spin animations, sprite flipping. Z-axis rotation only; sprite-up convention applies. Do NOT use for 3D Transform rotation (use unity-3d-rotation), or RectTransforms under Canvas (use unity-ugui-rotation). For Rigidbody2D-driven rotation use unity-2d-rotation; for general 2D physics / colliders / joints use unity-physics.'
+description: 'Use when rotating 2D content in Unity through Unity MCP — sprites, SpriteRenderers, Rigidbody2D-driven bodies, top-down or side-scroller facing, projectiles aimed via Atan2, spin animations, sprite flipping. Z-axis rotation only; sprite-up convention applies. Do NOT use for 3D Transform rotation (use unity-3d-rotation), or RectTransforms under Canvas (use unity-ugui-rotation). For Rigidbody2D-driven rotation use unity-2d-rotation; for general 2D physics / colliders / joints use unity-physics. Unity 6+ / 6000.x, URP-only, new Input System only.'
 ---
 
 ## When to use

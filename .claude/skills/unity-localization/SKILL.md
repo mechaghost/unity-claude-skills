@@ -14,7 +14,7 @@ Companion skills: `unity-ugui` (TMP font fallback setup), `unity-addressables` (
 
 ## Why localize
 
-Shipping English-only caps your TAM hard. Spanish + Portuguese (BR) + Simplified Chinese + Japanese alone roughly doubles mobile install reach compared to EN-only, with low translation cost relative to the install lift. Unity Localization is the official, supported solution since 2021. The popular community asset (I2 Localization) is now legacy — start new projects on `com.unity.localization`.
+Shipping English-only caps your TAM hard. Spanish + Portuguese (BR) + Simplified Chinese + Japanese alone roughly doubles mobile install reach compared to EN-only, with low translation cost relative to the install lift. In Unity 6, `com.unity.localization` is the official, supported solution. The popular community asset (I2 Localization) is now legacy — start new projects on `com.unity.localization`.
 
 ## Package install
 

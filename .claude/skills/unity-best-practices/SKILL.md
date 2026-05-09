@@ -15,7 +15,7 @@ Before any modification — including the very first read — run this preflight
 4. Detect the render pipeline. See `## Detect the project paradigm`.
 5. Detect the input handling mode (Old / New / Both). Unity 6+ final state is New only; Both is migration mode.
 6. Detect the physics dimension in the active scene (3D Rigidbody vs 2D Rigidbody2D — they are separate worlds).
-7. Note the Unity version via `unity_reflect` on `Application.unityVersion`. API names drift between major versions; the most common bite is `Rigidbody.velocity` → `Rigidbody.linearVelocity` in Unity 6+.
+7. Note the Unity version via `unity_reflect` on `Application.unityVersion`. This skill set targets **Unity 6 / 6000.x**. If the project is on an older major version (2022 LTS, 2023.x, etc.), warn the user — APIs differ (e.g. `Rigidbody.velocity` is the deprecated form of Unity 6's `linearVelocity`) and the skill set is not validated against pre-6 versions.
 
 When you hand off to a domain skill, print a one-line paradigm summary so the receiving skill doesn't redo the work.
 

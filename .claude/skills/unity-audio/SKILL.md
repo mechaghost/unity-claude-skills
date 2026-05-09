@@ -1,6 +1,6 @@
 ---
 name: unity-audio
-description: 'Use when working with Unity audio through Unity MCP — AudioSource, AudioClip, AudioListener, AudioMixer, AudioMixerGroup, snapshot, exposed parameter, ducking, spatial blend, 3D sound, 2D sound, doppler, rolloff, audio settings, mute, volume slider, music, SFX, ambient loop, footstep, hit sound, OnAudioFilterRead, mobile audio, WebGL audio, audio context unlock, audio interruption, AudioSettings.outputSampleRate, audio compression, AudioImporter, .ogg, .wav, .mp3.'
+description: 'Use when working with Unity audio through Unity MCP — AudioSource, AudioClip, AudioListener, AudioMixer, AudioMixerGroup, snapshot, exposed parameter, ducking, spatial blend, 3D sound, 2D sound, doppler, rolloff, audio settings, mute, volume slider, music, SFX, ambient loop, footstep, hit sound, OnAudioFilterRead, mobile audio, WebGL audio, audio context unlock, audio interruption, AudioSettings.outputSampleRate, audio compression, AudioImporter, .ogg, .wav, .mp3. Unity 6+ / 6000.x, URP-only, new Input System only.'
 ---
 
 ## When to use

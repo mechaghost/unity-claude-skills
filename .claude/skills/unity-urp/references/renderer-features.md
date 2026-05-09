@@ -32,9 +32,9 @@ Apply a Shader Graph "Fullscreen" shader as a post-process at a chosen event. Us
 
 ## Writing a custom ScriptableRendererFeature
 
-Unity 6 ships URP 17, which **defaults to the RenderGraph backend**. New custom passes MUST implement `RecordRenderGraph(RenderGraph, ContextContainer)` — the older `Execute(ScriptableRenderContext, ref RenderingData)` is deprecated under RenderGraph and is only invoked when the project explicitly opts into the "Compatibility Mode (Non-Render Graph)" toggle on the URP asset (or runs URP 14/15 on Unity 2022 LTS).
+Unity 6 ships URP 17, which **defaults to the RenderGraph backend**. New custom passes MUST implement `RecordRenderGraph(RenderGraph, ContextContainer)`; the older `Execute(ScriptableRenderContext, ref RenderingData)` is deprecated and is only invoked when the project has explicitly enabled "Compatibility Mode (Non-Render Graph)" on the URP asset. Do not enable that toggle in new Unity 6 projects.
 
-### Recommended path: RenderGraph (URP 17 / Unity 6+)
+### RenderGraph path (URP 17 / Unity 6 — the only supported path here)
 
 Skeleton, dropped into a C# file via `create_script`:
 
@@ -125,24 +125,9 @@ Key points:
 
 After saving, add the feature to the renderer asset (inspector → Add Renderer Feature → MyOutlineFeature) via `manage_asset`. The renderer asset `.asset` file gains a serialized reference — commit it.
 
-### Compatibility / legacy non-RenderGraph path (URP 14/15, Unity 2022 LTS)
+### Out of scope: legacy `Execute`-based passes
 
-Only use this when the project is on Unity 2022 LTS, or has explicitly enabled "Compatibility Mode (Non-Render Graph)" on the URP asset for legacy reasons. New Unity 6 projects should not write `Execute`-based passes.
-
-```csharp
-public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
-{
-    var cmd = CommandBufferPool.Get("MyOutlinePass");
-    var drawing = CreateDrawingSettings(shaderTag, ref renderingData, SortingCriteria.CommonOpaque);
-    drawing.overrideMaterial = settings.outlineMaterial;
-    context.ExecuteCommandBuffer(cmd);
-    cmd.Clear();
-    context.DrawRenderers(renderingData.cullResults, ref drawing, ref filtering);
-    CommandBufferPool.Release(cmd);
-}
-```
-
-Check `unity_docs` for the exact API signatures on the URP version installed.
+The pre-RenderGraph `Execute(ScriptableRenderContext, ref RenderingData)` entry point only runs when "Compatibility Mode (Non-Render Graph)" is enabled on the URP asset. Compatibility Mode is not supported by this skill set — disable it and port to `RecordRenderGraph` if you encounter it.
 
 ## Render pass events — ordering cheatsheet
 

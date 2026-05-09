@@ -7,9 +7,9 @@ description: 'Use when authoring or tuning Unity Cinemachine cameras through Uni
 
 Any task that places a smart camera in the scene: third-person follow camera, top-down camera, FPS camera with smoothing, side-scroller camera with level bounds, cinematic dolly flythrough, screen shake on impact, multi-camera priority blends (gameplay vs menu vs aim), cutscene camera animation through Timeline, look-at character with dead zones / soft zones. If the user is hand-rolling `transform.position = ...` on the Main Camera every frame, suggest a CinemachineCamera instead unless they specifically need frame-locked control (e.g. a competitive FPS).
 
-## Cinemachine 3.x vs legacy 2.x
+## Cinemachine 3.x is the only supported version
 
-Unity 6 ships **Cinemachine 3.x**. The architecture changed; most online tutorials are 2.x. Translate names mentally:
+Unity 6 ships **Cinemachine 3.x**, and that is the only version this skill covers. Cinemachine 2.x is out of scope — it is frozen upstream and not validated here. Most blogs and YouTube tutorials predate the 3.x split, so use this rename table only to translate what you read into 3.x components:
 
 - 2.x `CinemachineVirtualCamera` (one component with inline Body/Aim modules) → 3.x **`CinemachineCamera`** (component) plus **separate sibling components** for procedural behavior.
 - 2.x inline `Body = Framing Transposer` → 3.x add `CinemachinePositionComposer` component.
@@ -18,7 +18,7 @@ Unity 6 ships **Cinemachine 3.x**. The architecture changed; most online tutoria
 - 2.x `Collider` extension → 3.x `CinemachineDeoccluder`.
 - 2.x `CinemachineDollyCart` → 3.x `CinemachineSplineCart`.
 
-2.x is still supported for legacy projects but is frozen. Write all new content for 3.x. When `unity_reflect` shows a `CinemachineVirtualCamera` already in-scene, the project is on 2.x; do not mix paradigms.
+If `unity_reflect` shows a `CinemachineVirtualCamera` already in the scene, the project is still on 2.x. Stop and warn the user — finish a 2.x→3.x upgrade (Window → Cinemachine → Upgrade Manager) before continuing.
 
 ## Package install
 
@@ -119,7 +119,7 @@ Attach procedural components as **siblings** on the same GameObject:
 - Forgetting `CinemachineBrain` on Main Camera → cameras present, no visible effect. Always check this first.
 - Multiple Brains in scene → undefined which one wins. One Brain per Camera; for split-screen, each Camera gets its own Brain with channel separation.
 - Setting `Camera.transform` directly → Brain overwrites the next frame. Drive cameras through CinemachineCameras only.
-- Following 2.x tutorials blindly: 3.x renamed and split components. `CinemachineVirtualCamera` does not exist in 3.x.
+- Following 2.x tutorials blindly: Unity 6 ships Cinemachine 3.x with renamed and split components. `CinemachineVirtualCamera` does not exist in 3.x — translate via the rename table at the top.
 - Custom Blends asset edited but **not assigned** to Brain's Custom Blends slot → Default Blend used regardless.
 - High `BasicMultiChannelPerlin` amplitude on continuous shake → motion sickness. Tune low; reserve big shakes for one-shot Impulse.
 - `Update Method = FixedUpdate` is needed when Follow is a Rigidbody (else jitter), but desyncs from non-physics targets. Pick per-Brain to match the dominant target type, or split into two cameras with different update methods.

@@ -106,7 +106,7 @@ void FixedUpdate() {
 
 2D analogs: `Rigidbody2D.AddForce(Vector2, ForceMode2D)`, `AddTorque(float)`, `AddForceAtPosition`, `AddRelativeForce`. `ForceMode2D` has only `Force` and `Impulse` — there is no Acceleration / VelocityChange mode; for instantaneous mass-ignored changes write `linearVelocity` directly.
 
-Velocity field rename: in Unity 6+ Rigidbody and Rigidbody2D expose `linearVelocity` (and `angularVelocity`); the older `velocity` is deprecated. Read and write whichever the project's Unity version exposes — check via `unity_reflect` if unsure.
+Velocity field: Unity 6 `Rigidbody` and `Rigidbody2D` use `linearVelocity` (and `angularVelocity`). The legacy `velocity` property is deprecated and emits an obsolescence warning — always write new code against `linearVelocity`. If you encounter `.velocity` in older code being ported, rename it.
 
 For one-shot force application from tooling (no script), use `manage_physics` AddForce / AddTorque / AddExplosionForce actions.
 
@@ -144,13 +144,13 @@ Layer-based collision is configured ONLY through the matrix. Setting fields on t
 
 3D `PhysicsMaterial` fields: `dynamicFriction`, `staticFriction`, `bounciness`, `frictionCombine`, `bounceCombine` (combine modes: Average, Minimum, Maximum, Multiply). Apply via `Collider.sharedMaterial` (preferred — does not duplicate the asset) or `Collider.material` (auto-instantiates a per-collider copy).
 
-2D `PhysicsMaterial2D` fields (Unity 6+): `friction`, `bounciness`, `frictionCombine`, `bounceCombine` (combine modes: Average, Minimum, Maximum, Multiply — same set as 3D). No static/dynamic friction split. Footnote: on Unity 2022 LTS the combine fields are not exposed and contacts always average — this skill set targets Unity 6, so the combine fields are available.
+2D `PhysicsMaterial2D` fields: `friction`, `bounciness`, `frictionCombine`, `bounceCombine` (combine modes: Average, Minimum, Maximum, Multiply — same set as 3D). No static/dynamic friction split.
 
 Create or edit material assets via `manage_material`. The 3D and 2D assets are different file types — do not assign one to the other's collider.
 
 Edits to existing material fields do not retroactively affect contacts already in progress; reassign `Collider.sharedMaterial` (or briefly disable/enable the collider) to refresh.
 
-Footnote: `PhysicMaterial` (no `s`) is the deprecated alias kept for back-compat with 2022 LTS — Unity 6 canonical is `PhysicsMaterial`.
+Note: in Unity 6 the canonical type is `PhysicsMaterial`. The older alias `PhysicMaterial` (no `s`) is deprecated; do not use it in new code.
 
 ## Fixed timestep and order of execution
 
