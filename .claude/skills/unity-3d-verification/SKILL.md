@@ -5,53 +5,53 @@ description: 'Use after creating or modifying a 3D GameObject in Unity via MCP (
 
 ## When to use
 
-Run this loop every time an MCP call has just created or mutated a 3D GameObject and the next thing you would otherwise do is tell the user "done." A successful MCP response only proves the call executed; it does not prove the object is scaled, oriented, materialed, or positioned correctly. Specifically trigger on:
+Run after creating or mutating a 3D GameObject and before reporting "done". An MCP success only proves the call executed; it doesn't prove the object is scaled, oriented, materialed, or positioned correctly. Trigger on:
 
-- Creating primitives (cube/sphere/etc. via the GameObject capability).
+- Creating primitives (cube/sphere/etc).
 - Importing or instantiating models and prefabs.
 - ProBuilder shape creation or mesh edits.
 - Any transform mutation: position, rotation, scale, parenting.
 - Material or shader swaps.
 - Adding/removing renderers, mesh filters, skinned mesh renderers.
 
-Skip only when the change is verifiably non-visual (e.g., renaming, editing a script asset, toggling an inactive object).
+Skip only when verifiably non-visual (rename, edit script asset, toggle inactive).
 
 ## Workflow
 
-1. Resolve target bounds.
-   - Read the GameObject (transform + components). Look for a `Renderer` and use `Renderer.bounds.center` and `Renderer.bounds.size` (world space, axis-aligned).
-   - If the root has no Renderer, recurse into children and `Encapsulate` every child Renderer's bounds. Do not trust the root transform alone — children may extend far past the parent pivot.
-   - For a `SkinnedMeshRenderer`, force `RecalculateBounds()` first; editor bounds can be stale until the rig is posed.
-   - If everything fails (no renderers anywhere), abort verification and tell the user the object has nothing to render.
+1. **Resolve bounds.**
+   - `Renderer.bounds.center` and `Renderer.bounds.size` (world AABB).
+   - No Renderer on root: recurse children, `Encapsulate` every child Renderer. Don't trust the root transform alone — children may extend past pivot.
+   - `SkinnedMeshRenderer`: force `RecalculateBounds()` first; editor bounds can be stale until rig posed.
+   - No renderers anywhere: abort, tell the user there's nothing to render.
 
-2. Compute camera framing.
+2. **Compute camera framing.**
    - `extentsMax = max(bounds.extents.x, bounds.extents.y, bounds.extents.z)`
    - `distance = extentsMax * 2.5`
    - `orthoSize = extentsMax * 1.2`
    - Clamp `near = 0.01`, `far = distance * 4` so the object never clips.
 
-3. Build a verification rig.
-   - Create a root `__Verification` GameObject at world origin (so cleanup is one delete).
-   - Under it, create `__VerificationCamera` with a `Camera` component.
-   - Configure the camera: `orthographic = true`, `orthographicSize = orthoSize`, `clearFlags = SolidColor`, `backgroundColor = (0.15, 0.15, 0.18, 1)` (dark neutral so pink/magenta materials are unmistakable), `cullingMask = ~0` (everything), `nearClipPlane = 0.01`, `farClipPlane = far`.
-   - URP: ensure the camera has the `UniversalAdditionalCameraData` component. Confirm the active pipeline is URP and add the component if missing. (This skill set is URP-only; HDRP is out of scope.)
+3. **Build the rig.**
+   - `__Verification` GO at world origin (cleanup = one delete).
+   - Child `__VerificationCamera` with `Camera`.
+   - Configure: `orthographic = true`, `orthographicSize = orthoSize`, `clearFlags = SolidColor`, `backgroundColor = (0.15, 0.15, 0.18, 1)` (dark neutral so pink/magenta is unmistakable), `cullingMask = ~0`, `nearClipPlane = 0.01`, `farClipPlane = far`.
+   - URP: ensure `UniversalAdditionalCameraData` on the camera. Confirm active pipeline is URP, add if missing.
 
-4. Capture each of the four views.
-   - For each view, set `transform.position = bounds.center + offset` and `transform.eulerAngles = euler` from the table in **Camera setup math** below.
-   - Capture to a deterministic project-relative path. **Prefer `Assets/_Verification/<sanitizedName>_<view>.png`** for persistence — `Library/` is wiped by `Reimport All` and any Library-only state forces a re-run of verification (recovery story: simply rerun the workflow). Add `Assets/_Verification/` to `.gitignore` if shots should not be committed (cross-link `unity-vcs` for the canonical Unity `.gitignore`, Force-Text serialization mode, and Visible-Meta-Files setup that all of this assumes). Fall back to `Library/Verification/...` only when the connected MCP server sandboxes `Assets/` writes. Use the same path scheme every run so old shots are overwritten and Read calls are predictable.
-   - Immediately after each capture, call the Read tool on the PNG. You must actually look at the image — not just confirm it was written.
+4. **Capture four views.**
+   - Each view: `transform.position = bounds.center + offset`, `transform.eulerAngles = euler` from the table.
+   - Path: **`Assets/_Verification/<sanitizedName>_<view>.png`**. `Library/` is wiped by `Reimport All`. Add `Assets/_Verification/` to `.gitignore` if not committing (see `unity-vcs`). Fall back to `Library/Verification/...` only if the server sandboxes `Assets/` writes. Same scheme every run so shots overwrite + Read calls are predictable.
+   - After each capture, Read the PNG. Actually look at the image — not just confirm it was written.
 
-5. Inspect.
-   - Walk through the defect catalog below for each of the four shots. Note in plain language what each view shows: "left view: a chair facing +X, seat parallel to ground, four legs visible."
-   - If any defect is present, fix it (re-issue the relevant edit) and rerun the workflow from step 1. Do not patch the screenshot; patch the scene.
+5. **Inspect.**
+   - Walk the defect catalog per shot. Note plainly: "left view: chair facing +X, seat parallel to ground, four legs visible."
+   - Any defect: fix the scene (re-issue the edit), rerun from step 1.
 
-6. Cleanup — always.
-   - Delete `__Verification`. Do this even if a step failed mid-way; treat it as a finally block. Stranded verification cameras pollute future scene saves.
-   - Do not delete the captured PNGs unless the user asks; they are useful artifacts for the conversation.
+6. **Cleanup — always.**
+   - Delete `__Verification`. Even on mid-way failure (treat as finally). Stranded cameras pollute scene saves.
+   - Keep captured PNGs unless asked otherwise — useful artifacts.
 
 ## Camera setup math
 
-Unity is left-handed, Y-up, +Z forward. `bounds.center` is world space. `offset` is added to `bounds.center` to get camera position. `eulerAngles` is in degrees.
+Unity is left-handed, Y-up, +Z forward. `bounds.center` is world space. `offset` adds to center for camera position. `eulerAngles` in degrees.
 
 ```
 view    | offset                  | eulerAngles      | image-up axis | image-right axis
@@ -63,17 +63,17 @@ bottom  | (0, -distance, 0)       | (270, 0, 0)      | -Z            | +X
 ```
 
 Notes:
-- "left view" means the camera sits on the -X side and looks toward +X — i.e., you see the object's left side.
-- For top/bottom shots there is no real "up"; the table lists which world axis points toward the top of the rendered image so you can interpret asymmetric objects.
-- If your object's logical forward is not +Z (imported FBX often default to -Z forward), the views will look mirrored. That is itself useful information — flag it as a likely import-axis problem.
+- "left view" — camera on -X side looking toward +X (you see object's left side).
+- Top/bottom shots have no real "up"; the table lists which world axis points to image top so you can interpret asymmetric objects.
+- If your object's logical forward is not +Z (imported FBX often default to -Z), views look mirrored. That's useful information — flag as a likely import-axis problem.
 
 ## Capture mechanism
 
-Screenshot capability and tool naming vary by MCP server. Discover before assuming:
+Server-specific. Discover before assuming:
 
-1. Enumerate the tools the connected server advertises (the harness lists them at session start). Match against `/screenshot|capture|render|snapshot|view/i`. If a dedicated capture tool exists, use it.
-2. If the server exposes a camera tool, try its `capture` / `render` / `screenshot` action — some servers fold capture into the camera tool.
-3. If still nothing, fall back to `Camera.Render()` into a `RenderTexture` and `Texture2D.EncodeToPNG`, executed via a custom-tool capability or by writing a temporary editor script and invoking it through the menu-execution capability. Pseudocode for the fallback:
+1. Enumerate the connected server's tools at session start. Match `/screenshot|capture|render|snapshot|view/i`. Use a dedicated capture tool if present.
+2. Try a camera tool's `capture` / `render` / `screenshot` action — some servers fold capture into the camera tool.
+3. Fall back to `Camera.Render()` into a `RenderTexture` + `Texture2D.EncodeToPNG`, via a custom-tool capability or a temporary editor script invoked through menu execution. Pseudocode:
 
    ```csharp
    var rt = new RenderTexture(1024, 1024, 24);
@@ -90,52 +90,52 @@ Screenshot capability and tool naming vary by MCP server. Discover before assumi
    Object.DestroyImmediate(tex);
    ```
 
-   Prefer this over `ScreenCapture.CaptureScreenshot`, which routes through the Game view and depends on whatever camera the user has active.
+   Prefer this over `ScreenCapture.CaptureScreenshot` (routes through Game view, depends on active user camera).
 
-4. As a last resort, drive `Window/General/Game` from the Editor menu to focus the Game view, then trigger a Game-view capture menu — but only if the Game view's active camera is your `__VerificationCamera`. This path is brittle; document it in your output if you had to use it.
+4. Last resort: drive `Window/General/Game` from Editor menu to focus Game view, then trigger Game-view capture menu — only if Game view's active camera is `__VerificationCamera`. Brittle; document if used.
 
-Always log the tool name you actually used so the next run is faster.
+Log the tool name used so the next run is faster.
 
-## Common defects this catches
+## Common defects
 
-- Pink / magenta material — shader not present in the active render pipeline (URP/HDRP mismatch, or Standard shader in URP project). Visible from any view.
-- Back faces visible from a side that should show front faces — normals inverted, common on imported FBX with mirrored scale or `-1` axis bake.
-- Object fills less than ~10% of frame — scale far too small, or wrong unit (cm imported as m).
-- Object overflows the frame — scale too large, or bounds calc missed a child making `extentsMax` too small.
-- Off-center pivot — the object sits visibly offset from the image center even though the camera targets `bounds.center`. Means the renderer's mesh origin is not at the transform pivot; flag for the user.
-- Wrong rotation — top view shows a "side" silhouette, or a chair's legs point sideways. Usually a 90 deg axis swap from import settings.
-- Z-fighting / clipping — flickery surfaces or chunks missing where geometry intersects another collider/mesh. Indicates the new object was placed inside existing geometry.
-- Invisible from one or more views — culling mask excludes the layer, renderer disabled, material has `Cull Front`/`Off`, or the object is one-sided and you are behind it. Cross-check the GameObject's renderer to confirm `MeshRenderer.enabled` is true.
-- Lightmap / lighting artifacts — pure black object means no lights and ambient is zero; not strictly a defect but worth noting.
-- Skinned mesh frozen in T-pose with limbs intersecting — bounds were stale; rerun after `RecalculateBounds`.
-- LOD0 missing — only a low-poly silhouette visible; check `LODGroup` thresholds.
-- Transparent / depth-sorted material rendering as opaque blocks — render queue or `ZWrite` misconfigured.
+- Pink/magenta — shader missing in active pipeline (URP/HDRP mismatch, Standard in URP).
+- Back faces from a side that should show fronts — normals inverted, common on imported FBX with mirrored scale or `-1` axis bake.
+- Object fills <10% of frame — scale too small, or wrong unit (cm imported as m).
+- Object overflows frame — scale too large, or bounds calc missed a child making `extentsMax` too small.
+- Off-center pivot — object visibly offset even though camera targets `bounds.center`. Renderer's mesh origin is not at transform pivot.
+- Wrong rotation — top view shows a "side" silhouette, or chair legs point sideways. Usually a 90° axis swap from import.
+- Z-fighting/clipping — flickery surfaces or missing chunks where geometry intersects another collider/mesh. Object placed inside existing geometry.
+- Invisible from one+ views — culling mask excludes layer, renderer disabled, material has `Cull Front`/`Off`, or one-sided and you're behind it. Check `MeshRenderer.enabled`.
+- Lightmap/lighting artifacts — pure black means no lights + ambient zero.
+- Skinned mesh frozen in T-pose with limbs intersecting — bounds stale; rerun after `RecalculateBounds`.
+- LOD0 missing — only low-poly silhouette visible; check `LODGroup` thresholds.
+- Transparent/depth-sorted material rendering as opaque blocks — render queue or `ZWrite` misconfigured.
 
 ## Gotchas
 
-- URP and HDRP need the verification camera to use the matching pipeline asset and additional-camera-data component, or the capture will be solid black or magenta. Confirm the active pipeline before capturing.
-- `SkinnedMeshRenderer.bounds` can be stale in the editor. Force `RecalculateBounds()` before reading.
-- Prefer `Renderer.bounds` (world AABB) over `Mesh.bounds` (local). The latter ignores transform scale and rotation.
-- For composite objects, encapsulate every child renderer's bounds. A `Bounds` initialized to `(center, Vector3.zero)` and then `Encapsulate`d in a loop works; do not start from `default(Bounds)` since `(0,0,0)` will pull the box toward the origin.
-- Do not enter Play mode to verify. It pollutes scene state, fires `Awake`/`Start`, and may instantiate runtime-only objects. Edit-mode capture via `Camera.Render()` is sufficient.
-- `ScreenCapture.CaptureScreenshot` requires the Game view to be the active render target and respects whatever camera is tagged `MainCamera`. For deterministic offscreen capture, always go through `Camera.Render()` to a `RenderTexture`.
-- Some MCP servers sandbox file writes to `Assets/` only; `Library/` may be off-limits. Conversely, `Library/` is wiped by `Reimport All`, so prefer `Assets/_Verification/` (with a `.gitignore` entry) for persistence. Check once and remember the path.
-- If the object is a UI element on a `Canvas` in `Screen Space - Overlay` mode, orthographic 3D capture will not see it. Switch the canvas to `World Space` or capture the canvas as a 2D screenshot instead — note this in your report rather than silently producing four black PNGs.
-- `cullingMask = ~0` still misses objects on the `Ignore Raycast`-style hidden layers some teams use; if a known object disappears, re-check the layer assignment.
-- Batch the camera moves and captures into a single round-trip if the connected server supports batching; eight serial round-trips is noticeably slower than one batch.
+- URP/HDRP need the verification camera to use the matching pipeline asset + additional-camera-data, or capture is solid black or magenta. Confirm pipeline first.
+- `SkinnedMeshRenderer.bounds` can be stale in editor. Force `RecalculateBounds()`.
+- Prefer `Renderer.bounds` (world AABB) over `Mesh.bounds` (local; ignores transform scale/rotation).
+- Composite objects: `Encapsulate` every child renderer. Initialize `Bounds(center, Vector3.zero)` then `Encapsulate`; don't start from `default(Bounds)` — `(0,0,0)` pulls the box toward origin.
+- Don't enter Play mode to verify. Pollutes scene state, fires `Awake`/`Start`, may instantiate runtime-only objects. Edit-mode `Camera.Render()` is sufficient.
+- `ScreenCapture.CaptureScreenshot` requires Game view active + uses whatever camera is `MainCamera`-tagged. For deterministic offscreen, always `Camera.Render()` to a `RenderTexture`.
+- Some servers sandbox file writes to `Assets/` only; `Library/` may be off-limits. `Library/` is also wiped by `Reimport All` — prefer `Assets/_Verification/` (with `.gitignore` entry). Check once and remember.
+- UI element on `Canvas` Screen Space-Overlay won't appear in orthographic 3D capture. Switch canvas to World Space or capture as 2D screenshot — note in your report.
+- `cullingMask = ~0` still misses objects on `Ignore Raycast`-style hidden layers some teams use; if a known object disappears, check layer.
+- Batch camera moves + captures in one round-trip when the server supports batching; eight serial round-trips is noticeably slower.
 
 ## Cost / batching guidance
 
-The 4-shot capture is heavy: four camera moves, four PNG writes, four PNG reads. For bulk operations the cost dominates the actual work. Apply these rules:
+The 4-shot capture is heavy: 4 camera moves + 4 PNG writes + 4 PNG reads. For bulk ops the cost dominates the actual work.
 
-- **Verify HERO and NOVEL changes only.** A new prefab, a hand-authored mesh, a custom-shaded material, a one-off ProBuilder edit — yes. Bulk re-imports of a known asset pack — no.
-- **Batch >5 objects when the server supports it.** Lay out all camera moves and captures (4 per object → 20 PNGs for 5 objects) into a single batched round-trip so Unity does the work in one go. Then issue all PNG `Read` tool calls in a single message so the harness fetches them in parallel. Serial captures + serial reads is the slow path.
-- **Maintain a "trusted-shape" skip list.** Default URP primitives (`Cube`, `Sphere`, `Cylinder`, `Capsule`, `Plane`, `Quad`) rendered with `Universal Render Pipeline/Lit` and no transform tricks do not need verification — they always look right. Skip these. Verify only when they have non-uniform scale, a custom material, or a non-default rotation.
-- **Per-session verification budget.** Aim for at most 4 objects fully verified (4-shot) per session unless the user explicitly asks for more. For everything beyond that budget, a single Game-view screenshot framing the object is sufficient evidence — only escalate to the 4-shot rig if the single shot reveals a problem.
+- **Verify HERO and NOVEL changes only.** New prefab, hand-authored mesh, custom-shaded material, one-off ProBuilder edit — yes. Bulk re-imports of a known asset pack — no.
+- **Batch >5 objects when supported.** Lay out all camera moves + captures (4/object → 20 PNGs for 5) into one batched round-trip. Issue all PNG `Read` calls in a single message so the harness fetches in parallel. Serial is the slow path.
+- **Trusted-shape skip list.** Default URP primitives (`Cube`, `Sphere`, `Cylinder`, `Capsule`, `Plane`, `Quad`) with `Universal Render Pipeline/Lit` and no transform tricks always look right. Skip. Verify only with non-uniform scale, custom material, or non-default rotation.
+- **Per-session budget.** At most 4 objects fully verified per session unless asked. Beyond that, a single Game-view screenshot framing the object is sufficient — escalate to 4-shot only if the single shot reveals a problem.
 
 ## After verification
 
-- Report what you saw, view by view, in plain language. Example: "left: chair seat parallel to ground, four legs visible, oak material rendering correctly. right: same, mirrored as expected. top: only three leg tops visible — the back-left leg appears to be missing or rotated 90 deg out. bottom: confirms three legs, fourth leg is rotated horizontally and embedded in the floor."
-- If any view reveals a defect, do not declare success. Fix the defect, rerun the four-shot capture, and re-inspect. Repeat until all four views are clean.
-- Only after all four views read clean may you tell the user the original task is done. The MCP success return alone is not sufficient evidence.
-- Always cleanup `__Verification` before your final response, even if the user is going to keep the object.
+- Report view by view in plain language. Example: "left: chair seat parallel to ground, four legs visible, oak material rendering correctly. right: same, mirrored. top: only three leg tops visible — back-left leg missing or rotated 90° out. bottom: confirms three legs, fourth rotated horizontally and embedded in floor."
+- Any defect → don't declare success. Fix, rerun, re-inspect. Repeat until all four read clean.
+- Only after all four views read clean may you report done. MCP success alone is not sufficient evidence.
+- Always cleanup `__Verification` before your final response.

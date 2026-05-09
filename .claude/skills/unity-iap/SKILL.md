@@ -5,33 +5,29 @@ description: 'Use when adding or operating in-app purchases in a Unity 6+ projec
 
 ## When to use
 
-Any task that wires real money to entitlements: shop UI, restore button, subscription status, sandbox tester setup, server receipt validation, refund webhook handling, deferred / Ask-to-Buy flows. iOS App Store + Google Play are required surfaces; desktop stores (Steam / Epic / Microsoft) usually use their own SDKs rather than Unity IAP.
+Wires real money to entitlements: shop UI, restore button, subscription status, sandbox tester setup, server receipt validation, refund webhooks, deferred / Ask-to-Buy. iOS App Store + Google Play required; desktop stores (Steam / Epic / Microsoft) use their own SDKs.
 
-Read `unity-best-practices` first. Cross-link `unity-persistence` (entitlement cache), `unity-build` (signed builds + Capabilities flag), `unity-analytics-events` (purchase telemetry), `unity-anti-cheat-iap-fraud` (server validation patterns).
+Read `unity-best-practices` first. Cross-link `unity-persistence` (entitlement cache), `unity-build` (signed builds + Capabilities), `unity-analytics-events` (purchase telemetry), `unity-anti-cheat-iap-fraud` (server validation patterns).
 
 ## Unity 6+ fast path
 
-Unity 6+ projects should use **Unity IAP v5** as the primary path. IAP v5 splits the old monolithic initialization flow into explicit store connection, product fetching, purchase fetching, and event-driven order handling.
+Use **Unity IAP v5**. Splits old monolithic init into explicit store connection, product fetch, purchase fetch, event-driven order handling.
 
-Sequence:
-
-1. Add `com.unity.purchasing` via the package manager.
-2. Enable iOS **In-App Purchase** capability and Android billing setup through Player Settings / generated Gradle metadata.
-3. Author a small shop service built around `StoreController`.
-4. Editor console clean after import and code generation.
-5. Verify only on real store test tracks: TestFlight / Xcode device for iOS, Play Internal Testing or Internal App Sharing for Android.
+1. Add `com.unity.purchasing` via package manager.
+2. Enable iOS **In-App Purchase** capability + Android billing through Player Settings / Gradle.
+3. Author shop service around `StoreController`.
+4. Editor console clean after import.
+5. Verify only on real store tracks: TestFlight / Xcode device (iOS), Play Internal Testing or Internal App Sharing (Android).
 
 ## Products
 
-Define products in code for testability, or mirror an external product catalog into code at boot. Use one canonical Unity ID per product and map store-specific IDs server-side or in a small product registry.
+Define in code or mirror an external catalog at boot. One canonical Unity ID per product; map store IDs server-side or in a registry.
 
 `ProductType`:
 
-- `Consumable` — coins, gems, energy. Buyable repeatedly.
-- `NonConsumable` — remove ads, premium tier, expansion pack. Buyable once per account; restores must return them on reinstall.
-- `Subscription` — battle pass, monthly pro. Renewal/refund/grace state must come from the store/server, not from a local bool.
-
-Example product definitions:
+- `Consumable` — coins, gems, energy. Repeatable.
+- `NonConsumable` — remove ads, premium tier, expansion. Once per account; restores must return on reinstall.
+- `Subscription` — battle pass, monthly pro. Renewal/refund/grace from store/server, never a local bool.
 
 ```csharp
 using System.Collections.Generic;
@@ -53,11 +49,11 @@ public static class IapProducts
 }
 ```
 
-Store-side IDs still need to exist in App Store Connect and Play Console before real purchases work. A missing or mismatched SKU usually appears as a product-fetch failure, not as a compile error.
+Store-side IDs must exist in App Store Connect / Play Console. Missing or mismatched SKU = product-fetch failure, not compile error.
 
 ## Initialization
 
-Attach event handlers before connecting or fetching, then connect, fetch products, and fetch purchases. Treat each step as independently fallible; a good shop UI can show prices/products when available and a clear "store unavailable" state when not.
+Attach handlers before connect/fetch. Each step is independently fallible — surface "store unavailable" cleanly.
 
 ```csharp
 using System.Collections.Generic;
@@ -127,50 +123,48 @@ public sealed class IapShopService : MonoBehaviour
 }
 ```
 
-The sample is intentionally a thin service, not a full shop UI. Add UI binding in `unity-ugui` and analytics in `unity-analytics-events`.
+Thin service only. UI binding in `unity-ugui`; analytics in `unity-analytics-events`.
 
 ## Purchase flow
 
-End-to-end:
-
 1. Client calls `StoreController.Purchase(product)`.
-2. Store returns a `PendingOrder`.
-3. Client posts trusted receipt/order data to backend.
+2. Store returns `PendingOrder`.
+3. Client posts trusted receipt/order to backend.
 4. Backend validates with Apple or Google.
-5. Backend writes entitlement using a store-trusted transaction key.
-6. Client syncs entitlement from backend.
+5. Backend writes entitlement keyed by store transaction.
+6. Client syncs entitlement.
 7. Client calls `StoreController.ConfirmPurchase(order)`.
 
-Grant consumables, subscriptions, and competitive entitlements only after the backend has written the entitlement row. For tiny offline-only games, client-side validation can be a conscious risk tradeoff, but document that it is not fraud-resistant.
+Grant consumables, subscriptions, competitive entitlements only after backend writes the entitlement row. Tiny offline-only games can do client-side validation as a documented risk tradeoff — not fraud-resistant.
 
 ## Receipt validation
 
-**Server-side is the production source of truth.**
+**Server-side is the source of truth.**
 
-- **Apple — App Store Server API (primary).** Use signed transaction data / JWS. Avoid legacy receipt flows for new Unity 6+ work. Verify signatures and read subscription/refund/grace state from Apple's server APIs and notifications.
-- **Google — Android Publisher API.** Service-account auth with scope `androidpublisher`. Validate products and subscriptions through the Play Developer API. Acknowledge purchases within the required window or Google refunds them.
+- **Apple — App Store Server API.** Use signed transaction data / JWS. Avoid legacy receipt flows. Read subscription/refund/grace from Apple's server APIs and notifications.
+- **Google — Android Publisher API.** Service-account auth, scope `androidpublisher`. Acknowledge purchases within the required window or Google refunds them.
 
-Use the receipt/order fields exposed by IAP v5 (`Order.Info.Receipt`, Apple JWS fields where present) instead of older product-receipt flows. Full implementation cookbook with JWT generation, x5c chain verification, and Pub/Sub setup: see `references/server-validation.md`.
+Use IAP v5 fields (`Order.Info.Receipt`, Apple JWS where present). Full cookbook (JWT, x5c chain, Pub/Sub): `references/server-validation.md`.
 
 ### Idempotency
 
-Every grant operation MUST be keyed by a server-trusted transaction identifier — never by a client-supplied userId or request ID.
+Every grant MUST key by a server-trusted transaction ID — never client userId or request ID.
 
-- **Apple** key = original transaction ID for subscription ownership, transaction ID for individual renewal events.
-- **Google** key = purchase token.
-- Server stores granted transaction IDs in a unique-indexed table. A second arrival returns the existing entitlement and is a no-op.
-- Critical for client retries, duplicate webhook deliveries, and cross-device races.
+- **Apple** — original transaction ID for subscription ownership; transaction ID for individual renewals.
+- **Google** — purchase token.
+- Server stores granted IDs in unique-indexed table. Second arrival no-ops.
+- Critical for client retries, duplicate webhooks, cross-device races.
 
 ### Cross-device race
 
-Same Apple ID buys on two devices simultaneously, or an anonymous player links accounts while a purchase is pending.
+Same Apple ID buys on two devices, or anonymous links accounts mid-purchase.
 
-- Server dedupes by store transaction key, not by client-supplied userId.
-- Anonymous to linked transitions: migrate entitlements by canonical playerID server-side. Cross-link `unity-auth-account-linking`.
+- Server dedupes by store transaction key, not client userId.
+- Anonymous→linked: migrate entitlements by canonical playerID server-side. See `unity-auth-account-linking`.
 
 ## Restore and entitlements
 
-In IAP v5, confirmed purchases can be restored by fetching purchases or checking entitlement. Provide a visible Restore button for iOS apps that sell NonConsumables or Subscriptions; App Store Review expects it.
+In v5, fetch purchases or check entitlement. Provide a visible Restore button on iOS for NonConsumables / Subscriptions — App Store Review expects it.
 
 ```csharp
 public void RestorePurchases()
@@ -185,87 +179,87 @@ public void CheckRemoveAds()
 }
 ```
 
-On Google, owned NonConsumables and active Subscriptions are usually returned through purchase fetch/entitlement checks. Keep the Restore UI anyway for user trust and cross-platform consistency.
+On Google, owned NonConsumables and active Subscriptions return through purchase fetch. Keep the Restore UI for cross-platform consistency.
 
 ## Subscriptions
 
-Treat local subscription state as advisory. Auto-renew, billing retry, grace periods, refunds, upgrades, and downgrades all flow through store APIs and webhooks.
+Local subscription state is advisory. Auto-renew, billing retry, grace, refunds, upgrades, downgrades flow through store APIs and webhooks.
 
 Canonical state:
 
-- **Apple**: App Store Server API subscription status endpoints and App Store Server Notifications V2.
-- **Google**: `purchases.subscriptionsv2.get` and Real-time Developer Notifications.
+- **Apple** — App Store Server API status endpoints + Notifications V2.
+- **Google** — `purchases.subscriptionsv2.get` + Real-time Developer Notifications.
 
-Client responsibilities:
+Client:
 
-- show localized price and introductory offer text from fetched product metadata,
+- show localized price + intro offer text from product metadata,
 - initiate purchase,
 - show pending/processing UX,
-- sync entitlement state from the backend on boot and foreground.
+- sync entitlement from backend on boot + foreground.
 
 ## Sandbox testing
 
-**iOS** — App Store Connect > Users and Access > Sandbox > Testers. Create a tester with an email not tied to a real Apple ID. On device, sign out of the App Store under Settings (not iCloud). Build to device via Xcode or TestFlight; trigger a purchase; enter sandbox tester credentials. Editor purchases never prove App Store behavior.
+**iOS** — App Store Connect > Users and Access > Sandbox > Testers. Tester email not tied to real Apple ID. On device, sign out of App Store under Settings (not iCloud). Build via Xcode/TestFlight; trigger purchase; enter sandbox creds. Editor purchases prove nothing.
 
-**Android** — Google Play Console > Setup > License Testing, add tester Gmail accounts. Upload a build to Internal Testing or use Internal App Sharing and opt the tester account into the track. Static response IDs can test UI paths but do not exercise real receipt flows.
+**Android** — Play Console > Setup > License Testing, add tester Gmail accounts. Upload to Internal Testing or use Internal App Sharing; opt tester into the track. Static response IDs test UI paths only — no real receipts.
 
-Always test: first purchase, restore on fresh install, network drop mid-purchase, app kill mid-purchase, refund, subscription auto-renew, and entitlement sync on app foreground.
+Always test: first purchase, restore on fresh install, network drop mid-purchase, app kill mid-purchase, refund, subscription auto-renew, entitlement sync on foreground.
 
 ## Refunds and deferred purchases
 
-**Refunds** — silent by default. Apple and Google notify your server, not the client. Without a webhook, a refunded user keeps the entitlement forever.
+**Refunds** silent by default — Apple/Google notify your server, not the client. No webhook = refunded user keeps entitlement forever.
 
-- **Apple — App Store Server Notifications V2.** JWS-signed webhook payload. Verify the certificate chain to Apple's root CA and trust only valid payloads.
-- **Google — Real-time Developer Notifications.** Pub/Sub topic in your GCP project; dedupe at-least-once deliveries by message ID and store purchase token.
+- **Apple — App Store Server Notifications V2.** JWS-signed; verify cert chain to Apple's root CA.
+- **Google — Real-time Developer Notifications.** Pub/Sub topic in your GCP project; dedupe at-least-once deliveries by message ID.
 
-Full webhook verification recipe: see `references/server-validation.md`.
+Webhook recipe: `references/server-validation.md`.
 
-**Deferred / Ask to Buy** — purchase may complete hours or days later. The pending-order handler can fire on a later launch. Never grant from the button click itself; grant only after store/server validation.
+**Deferred / Ask to Buy** — purchase may complete hours/days later. Pending-order handler can fire on a later launch. Never grant from button click; grant only after store/server validation.
 
 ## Promotional / introductory pricing
 
-**iOS** — App Store Connect authors introductory offers, promotional offers, and offer codes. In IAP v5, prefer the Apple extended store service APIs exposed by the package version in the project. Reflect on the installed package if docs and local API names diverge.
+**iOS** — App Store Connect authors intro offers, promotional offers, offer codes. Prefer the Apple extended store service APIs in v5; reflect on the installed package if docs and local API names diverge.
 
-**Google** — subscription offers configured in Play Console; query product/offer details from fetched product metadata and let Google enforce eligibility.
+**Google** — subscription offers in Play Console; query offer details from product metadata; let Google enforce eligibility.
 
 ## Common patterns
 
-- **Shop boot** — connect to store, fetch products, populate UI from fetched metadata, then fetch purchases/entitlements.
-- **Buy button** — disable until products are fetched and while an order is pending.
-- **Entitlement sync** — fetch from backend on boot and `OnApplicationFocus(true)` to catch refunds, deferred completions, and cross-device purchases.
-- **Catalog change** — adding a SKU requires store-console entries plus a product definition in code; mismatches become product-fetch failures.
+- **Shop boot** — connect, fetch products, populate UI, fetch purchases/entitlements.
+- **Buy button** — disabled until products fetched and while order pending.
+- **Entitlement sync** — fetch from backend on boot + `OnApplicationFocus(true)` (catches refunds, deferred completions, cross-device).
+- **Catalog change** — new SKU = store-console entry + product definition; mismatches surface as fetch failures.
 
 ## Gotchas
 
-- Editor store behavior is fake. Test real iOS/Android flows on real devices and store tracks.
-- Do not trust client-only receipts for currency, competitive unlocks, or anything transferable.
-- Use store transaction IDs / purchase tokens for idempotency. Do not key grants by UI button press or local save state.
-- Forgetting to confirm a validated pending order causes repeat delivery and a stuck transaction.
-- Google purchase acknowledgement is time-limited; make validation and confirmation part of the launch checklist.
-- Bundle ID mismatch between dev/prod builds makes store validation reject otherwise valid transactions.
-- Package docs and local package APIs can drift; reflect on the installed `com.unity.purchasing` assembly before writing platform-specific extended-service calls.
+- Editor store behavior is fake. Test real iOS/Android on real devices/tracks.
+- Don't trust client-only receipts for currency, competitive unlocks, or transferable items.
+- Use store transaction IDs / purchase tokens for idempotency. Never key by button press or local save.
+- Forgetting to confirm a validated pending order = repeat delivery + stuck transaction.
+- Google acknowledgement is time-limited (3 days) — make validation+confirmation part of the launch checklist.
+- Bundle ID mismatch dev/prod = store validation rejects.
+- Reflect on `com.unity.purchasing` before writing platform-specific extended-service calls — local APIs drift from docs.
 
 ## Legacy migration notes
 
-Older Unity IAP implementations used listener/controller initialization, product builders, and product-level purchase callbacks. Do not copy those examples into Unity 6+ work. When migrating, translate the old flow into:
+Older IAP used listener/controller init, product builders, product-level callbacks. Don't copy into Unity 6+ work. Translate to:
 
 - connect store,
 - fetch products,
 - fetch purchases,
 - handle pending orders,
 - validate on backend,
-- confirm the pending order,
+- confirm pending order,
 - fetch/check entitlements for restore.
 
-Keep the old implementation compiling only long enough to migrate one product path at a time.
+Keep old implementation compiling only long enough to migrate one product path at a time.
 
 ## Verification
 
-- Editor console is clean after package install and shop-service compile.
-- Product fetch returns every SKU expected for the active store track.
-- Sandbox purchase succeeds end-to-end on a real iOS device and real Android device.
-- Server validation roundtrip succeeds; entitlement row is written; client confirms the pending order.
-- Fresh install + restore/fetch retrieves all NonConsumables and active Subscriptions.
-- Forced sandbox refund triggers webhook; entitlement is revoked; client picks up revocation on next foreground sync.
+- Editor console clean after package install + shop-service compile.
+- Product fetch returns every SKU for active store track.
+- Sandbox purchase succeeds end-to-end on real iOS + real Android.
+- Server validation roundtrip succeeds; entitlement row written; client confirms pending order.
+- Fresh install + restore retrieves all NonConsumables + active Subscriptions.
+- Forced sandbox refund triggers webhook; entitlement revoked; client picks up on next foreground.
 - Subscription auto-renew in sandbox updates server state without a new button press.
-- `LogAssert` is clean across init, purchase, restore, refund, and app-kill-during-purchase paths.
+- `LogAssert` clean across init, purchase, restore, refund, app-kill-during-purchase paths.

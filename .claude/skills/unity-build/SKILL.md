@@ -1,63 +1,57 @@
 ---
 name: unity-build
-description: 'Use when shipping or platform-targeting a Unity project through Unity MCP — BuildPipeline.BuildPlayer, build profile, build settings, PlayerSettings, IL2CPP, Mono backend, code stripping, managed stripping, link.xml, scripting backend, target platform, target architecture, ARM64, Universal, switch platform, Android build, iOS build, WebGL build, mobile build, desktop build, BuildReport, post-build, OnPostprocessBuild, PostProcessBuildAttribute, build symbol, define symbol, scripting define, Development Build, Script Debugging, deep profiling, build size, app icon, splash screen, bundle ID, application identifier, version, build number, app version, signing, Android keystore, iOS provisioning, IPA, APK, AAB, app bundle, target frame rate, safe area, OnApplicationPause, OnApplicationFocus, app lifecycle, runInBackground, audio context unlock, IndexedDB, FS.syncfs.'
+description: 'Use for Unity builds and platform targeting: Build Profiles, BuildPipeline.BuildPlayer, PlayerSettings, IL2CPP/Mono, stripping/link.xml, define symbols, BuildReport, post-build hooks, Android/iOS/WebGL/desktop signing and lifecycle. Unity 6+ / URP / new Input System.'
 ---
 
 ## When to use
 
-Any build or shipping task: producing a Player binary, switching platforms, configuring PlayerSettings, choosing IL2CPP vs Mono, writing link.xml, scripted/CI builds, post-build hooks, parsing BuildReport, or chasing platform-specific runtime gotchas (mobile lifecycle, WebGL audio unlock, desktop signing). Read `unity-best-practices` first for the project paradigm primer. Cross-link `unity-scenes` for the build scene list, `unity-persistence` for save-on-pause, `unity-audio` for audio unlock, `unity-addressables` for content delivery, `unity-asmdef` for build-time hygiene, `unity-ugui` for safe-area UI, and `unity-input-system` for touch-vs-mouse parity.
+Use for Player binaries, platform switches, PlayerSettings, IL2CPP/Mono, link.xml, scripted/CI builds, BuildReport, and platform gotchas. Cross-links: `unity-scenes`, `unity-persistence`, `unity-audio`, `unity-addressables`, `unity-asmdef`, `unity-ugui`, `unity-input-system`.
 
 ## Build pipeline overview
 
-Unity 6 introduced **Build Profiles** (`File > Build Profiles`) which replace the older Build Settings dialog. A profile bundles `(platform, scenes, scripting backend, defines, settings overrides)` so you can switch between `Android-Release` and `WebGL-Staging` without re-importing assets every time. Profiles still funnel through `BuildPipeline.BuildPlayer` under the hood — anything you do in the GUI is reproducible in code.
+Unity 6 **Build Profiles** bundle platform, scenes, backend, defines, and overrides. GUI builds still funnel through `BuildPipeline.BuildPlayer`, so every build should be scriptable.
 
-Open `File > Build Profiles` from the editor menu, switch the active profile, and trigger the build. Mutate `PlayerSettings`, `BuildSettings`, and `EditorBuildSettings.scenes` through Project Settings tooling between profiles when CI must override values.
+Use `File > Build Profiles` for manual switching. In CI, set `PlayerSettings`, `BuildSettings`, and `EditorBuildSettings.scenes` through editor APIs before `BuildPlayer`.
 
 ## PlayerSettings essentials
 
-Under `Edit > Project Settings > Player`. Per-platform tabs:
+`Edit > Project Settings > Player`:
 
-- **Identification** — Company Name, Product Name, Version (semver, user-visible), Bundle Identifier (e.g. `com.studio.game`), Build Number (Android `bundleVersionCode`, iOS `CFBundleVersion`).
+- **Identification** — Company Name, Product Name, Version (semver, user-visible), Bundle Identifier (`com.studio.game`), Build Number (Android `bundleVersionCode`, iOS `CFBundleVersion`).
 - **Resolution and Presentation** — orientation (mobile), default resolution and Fullscreen Mode (desktop), splash screen.
 - **Splash Image** — Show Unity Logo. Pro can disable; Personal cannot.
-- **Other Settings** — Scripting Backend (IL2CPP/Mono), Api Compatibility Level (`.NET Standard 2.1` is the default and what asmdef-driven projects expect), Active Input Handling (final builds should use `Input System Package (New)`; `Both` is migration-only — see `unity-input-system`), Target Architectures (Android: ARM64 required for Play Store; iOS: ARM64).
+- **Other Settings** — Scripting Backend, API Compatibility (`.NET Standard 2.1`), Active Input Handling (`New` final; `Both` migration-only), architectures (Android/iOS ARM64).
 - **Publishing Settings** (Android) — Keystore path, key alias, signing config, AAB vs APK toggle.
-- **Capabilities** (iOS) — Push Notifications (cross-link `unity-push-local-notifications`), In-App Purchase (cross-link `unity-iap`), Sign in with Apple (cross-link `unity-auth-account-linking`), Game Center, etc. Each capability flips an entitlement in the generated Xcode project; missing capabilities are a frequent cause of post-archive upload errors.
+- **Capabilities** (iOS) — Push, IAP, Sign in with Apple, Game Center; each maps to an Xcode entitlement.
 - **Icon** — per-platform icon sets; Android adaptive icons need foreground/background mipmap layers.
 
-Mutate through Project Settings tooling rather than hand-editing `ProjectSettings/ProjectSettings.asset` — the editor normalizes values and re-serializes meta.
+Prefer Project Settings APIs; hand-editing serialized settings is brittle.
 
 ## Build profiles (Unity 6)
 
-`File > Build Profiles` opens the new editor. Create one profile per `(platform × stage)`:
+`File > Build Profiles`. Create one profile per `(platform × stage)`:
 
 - `Android-Dev`, `Android-Release`
 - `iOS-Dev`, `iOS-Release`
 - `WebGL-Staging`, `WebGL-Production`
 - `Standalone-Win-Demo`, `Standalone-Win-Release`
 
-Each profile holds its own scene list, scripting defines, IL2CPP optimization level, and asset import overrides. Activate via "Switch Profile" (assets re-import only when the platform actually changes). The profile asset is serialized under `Assets/Settings/Build Profiles/` so it commits to git.
+Each profile owns scenes, defines, IL2CPP optimization, and overrides. Profile assets live under `Assets/Settings/Build Profiles/`; commit them.
 
 ## Scripting backend (IL2CPP vs Mono)
 
-- **Mono** — JIT-compiled, fast Editor iteration, larger runtime, NOT supported on iOS or modern consoles. Useful for desktop / Android dev builds where iteration speed matters.
-- **IL2CPP** — AOT compiles C# → C++ → native. Required for iOS, Android Play Store (AAB), and consoles. Slower builds, smaller runtime, harder to debug, **no `Reflection.Emit`** (impacts Json.NET dynamic, some IoC libs, Linq Expression compilation).
+- **Mono** — JIT, fast iteration, useful for desktop/Android dev; not supported on iOS/modern consoles.
+- **IL2CPP** — AOT C# -> C++ -> native. Required for iOS, Android Play Store AAB, consoles. Slower builds; no `Reflection.Emit`.
 
-Default: IL2CPP for any shipping platform; Mono only for the Editor and quick dev builds.
+Default: IL2CPP for any shipping platform; Mono only for Editor and quick dev builds.
 
-**Code Optimization** (Unity 6): `Debug` / `Release` / `Master`.
-
-- **Debug** — unoptimized, debugger-attachable, fastest iteration. Default for development.
-- **Release** — IL2CPP optimized for runtime speed; the new shipping default. Preserves enough metadata to symbolicate crashes — pick this for store builds you intend to patch post-launch.
-- **Master** — Release + LTO + dead-code elimination. Smallest binary, slowest build, hardest to symbolicate. Reserve for final store builds when post-launch patching is not on the table.
-
-Code Optimization mode does NOT govern log stripping — that is controlled by managed-stripping settings (Player Settings > Other > Managed Stripping Level) and `[Conditional]` define guards in code. Picking Master alone will not strip `Debug.Log` calls.
+**Code Optimization**: `Debug` for iteration, `Release` for normal store builds, `Master` for final size/speed when harder symbolication is acceptable. This does not strip logs; use stripping settings and `[Conditional]` guards.
 
 ## Code stripping and link.xml
 
-`Player Settings > Other > Managed Stripping Level` — `Disabled` / `Low` / `Medium` / `High`. `High` strips everything not statically referenced, which breaks reflection, `JsonUtility` on private fields without `[SerializeField]`, Newtonsoft on dynamic types, and AssemblyDefinition reflection lookups.
+Managed Stripping Level (`Disabled`/`Low`/`Medium`/`High`) removes code not statically referenced. High commonly breaks reflection, Newtonsoft dynamic types, and private fields without `[SerializeField]`.
 
-A `link.xml` file in `Assets/` tells the linker not to strip listed types/assemblies:
+A `link.xml` in `Assets/` tells the linker not to strip listed types/assemblies:
 
 ```xml
 <linker>
@@ -68,11 +62,11 @@ A `link.xml` file in `Assets/` tells the linker not to strip listed types/assemb
 </linker>
 ```
 
-When IL2CPP throws AOT or `MissingMethodException` errors on device, the cause is almost always a missing `link.xml` entry. Maintain `link.xml` alongside Newtonsoft / Odin / DOTween installs — copy snippets from each library's docs.
+Device-only AOT / `MissingMethodException` usually means missing `link.xml`. Keep library snippets with the package install.
 
 ## Scripting Define Symbols
 
-`#if MOBILE_BUILD` etc. Set in Player Settings or per-build profile. Auto-defined: `DEVELOPMENT_BUILD`, `UNITY_EDITOR`, `UNITY_IOS`, `UNITY_ANDROID`, `UNITY_WEBGL`, `UNITY_STANDALONE`, `UNITY_STANDALONE_OSX`, `UNITY_STANDALONE_WIN`. Add custom defines for feature flags (`STEAM_BUILD`, `MOBILE_FREE`, `BETA_BRANCH`).
+Set define symbols in Player Settings or Build Profile. Unity defines include `DEVELOPMENT_BUILD`, `UNITY_EDITOR`, `UNITY_IOS`, `UNITY_ANDROID`, `UNITY_WEBGL`, `UNITY_STANDALONE*`. Add project flags like `STEAM_BUILD`, `MOBILE_FREE`, `BETA_BRANCH`.
 
 ```csharp
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -82,7 +76,7 @@ When IL2CPP throws AOT or `MissingMethodException` errors on device, the cause i
 
 ## Development Build flags
 
-In the build profile or `BuildOptions` flags: `Development Build`, `Script Debugging`, `Wait For Managed Debugger`, `Deep Profiling`, `Autoconnect Profiler`. Cost is larger binary plus slower runtime. Ship builds must NEVER carry these.
+Flags: `Development Build`, `Script Debugging`, `Wait For Managed Debugger`, `Deep Profiling`, `Autoconnect Profiler`. They slow runtime and enlarge binaries; never ship them.
 
 ## Scripted builds (BuildPipeline.BuildPlayer)
 
@@ -117,7 +111,7 @@ public static class Builders
 }
 ```
 
-Use for CI: `unity -batchmode -nographics -executeMethod Builders.BuildAndroidRelease -quit -logFile build.log`. Author the build script in the project and trigger it from the build menu or via BuildPipeline tooling.
+CI: `unity -batchmode -nographics -executeMethod Builders.BuildAndroidRelease -quit -logFile build.log`.
 
 ## Post-build callbacks
 
@@ -149,26 +143,13 @@ public class BuildHooks : IPreprocessBuildWithReport, IPostprocessBuildWithRepor
 }
 ```
 
-Prefer the `IPreprocessBuildWithReport` / `IPostprocessBuildWithReport` interfaces over the legacy attribute when you need `BuildReport` access.
-
-The two highest-volume post-build hooks in production projects:
-
-- **Store upload** — TestFlight (iOS) and Play Console (Android) submission. The canonical pipeline lives in `unity-store-shipping-pipeline` (fastlane `pilot` / `supply`, App Store Connect API, Play Publisher API). Do not re-implement it here.
-- **Symbol upload for crash reporting** — IL2CPP `libil2cpp.sym` / line-mappings.json (Android), dSYM + BCSymbolMap (iOS) uploaded to Crashlytics / Sentry / Backtrace. Cross-link `unity-crash-reporting`.
-- **Privacy manifest generation** — Apple `PrivacyInfo.xcprivacy` is best emitted from a post-build hook so the manifest stays in sync with the SDKs the build actually links. Cross-link `unity-privacy-manifests`.
+Prefer `IPreprocessBuildWithReport` / `IPostprocessBuildWithReport` when you need `BuildReport`. Common hooks: store upload (`unity-store-shipping-pipeline`), symbol upload (`unity-crash-reporting`), privacy manifest generation (`unity-privacy-manifests`).
 
 ## BuildReport parsing
 
-`BuildPipeline.BuildPlayer` returns a `BuildReport`. Inspect:
+`BuildReport` gives result, size, errors/warnings, duration, per-step timing, and packed asset sizes. Use `summary.totalSize` + sorted `packedAssets[]` for size budgets and CI regressions (`unity-ci`).
 
-- `report.summary.result` — `Succeeded` / `Failed` / `Cancelled`.
-- `report.summary.totalSize`, `totalErrors`, `totalWarnings`, `buildEndedAt - buildStartedAt`.
-- `report.steps[]` — per-step duration, useful for finding slow asset imports.
-- `report.packedAssets[]` — every shipped asset with its packed size; sort by size to find bloat.
-
-`report.summary.totalSize` plus the sorted `report.packedAssets[]` distribution is the canonical input to release-dashboard size budgets and CI size-regression gates (a forward-reference cross-link to `unity-ci` once that skill lands; until then, plumb it into your existing CI pipeline).
-
-Serialize a slim summary to JSON for CI dashboards. **Do not pass an anonymous type to `JsonUtility.ToJson`** — `JsonUtility` cannot serialize anonymous types and silently writes `"{}"` with no error. Use a `[Serializable]` POCO:
+For CI JSON, use a `[Serializable]` POCO; anonymous types serialize as `{}` in `JsonUtility`:
 
 ```csharp
 [Serializable]
@@ -186,44 +167,44 @@ var summary = new BuildSummary {
 File.WriteAllText("Builds/last-report.json", JsonUtility.ToJson(summary, prettyPrint: true));
 ```
 
-If you need anonymous-type or dictionary serialization, reach for `Newtonsoft.Json` (with the matching `link.xml` entry) instead of `JsonUtility`.
+Need dictionaries/anonymous types? Use Newtonsoft with matching `link.xml`.
 
 ## Mobile platform gotchas
 
-See `references/mobile.md` for the full list. Two essentials worth surfacing here:
+Full list: `references/mobile.md`. Essentials:
 
-- **Frame rate** — mobile defaults to 30 fps. Set `Application.targetFrameRate = 60` (or `30`) at boot AND `QualitySettings.vSyncCount = 0` so the target actually applies. 60 fps roughly doubles thermal load; most F2P titles target 30 with adaptive 60 on flagship devices.
-- **App size budgets** — Google Play app bundles use compressed download-size limits: 200 MB for the base module, 200 MB per feature module, 1.5 GB per asset pack, and 4 GB for install-time modules plus asset packs. Legacy APK publishing is capped at 100 MB. Apple App Store IPA cap is 4 GB binary, but smaller cellular downloads still convert better. Cross-link `unity-addressables`.
+- **Frame rate** — mobile defaults to 30 fps. Set `Application.targetFrameRate = 60` (or `30`) at boot AND `QualitySettings.vSyncCount = 0` so target actually applies. 60 fps roughly doubles thermal load; most F2P titles target 30 with adaptive 60 on flagship devices.
+- **App size budgets** — Google Play app bundles use compressed download-size limits: 200 MB base module, 200 MB per feature module, 1.5 GB per asset pack, 4 GB for install-time modules + asset packs. Legacy APK publishing capped at 100 MB. Apple App Store IPA cap is 4 GB binary, but smaller cellular downloads convert better. See `unity-addressables`.
 
-`references/mobile.md` covers the rest: `OnDemandRendering`, Adaptive Performance, texture/RAM tiers, audio voice counts, shader warmup, thermal throttling, `OnApplicationPause` save semantics, `Screen.safeArea`, touch input, orientation, particle ceilings, render-scale and shadow budgets.
+Reference covers: render scale, thermal, texture/RAM tiers, audio voices, shader warmup, `OnApplicationPause`, `Screen.safeArea`, touch, orientation, particle ceilings, shadows.
 
 ## WebGL platform gotchas
 
-See `references/webgl.md` for: no-threads constraint, IndexedDB persistence + `FS.syncfs`, audio context unlock, build-size budget, memory cap, browser quirks, and WebGL-specific API blocklist.
+`references/webgl.md`: no threads, IndexedDB + `FS.syncfs`, audio unlock, build size, memory cap, browser quirks, API blocklist.
 
-**Unity 6 Web vs WebGL** — Unity 6 introduced a separate **Web** build target alongside WebGL. As of Unity 6 LTS, Web is still in preview; **WebGL remains the production-ready target**. Prefer WebGL today; revisit Web when GA support lands. WebGPU support in URP is similarly experimental — ship WebGL2 for production browser builds.
+Unity 6 also has a preview **Web** target. For production browser builds, ship WebGL2; WebGPU/URP remains experimental.
 
 ## Desktop gotchas
 
-- **Code signing** — macOS requires notarization for distribution outside the Mac App Store (`xcrun notarytool submit`). Windows builds need an EV cert for SmartScreen reputation; without one, Windows blocks the download with a SmartScreen warning until enough installs accumulate.
+- **Code signing** — macOS notarization outside Mac App Store; Windows EV cert avoids SmartScreen warnings.
 - **DPI scaling** — high-DPI displays render UI tiny if not opted in. Set `PlayerSettings.macRetinaSupport = true` for macOS; on Windows make sure the DPI-aware manifest is set (Player Settings → Resolution and Presentation).
-- **Steam integration** — Steamworks.NET or Facepunch.Steamworks. Initialize via `SteamAPI.Init()` on boot; if Steam isn't running, prompt and `Application.Quit`.
+- **Steam** — Steamworks.NET or Facepunch; call `SteamAPI.Init()` at boot.
 - **Full-screen window** — `Screen.fullScreenMode = FullScreenMode.FullScreenWindow` (borderless) gives fewer alt-tab artifacts than `ExclusiveFullScreen`.
-- **Apple Silicon** — `BuildTarget.StandaloneOSX` with architecture `Universal` (Intel64 + ARM64) for native M1+; Intel-only ships through Rosetta with measurable CPU cost.
+- **Apple Silicon** — build `Universal` (Intel64 + ARM64).
 
 ## App lifecycle
 
-- `OnApplicationPause(bool)` — fires on mobile background/foreground. Save here on mobile (the system can kill the app without `OnDestroy`).
+- `OnApplicationPause(bool)` — mobile background/foreground; save here.
 - `OnApplicationFocus(bool)` — desktop alt-tab and mobile resume. Pause music, throttle update rate.
-- `OnApplicationQuit()` — desktop close. Mobile may NOT call this when force-killed; do not rely on it for saving on mobile.
+- `OnApplicationQuit()` — desktop close; unreliable for mobile saves.
 - `Application.quitting` event — last chance before quit on platforms that fire it.
-- `Application.runInBackground = true` — keep updating when the window loses focus (desktop multiplayer, headless servers).
+- `Application.runInBackground = true` — keep updating when window loses focus (desktop multiplayer, headless servers).
 
-Pair with `unity-persistence` for the actual save/flush implementation.
+Pair with `unity-persistence` for save/flush implementation.
 
 ## Common patterns
 
-- CI build invoked via `unity -batchmode -nographics -executeMethod Builders.BuildAndroidRelease -quit -logFile build.log`.
+- CI build: `unity -batchmode -nographics -executeMethod Builders.BuildAndroidRelease -quit -logFile build.log`.
 - One build profile per `(platform × stage)`: `Android-Dev`, `Android-Release`, `iOS-Dev`, `iOS-Release`, `WebGL-Staging`, `WebGL-Production`.
 - Pre-build: bump version from git tag (`git describe --tags`); post-build: upload symbols to crash service, archive `BuildReport` JSON, attach to release artifact.
 - `link.xml` lives at `Assets/link.xml`, version-controlled, with a stanza per third-party reflective library.
@@ -232,23 +213,23 @@ Pair with `unity-persistence` for the actual save/flush implementation.
 
 ## Gotchas
 
-- Forgetting to add a scene to the build list (or to the active build profile) → `SceneManager.LoadScene` silently fails or loads the wrong index. Cross-link `unity-scenes`.
+- Forgetting to add a scene to the build list (or to active build profile) → `SceneManager.LoadScene` silently fails or loads wrong index. See `unity-scenes`.
 - `High` stripping breaks `JsonUtility` on private fields → use `[SerializeField]` or add a `link.xml` entry.
 - IL2CPP compile time is 5–15 min for non-trivial projects; cache the local IL2CPP toolchain (`%LOCALAPPDATA%/Unity/cache/il2cpp`) on CI runners.
 - Android keystore lost = cannot update the Play Store listing. Back up keystore + password to multiple secure locations.
-- iOS provisioning profile expires yearly; renew before submission or the upload fails.
-- Android Play builds above the base-module budget need Play Asset Delivery, feature modules, or Addressables remote groups; cross-link `unity-addressables` for runtime content.
+- iOS provisioning profile expires yearly; renew before submission or upload fails.
+- Android Play builds above the base-module budget need Play Asset Delivery, feature modules, or Addressables remote groups. See `unity-addressables`.
 - WebGL does not support `System.Diagnostics.Process`, `System.Net.Sockets` (use `UnityWebRequest`), or `BinaryFormatter`.
-- Auto-reference assemblies in asmdef can balloon build time; prune unused references — cross-link `unity-asmdef`.
-- Active Input Handling left at `Input Manager (Old)` after installing the Input System package → new-Input-System code compiles but reads no devices at runtime. Cross-link `unity-input-system`.
-- `Application.persistentDataPath` is platform-specific; never hardcode a path. Cross-link `unity-persistence`.
+- Auto-reference assemblies in asmdef can balloon build time; prune unused references. See `unity-asmdef`.
+- Active Input Handling left at `Input Manager (Old)` after installing the Input System package → new-Input-System code compiles but reads no devices at runtime. See `unity-input-system`.
+- `Application.persistentDataPath` is platform-specific; never hardcode a path. See `unity-persistence`.
 
 ## Verification
 
 1. Build first. Confirm `BuildReport.summary.result == BuildResult.Succeeded` and `summary.totalErrors == 0`.
 2. Inspect `summary.totalSize` and `report.packedAssets` (sort descending) to spot bloat.
-3. Test the actual artifact (`.exe`/`.app`/`.apk`/`.aab`/`.ipa`/`index.html`) on target hardware — the Editor build is NOT the same.
+3. Test the actual artifact (`.exe`/`.app`/`.apk`/`.aab`/`.ipa`/`index.html`) on target hardware — Editor build is NOT the same.
 4. Editor console clean of compile warnings and stripping notices during the build.
 5. Test app lifecycle: alt-tab on desktop, home-button on mobile, browser tab switch on WebGL — verify save-on-pause works.
 6. Mobile: run on the lowest-supported device. WebGL: test in Chrome + Safari + Firefox (Safari has the most divergent quirks).
-7. After IL2CPP shipping builds, scan device logs for `MissingMethodException` / AOT errors → add to `link.xml` and rebuild.
+7. After IL2CPP shipping builds, scan device logs for `MissingMethodException`/AOT errors → add to `link.xml` and rebuild.

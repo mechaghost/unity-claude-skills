@@ -1,98 +1,95 @@
 ---
 name: unity-shuriken
-description: 'Use when authoring or tuning Unity Shuriken particle effects through Unity MCP (trigger keywords ParticleSystem, particle, shuriken, emission, sub-emitter, particle effect, hit spark, explosion, smoke, fire, dust, muzzle flash, spark, magic projectile, weather, rain, snow, footstep dust, color over lifetime, rate over time, rate over distance, OnParticleCollision, OnParticleTrigger, in-volume / out-volume particle triggers, particle pooling, billboard, stretched particle, trail, texture sheet animation). Shuriken-specific — see VFX Graph (Visual Effect component) for the GPU pipeline; most modules below do not apply there. Do NOT use for >5000 GPU-driven particles or texture/SDF/mesh sampling — use unity-vfx-graph for that. Unity 6+ / 6000.x, URP-only, new Input System only.'
+description: 'Use for Unity 6+ Shuriken/ParticleSystem effects: emission, sub-emitters, sparks, smoke, fire, dust, muzzle flashes, weather, trails, texture-sheet animation, collisions/triggers, pooling, billboards. Use VFX Graph for >5000 GPU particles or SDF/mesh/texture sampling.'
 ---
 
 ## When to use
 
-Any task involving the built-in `ParticleSystem` MonoBehaviour: hit sparks, explosions, smoke columns, fire, dust kick-up, magic projectiles, weather (rain/snow), environmental ambience, rocket trails, muzzle flashes. Also applies to tuning emission, color/size over lifetime, sub-emitter chains, or wiring `OnParticleCollision` / `OnParticleTrigger` callbacks. If the user is editing a `Visual Effect` (VFX Graph) asset, that is a different system — most of this skill does not apply.
+Built-in `ParticleSystem` MonoBehaviour: hit sparks, explosions, smoke, fire, dust, magic projectiles, weather (rain/snow), ambience, rocket trails, muzzle flashes. Tuning emission, color/size over lifetime, sub-emitter chains, `OnParticleCollision` / `OnParticleTrigger`. For `Visual Effect` (VFX Graph) → `unity-vfx-graph`.
 
-## Anatomy of a particle system
+## Anatomy
 
-- A particle system is a GameObject with a `ParticleSystem` component plus an auto-added `ParticleSystemRenderer`. Sub-emitters are normally child GameObjects with their own `ParticleSystem`.
-- Particles are simulated on the CPU and batched by material. The GameObject has a normal Transform; `Main.Simulation Space` decides whether already-spawned particles follow the emitter when the Transform moves:
-  - `Local` — particles ride the emitter (handheld torch flame, attached aura).
-  - `World` — particles stay where they were emitted (smoke trail behind a moving rocket).
-  - `Custom` — particles follow a chosen Transform (e.g. parent rig that moves but not the emitter).
-- Loop vs one-shot. `Main.Looping` on = continuous (smoke, fire). Off + `Main.Stop Action: Destroy` = one-shot prefab that removes itself after the last particle dies. Use `Disable` instead of `Destroy` when pooling.
-- Build hierarchies under a clearly named anchor GameObject (e.g. `FX_Explosion_Large`) so the whole effect can be spawned or reparented as a unit.
+- GameObject + `ParticleSystem` + auto-added `ParticleSystemRenderer`. Sub-emitters are child GOs with their own ParticleSystem.
+- CPU-simulated, batched by material. `Main.Simulation Space` decides whether already-spawned particles follow the emitter:
+  - `Local` — particles ride emitter (handheld torch, attached aura).
+  - `World` — particles stay where emitted (smoke trail behind a moving rocket).
+  - `Custom` — follow a chosen Transform.
+- Loop vs one-shot. `Main.Looping` ON = continuous (smoke, fire). OFF + `Main.Stop Action: Destroy` = one-shot prefab that removes itself. Use `Disable` for pooling.
+- Build hierarchies under a clearly named anchor (`FX_Explosion_Large`) so the whole effect spawns/reparents as a unit.
 
 ## Modules
 
-Quick map of what each sub-module is for and the field most often tuned. Full field reference: `references/modules.md`.
+Quick map. Full field reference: `references/modules.md`.
 
 - Main — duration, looping, start lifetime/speed/size/rotation/color, gravity modifier, simulation space, simulation speed, max particles, stop action.
-- Emission — `Rate over Time` (particles/sec), `Rate over Distance` (particles per unit moved, ideal for trails), `Bursts` (count + cycles + interval).
-- Shape — emitter shape: Sphere, Hemisphere, Cone, Box, Mesh, MeshRenderer, SkinnedMeshRenderer, Circle, Edge, Donut, Rectangle, Sprite, SpriteRenderer. Cone for muzzle flashes, Sphere for explosions, Edge for ground line emitters.
-- Velocity over Lifetime, Limit Velocity over Lifetime, Inherit Velocity, Force over Lifetime — directional motion controls (drift, drag, attach to parent motion, wind).
-- Color over Lifetime — gradient. Almost always end at alpha 0 so particles don't pop when they die.
-- Color by Speed — tint as a function of speed (sparks brighten when fast).
+- Emission — `Rate over Time` (particles/sec), `Rate over Distance` (per unit moved — ideal for trails), `Bursts` (count + cycles + interval).
+- Shape — Sphere, Hemisphere, Cone, Box, Mesh, MeshRenderer, SkinnedMeshRenderer, Circle, Edge, Donut, Rectangle, Sprite, SpriteRenderer. Cone for muzzle flashes, Sphere for explosions, Edge for ground line emitters.
+- Velocity over Lifetime, Limit Velocity, Inherit Velocity, Force over Lifetime — directional motion (drift, drag, attach to parent motion, wind).
+- Color over Lifetime — gradient. Almost always end at alpha 0 to avoid death pop.
+- Color by Speed — sparks brighten when fast.
 - Size over Lifetime — curve. Smoke grows, sparks shrink.
-- Size by Speed — size as a function of speed.
+- Size by Speed.
 - Rotation over Lifetime, Rotation by Speed — spinning debris, tumbling embers.
 - External Forces — receive Wind Zones / `ParticleSystemForceField`s.
-- Noise — turbulence; the classic fire/smoke "wandering" look.
-- Collision — `World` (per-particle physics, expensive, uses layers) or `Planes` (cheap, manual planes). Set `Send Collision Messages` to receive `OnParticleCollision(GameObject)`.
-- Triggers — fire `OnParticleTrigger` when particles enter/exit/are inside listed colliders (in-volume / out-volume effects).
-- Sub Emitters — spawn child systems on Birth / Collision / Death / Trigger. Foundation for compound effects.
-- Texture Sheet Animation — flipbook through a sprite sheet (animated fire frames, explosion sequence).
-- Lights — attach real-time Lights to a fraction of particles. Cap tightly; these are full real-time lights.
-- Trails — ribbons attached to particles (sparks, missile contrails). Need a separate Trails material.
+- Noise — turbulence; classic fire/smoke "wandering".
+- Collision — `World` (per-particle physics, expensive, layers) or `Planes` (cheap, manual planes). `Send Collision Messages` enables `OnParticleCollision(GameObject)`.
+- Triggers — `OnParticleTrigger` when particles enter/exit/are inside listed colliders.
+- Sub Emitters — spawn child systems on Birth / Collision / Death / Trigger.
+- Texture Sheet Animation — flipbook through a sprite sheet.
+- Lights — attach real-time Lights to a fraction of particles. Cap tightly; full real-time light cost.
+- Trails — ribbons attached to particles. Need a separate Trails material.
 - Custom Data — feed per-particle data into a custom shader (`TEXCOORD0.zw`, `TEXCOORD1`).
-- Renderer — `Render Mode` (Billboard, Stretched Billboard, Horizontal Billboard, Vertical Billboard, Mesh, None), Sort Mode, Sorting Layer, Order in Layer, custom material(s), trail material, mesh, GPU instancing.
+- Renderer — Render Mode (Billboard / Stretched / Horizontal / Vertical / Mesh / None), Sort Mode, Sorting Layer, Order in Layer, materials, mesh, GPU instancing.
 
 ## Materials and shaders
 
-This skill set targets URP. Particles need a URP-compatible Particle shader (cross-reference `unity-urp` and `unity-shaders`):
+URP-compatible Particle shader (see `unity-urp`, `unity-shaders`):
 
 - `Universal Render Pipeline/Particles/Lit`
 - `Universal Render Pipeline/Particles/Unlit`
-- Shader Graph with the URP "Lit Particles" or "Unlit Particles" target.
+- Shader Graph "Lit Particles" or "Unlit Particles" target.
 
-Legacy / Built-in particle shaders (e.g. `Particles/Standard Unlit`) on materials imported from non-URP packages render pink in URP — re-author or convert.
+Legacy/Built-in particle shaders (`Particles/Standard Unlit`) imported from non-URP packages render pink in URP — re-author or convert.
 
 Blend mode picks the look:
-
-- `Additive` — fire, sparks, light beams, energy. No alpha culling, brightens whatever is behind.
+- `Additive` — fire, sparks, light beams, energy. Brightens what's behind.
 - `Alpha` — smoke, dust, water spray. Standard transparent compositing.
 - `Premultiplied` — soft particles with internal masking, fog cards.
 
-`Soft Particles` (smooth fade against intersecting geometry) requires the active camera to render a depth texture — confirm on the Camera component and in Project Settings → Graphics.
-
-Author or swap materials directly on the asset; for custom particle shaders, edit the Shader Graph or HLSL source. Texture sheets and atlases come in through standard texture / sprite import.
+`Soft Particles` (smooth fade against intersecting geometry) requires the active camera to render a depth texture — confirm on Camera + Project Settings → Graphics.
 
 ## Sub-emitters
 
-Sub Emitters wire one ParticleSystem to spawn another on a lifecycle event. Canonical chain for a rocket:
+Wire one ParticleSystem to spawn another on a lifecycle event. Canonical rocket chain:
 
-1. Root `FX_Rocket` — main looping smoke, `Rate over Distance`, `Local` simulation space, attached to the rocket Transform.
-2. On root `Death` — sub-emitter `FX_Explosion`: short Sphere burst, additive, `Looping` off, `Stop Action: Destroy`, `Lights` module on a small fraction.
-3. On `FX_Explosion` `Death` — sub-emitter `FX_Smoke_Linger`: alpha smoke, `World` space, gravity slightly negative, color-over-lifetime fading to 0.
+1. Root `FX_Rocket` — main looping smoke, `Rate over Distance`, `Local` space, attached to rocket Transform.
+2. On root `Death` → `FX_Explosion`: short Sphere burst, additive, `Looping` off, `Stop Action: Destroy`, `Lights` module on a small fraction.
+3. On `FX_Explosion` `Death` → `FX_Smoke_Linger`: alpha smoke, `World` space, gravity slightly negative, color-over-lifetime fading to 0.
 
-Wire the sub-emitters by setting the `ParticleSystem.SubEmittersModule` on the parent system — its `subEmitters` list of `ParticleSystem` references and `ParticleSystemSubEmitterType`. For complex API access, reflect on the live type or author a small configurator script.
+Wire by setting `ParticleSystem.SubEmittersModule` on the parent — `subEmitters` list of `ParticleSystem` references and `ParticleSystemSubEmitterType`.
 
 ## Performance
 
-Dominant cost is `Main.Max Particles` x simulation step x renderer overdraw. Tiered ceilings before VFX Graph becomes the better choice:
+Dominant cost: `Main.Max Particles` × simulation step × renderer overdraw. Tiered ceilings before VFX Graph wins:
 
-- **Mobile** — keep each system **<200 particles at peak**, **hard-cap simultaneous emitters at 4-6**. Above that, frame-time and overdraw dominate. Cross-link `unity-build` references/mobile.md.
-- **Desktop** — **<2,000 particles per system** is fine on Shuriken; 2,000-5,000 is workable but hot.
-- **>2,000 mobile / >5,000 desktop** — switch to VFX Graph (GPU-driven). Cross-link `unity-vfx-graph`.
-- Collision module: prefer `Planes` over `World`; lower `Quality`; raise `Voxel Size`. Each `World` collision is a physics query.
-- Lights module: cap to fewer than ~8 active particle lights at any time. They are real-time lights with full cost.
-- Trails: every particle with a trail multiplies vertex/index count. Limit `Ratio` (fraction of particles with trails).
-- Pooling: never `Instantiate`+`Destroy` per shot. Pre-spawn pooled effects, then `ps.Play()` / `ps.Stop()`. Combine with `Stop Action: Disable` and re-enable on dequeue.
-- GPU instancing: enable on the renderer when `Render Mode = Mesh` with the same material across particles.
-- Profile in the Profiler and look at `ParticleSystem.Update`, `ParticleSystem.Render`, and `ParticleSystem.EndUpdateAll` markers.
+- **Mobile** — **<200 particles/system at peak**, **hard-cap 4-6 simultaneous emitters**. See `unity-build` references/mobile.md.
+- **Desktop** — **<2,000/system** fine; 2,000–5,000 workable but hot.
+- **>2,000 mobile / >5,000 desktop** — switch to VFX Graph (GPU). See `unity-vfx-graph`.
+- Collision: prefer `Planes` over `World`; lower `Quality`; raise `Voxel Size`. Each `World` collision is a physics query.
+- Lights: cap to <~8 active particle lights at once.
+- Trails: every particle with a trail multiplies vertex/index. Limit `Ratio`.
+- Pooling: never `Instantiate`+`Destroy` per shot. Pre-spawn pooled effects, `ps.Play()` / `ps.Stop()`. Combine with `Stop Action: Disable`.
+- GPU instancing: enable on renderer when `Render Mode = Mesh` with same material across particles.
+- Profile: `ParticleSystem.Update`, `ParticleSystem.Render`, `ParticleSystem.EndUpdateAll` markers.
 
-Mobile-specific: large alpha-blended quads cause overdraw and thermal throttling. Smaller particles, lower alpha, or fewer overlapping layers. Stick to the **<200/system, 4-6 emitters** ceiling above; pool aggressively.
+Mobile thermal: large alpha-blended quads cause overdraw and throttle. Smaller particles, lower alpha, fewer overlapping layers.
 
 ## Runtime control
 
-Module accessors on `ParticleSystem` (`ps.main`, `ps.emission`, `ps.shape`, etc.) are **properties that return structs** — those structs hold handles into the native ParticleSystem data and write through when you mutate their fields. Because the property returns a struct *by value*, the C# compiler refuses to let you mutate fields on the temporary returned struct: writing `ps.main.startSpeed = 5f` is a **compile error** (CS1612: "Cannot modify the return value of '...' because it is not a variable"). Store the returned struct in a local first, then mutate; the writes go through to the underlying system:
+Module accessors (`ps.main`, `ps.emission`, `ps.shape`, etc.) are **properties returning structs** holding handles into native ParticleSystem data. Direct mutation is a **compile error CS1612**. Cache to a local first:
 
 ```csharp
-// Correct — local var is a variable, mutation compiles and writes through
+// Correct — local var compiles, writes through
 var main = ps.main;
 main.startSpeed = 5f;
 main.startColor = Color.red;
@@ -100,11 +97,11 @@ main.startColor = Color.red;
 var emission = ps.emission;
 emission.rateOverTime = 50f;
 
-// Compile error CS1612 — cannot modify a property's returned struct in place
+// Compile error CS1612
 // ps.main.startSpeed = 5f;
 ```
 
-Start, stop, and clear:
+Start, stop, clear:
 
 ```csharp
 ps.Play();
@@ -112,55 +109,50 @@ ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);        // let live parti
 ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear); // instant clear
 ```
 
-One-shot emission and end detection:
+One-shot + end detection:
 
 ```csharp
 ps.Emit(20); // immediate burst, ignores Rate
-// Poll for completion (true = include children)
-bool done = !ps.IsAlive(true);
+bool done = !ps.IsAlive(true); // include children
 ```
 
-Or set `Main.Stop Action: Callback` and implement `OnParticleSystemStopped()` on a MonoBehaviour on the same GameObject — fires once when emission has stopped and all particles have died.
-
-Author or edit such scripts and attach the components in the scene. Batch related calls together when the server supports it; otherwise issue them sequentially.
+Or set `Main.Stop Action: Callback` and implement `OnParticleSystemStopped()` on a MonoBehaviour on the same GO — fires once when emission stopped and all particles dead.
 
 ## Common patterns
 
-- Hit spark: Cone shape, additive material, `Start Lifetime` 0.15-0.25s, single Burst of 10-20, `Color over Lifetime` fading to alpha 0, `Size over Lifetime` shrinking, `Stretched Billboard` renderer for streaks.
-- Smoke column: Cone aimed up, alpha-blend material, `Gravity Modifier` slightly negative (rises), `Color over Lifetime` fading out, `Size over Lifetime` growing, `World` simulation space, `Noise` module low frequency.
-- Rocket trail: `Rate over Distance` (not `over Time`), `Local` simulation space, sub-emitter on `Death` = explosion, sub-emitter on explosion `Death` = lingering smoke.
-- Footstep dust: Small Sphere/Hemisphere shape, `Rate over Distance` plus a small Burst on each step, ground-aligned `Horizontal Billboard`, fast fade.
-- Rain: Box shape stretched along Z above the player, downward `Start Speed`, `Stretched Billboard` with high Length Scale, GPU instancing if mesh. Cap Max Particles tightly and parent to the camera (`Local` simulation space) so it follows.
-- Magic projectile: Sphere shape on the projectile root, `Local` simulation space, additive trail; on `Death` sub-emitter for impact burst.
+- Hit spark: Cone, additive, `Start Lifetime` 0.15-0.25s, single Burst of 10-20, `Color over Lifetime` fading to alpha 0, `Size over Lifetime` shrinking, `Stretched Billboard` for streaks.
+- Smoke column: Cone aimed up, alpha-blend, `Gravity Modifier` slightly negative, `Color over Lifetime` fading, `Size over Lifetime` growing, `World` space, `Noise` low frequency.
+- Rocket trail: `Rate over Distance` (not Time), `Local` space, sub-emitter on `Death` = explosion, sub-emitter on explosion `Death` = lingering smoke.
+- Footstep dust: Sphere/Hemisphere, `Rate over Distance` + small Burst on each step, ground-aligned `Horizontal Billboard`, fast fade.
+- Rain: Box stretched along Z above player, downward `Start Speed`, `Stretched Billboard` with high Length Scale, GPU instancing if mesh. Cap Max Particles, parent to camera (`Local` space).
+- Magic projectile: Sphere on projectile root, `Local` space, additive trail; on `Death` sub-emitter for impact burst.
 
 ## Gotchas
 
-- Module struct trap (above) — cache `var main = ps.main;` then mutate.
-- Pink material in URP = Built-in / legacy particle shader on a URP project (commonly from imported asset packages). Reassign to a `Universal Render Pipeline/Particles/...` shader on the material asset.
-- `World` vs `Local` mismatch is the single most common "particles drag behind", "clump up at origin", or "stick to the player" bug. Pick deliberately.
-- `Play On Awake` is on by default. Disable for triggered/pooled effects, otherwise they fire once when spawned and leave the pool already-stopped.
-- `Stop Action: Destroy` destroys the GameObject — fatal if the ParticleSystem is on a player or a persistent rig. Use `Disable` plus pooling.
-- Sub-emitter prefab references can break across scenes. Either assign in the prefab inspector or wire at runtime via the `SubEmittersModule` API.
-- Particles render in the transparent queue and do not write depth — they can z-fight with other transparent meshes. Tune `Sorting Fudge`, `Order in Layer`, or pin `Sort Mode`.
-- 2D scenes: Transparency Sort Mode (Project Settings → Graphics) and `Pixels Per Unit` interact with particle sorting in non-obvious ways. Pin a custom sort axis if results are unstable.
-- Trails inherit the particle's lifetime. Short particle = short trail. Lengthen `Start Lifetime` (or use `Lifetime` on the Trails module) instead of fighting it.
-- `Looping` off + no `Stop Action` = the GameObject lingers forever. Always pair with `Destroy` or `Disable` (or pool it).
-- Mobile thermal: large additive quads at high count overdraw the screen multiple times per frame.
+- Module struct trap (above) — cache `var main = ps.main;`.
+- Pink material in URP = Built-in/legacy particle shader (commonly from imported packs). Reassign to `Universal Render Pipeline/Particles/...`.
+- `World` vs `Local` mismatch is the #1 cause of "particles drag behind", "clump up at origin", or "stick to player". Pick deliberately.
+- `Play On Awake` ON by default. Disable for pooled/triggered effects, or they fire once on spawn and leave the pool already-stopped.
+- `Stop Action: Destroy` destroys the GameObject — fatal on a player/persistent rig. Use `Disable` + pooling.
+- Sub-emitter prefab references break across scenes. Either assign in prefab inspector or wire at runtime via `SubEmittersModule`.
+- Particles render in transparent queue and don't write depth — z-fight with other transparents. Tune `Sorting Fudge`, `Order in Layer`, `Sort Mode`.
+- 2D scenes: Transparency Sort Mode + `Pixels Per Unit` interact non-obviously with sorting. Pin a custom sort axis if unstable.
+- Trails inherit particle lifetime. Short particle = short trail. Lengthen `Start Lifetime` (or `Lifetime` on Trails module).
+- `Looping` off + no `Stop Action` = GameObject lingers forever. Pair with `Destroy`/`Disable` (or pool).
+- Mobile thermal: large additive quads at high count overdraw multiple times per frame.
 
 ## Verification
 
-- After authoring, invoke `unity-3d-verification` (4-shot orthographic) to capture the effect at peak emission. For one-shot effects, simulate to a known peak frame first:
+- After authoring → `unity-3d-verification` (4-shot orthographic) at peak emission. For one-shots, simulate to a known peak frame:
 
 ```csharp
-// Editor or runtime: jump the system to t = 0.4s and freeze it
 ps.Simulate(0.4f, true /* withChildren */, true /* restart */);
 ```
 
-  Then capture; advance and capture again to sample the curve.
 - Visually confirm:
-  - `Color over Lifetime` ends at alpha 0 (no popping at death).
-  - Cone/Shape orientation matches intent (gizmo arrow points where particles should go).
-  - Emission rate roughly matches the design (count particles in a single captured frame).
-  - No pink material; particles are not z-fighting with adjacent transparents.
-- Open the Profiler for any effect that may be hot. Look for `ParticleSystem.Update` / `ParticleSystem.Render` spikes.
-- Editor console clean of null references in sub-emitter slots or missing renderer materials after configuration changes.
+  - `Color over Lifetime` ends at alpha 0 (no death pop).
+  - Cone/Shape orientation matches intent.
+  - Emission rate matches design (count particles in a captured frame).
+  - No pink material; no z-fighting with adjacent transparents.
+- Profile any hot effect — `ParticleSystem.Update` / `ParticleSystem.Render` spikes.
+- Editor console clean of null refs in sub-emitter slots, missing renderer materials.

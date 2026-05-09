@@ -1,17 +1,17 @@
 ---
 name: unity-dots-jobs-burst
-description: 'Use when working with Unity''s data-oriented technology stack via Unity MCP — DOTS, ECS, Entities, com.unity.entities, com.unity.collections, com.unity.burst, Burst compiler, Job System, IJob, IJobParallelFor, IJobChunk, IJobEntity, NativeArray, NativeList, NativeHashMap, NativeReference, NativeSlice, Allocator, TempJob, Persistent, SystemBase, ISystem, EntityManager, EntityQuery, EntityCommandBuffer, ECB, IComponentData, IBufferElementData, tag component, archetype, chunk, ComponentSystemGroup, SimulationSystemGroup, hybrid GameObject ECS, BakingSystem, SubScene, EntityQueryDesc, ScheduleParallel, JobHandle, Complete, dependency chain, deterministic simulation, Burst-compatible, FunctionPointer, Unity.Mathematics, float3, quaternion, BlobAsset, NetCode for Entities. Unity 6+ / Entities 1.x. NOT for MonoBehaviour-based gameplay (use unity-physics, unity-animation, unity-patterns), NOT for general profiling (use unity-profiling).'
+description: 'Use for Unity 6+ DOTS/ECS/Jobs/Burst: Entities 1.x, ISystem/SystemBase, IComponentData, buffers/tags, EntityQuery, ECB, Native containers, allocators, JobHandle dependencies, SubScenes/Bakers, hybrid bridges, Burst standalone. Not ordinary MonoBehaviour gameplay.'
 ---
 
 ## When to use
 
-Reach for DOTS when the workload is genuinely data-heavy: simulation with thousands of entities (RTS units, projectiles, swarm AI, particles you want CPU-driven), deterministic simulation (multiplayer rollback, replay), CPU-bound games where the GPU isn't the bottleneck, procedural worlds with many active objects. Cache locality plus Burst compilation gives 10-100x over MonoBehaviour for these workloads.
+Reach for DOTS when work is genuinely data-heavy: thousands of entities, deterministic simulation, CPU-bound procedural worlds. Cache locality + Burst can yield 10-100x over MonoBehaviour.
 
-Do NOT use DOTS for: small-cast games (under ~100 active entities — MonoBehaviour is simpler and faster to iterate on), UI work, designer-tweaked content (DOTS workflows are programmer-heavy, weak Inspector story), or general "make it faster" without profiling first. Burst alone (no ECS) is a separate option for hot loops in regular code — see "Burst standalone" below.
+Do not use DOTS for small casts, UI, designer-heavy content, or generic "make it faster" work without profiling. Burst alone can optimize isolated hot loops.
 
 ## Mental model
 
-ECS splits data and behavior. **Entities** are integer IDs. **Components** are pure data structs (`IComponentData`). **Systems** are functions that query entities by component combination and process them in tight loops. **Archetypes** group entities with the same set of components; **chunks** are 16KB blocks of contiguous archetype data — that contiguity is where the cache wins come from. Burst then compiles the system code to vectorized native instructions.
+ECS splits data and behavior. Entities are IDs, components are data structs, systems query component sets and process chunks (16 KB contiguous archetype blocks). Burst compiles hot loops to vectorized native code.
 
 Translation table:
 - GameObject -> Entity
@@ -23,9 +23,9 @@ Translation table:
 
 ## Package install
 
-`com.unity.entities` brings in `com.unity.collections`, `com.unity.burst`, `com.unity.mathematics` automatically. For rendering entities: `com.unity.entities.graphics` (Hybrid Renderer / Entities Graphics). For networking: `com.unity.netcode` (Netcode for Entities — separate package and stack from Netcode for GameObjects). Editor windows live under `Window > Entities > Hierarchy / Components / Systems`.
+`com.unity.entities` pulls in Collections, Burst, and Mathematics. Add `com.unity.entities.graphics` for rendering, `com.unity.netcode` for Netcode for Entities. Inspect with `Window > Entities`.
 
-Add via the package manager. Verify in the Editor console after install — Burst and Entities both emit version banners.
+Install via Package Manager; verify Burst/Entities version banners in console.
 
 ## Hello DOTS in 30 lines
 
@@ -52,14 +52,14 @@ public partial struct MoveSystem : ISystem {
 }
 ```
 
-Every entity with `LocalTransform` + `Velocity` moves each frame, Burst-compiled, single-threaded on the main thread. The `[BurstCompile]` attribute on both the struct and the method enables Burst — both are required.
+Every entity with `LocalTransform` + `Velocity` moves. Put `[BurstCompile]` on both system struct and method.
 
 ## IComponentData / IBufferElementData / Tag components
 
-- **IComponentData**: pure-data struct on an entity. Allowed types: `int`, `float`, `bool`, `float3`, `quaternion`, `Entity` references, fixed-size arrays via `FixedListN`, blittable structs. NO `string`, NO `class`, NO `List<T>`, NO managed references.
-- **IBufferElementData**: dynamic per-entity buffer. Access via `EntityManager.GetBuffer<T>(entity)` or `SystemAPI.GetBuffer<T>(entity)`. Use for variable-size collections owned by an entity (unit's inventory, spline points, recent damage events).
+- **IComponentData**: pure blittable data (`int`, `float3`, `quaternion`, `Entity`, `FixedListN`). No `string`, class, `List<T>`, or managed refs.
+- **IBufferElementData**: dynamic per-entity buffer, e.g. inventory, spline points, damage events.
 - **Tag components**: `IComponentData` with no fields. Mark entities for queries: `public struct PlayerTag : IComponentData { }`. Cheap — no per-chunk storage cost beyond archetype membership.
-- **Managed components** (`IComponentData` + `class`): supported but break Burst and prevent chunk parallelism. Use only for editor / debug bridges.
+- **Managed components**: allowed but break Burst/chunk parallelism; use only for editor/debug bridges.
 
 ## EntityManager and EntityQuery
 
@@ -74,23 +74,23 @@ EntityQuery q = SystemAPI.QueryBuilder()
 int count = q.CalculateEntityCount();
 ```
 
-For read-modify loops, prefer the `SystemAPI.Query<...>()` enumerator (idiomatic in Entities 1.x) over hand-rolled `EntityQuery + ToEntityArray`. The enumerator is source-generated and avoids the temporary array.
+For read-modify loops, prefer `SystemAPI.Query<...>()`; it is source-generated and avoids temp arrays.
 
 ## Systems: SystemBase vs ISystem
 
-- **SystemBase** (managed `class`): supports managed types in `OnUpdate`, easier learning curve, cannot itself be Burst-compiled (the surrounding class isn't Burst-friendly even if the inner job is).
-- **ISystem** (`partial struct`): unmanaged, fully Burst-compilable, modern recommendation in Entities 1.x. New code should default to ISystem.
+- **SystemBase**: managed class; easier, supports managed types, not Burst-compiled itself.
+- **ISystem**: unmanaged partial struct, fully Burst-compatible. Default for new code.
 
-System ordering attributes: `[UpdateBefore(typeof(OtherSystem))]`, `[UpdateAfter(...)]`, `[UpdateInGroup(typeof(SimulationSystemGroup))]`. Built-in groups: `InitializationSystemGroup` (frame start), `SimulationSystemGroup` (gameplay), `PresentationSystemGroup` (rendering prep, end of frame). Inspect actual order via `Window > Entities > Systems` — cyclic constraints are silently broken.
+Ordering: `[UpdateBefore]`, `[UpdateAfter]`, `[UpdateInGroup]`. Built-in groups: Initialization, Simulation, Presentation. Check actual order in Entities Systems; cycles are broken silently.
 
-ISystem callbacks: `OnCreate(ref SystemState)`, `OnUpdate(ref SystemState)`, `OnDestroy(ref SystemState)`. Note: the destroy callback is `OnDestroy`, NOT `OnDestroyManager`.
+ISystem callbacks: `OnCreate`, `OnUpdate`, `OnDestroy`; not `OnDestroyManager`.
 
 ## Jobs and dependencies
 
-- **IJob**: single-threaded job, runs off the main thread.
-- **IJobParallelFor**: split N items across worker threads with a batch size. Best when work is per-element with no shared state.
-- **IJobChunk**: process a 16KB chunk at a time; access the entire chunk's components contiguously. ECS uses this internally.
-- **IJobEntity**: ECS-aware job; source generators emit the `IJobChunk` boilerplate. Cleanest for ECS use cases.
+- **IJob**: one off-main-thread job.
+- **IJobParallelFor**: per-element parallel work.
+- **IJobChunk**: chunk-level ECS access.
+- **IJobEntity**: source-generated ECS job; cleanest for most ECS jobs.
 
 Schedule and chain:
 
@@ -100,13 +100,13 @@ JobHandle h2 = new BoundsJob { ... }.ScheduleParallel(query, h1);
 state.Dependency = h2; // ECS completes for you at sync points
 ```
 
-Always `Complete()` before main-thread reads of native data the job wrote, OR pass the handle through `state.Dependency` so ECS handles it. Forgetting either yields a race condition or a Safety System exception.
+Before main-thread reads, `Complete()` or pass the handle through `state.Dependency`.
 
-Hard rules: do not write to the same `NativeArray` index from parallel jobs; do not read managed types inside a Burst job (compile error); do not capture `this` references on classes.
+Hard rules: no shared-index writes, no managed reads in Burst jobs, no captured class `this`.
 
 ## Burst standalone (without ECS)
 
-`[BurstCompile]` on a `static` method and a `[BurstCompile]` delegate type lets you compile a function pointer callable from regular C#. Useful for hot loops in non-ECS code.
+`[BurstCompile]` static methods can become function pointers for regular C# hot loops.
 
 ```csharp
 [BurstCompile]
@@ -116,36 +116,33 @@ var fp = BurstCompiler.CompileFunctionPointer<DelegateType>(Sum);
 int s = fp.Invoke(2, 3);
 ```
 
-Caveats: only blittable params/returns, no managed allocations inside, function pointer is not garbage-collected. Less common than ECS use but valid for isolated hot paths (procedural mesh build, audio DSP).
+Caveats: blittable params/returns only, no managed allocation, no GC ownership of the pointer.
 
 ## Native containers and allocators
 
-- **NativeArray<T>**: fixed-size native array. The bread and butter.
+- **NativeArray<T>**: fixed-size native array.
 - **NativeList<T>**: dynamic-size, growable.
-- **NativeHashMap<K,V>**, **NativeParallelHashMap<K,V>** (parallel-safe variant): dictionary equivalents.
-- **NativeReference<T>**: single-value box, often used to return a scalar from a job.
+- **NativeHashMap<K,V>**, **NativeParallelHashMap<K,V>** (parallel-safe): dictionary equivalents.
+- **NativeReference<T>**: single-value box, often returns a scalar from a job.
 - **NativeSlice<T>**: window into an existing NativeArray, no copy.
 
-Allocators:
 - `Allocator.Temp`: per-frame, fastest, must not survive a frame.
 - `Allocator.TempJob`: lifetime of one job (a few frames max).
 - `Allocator.Persistent`: you `Dispose()` it. Mismatched allocator + lifetime triggers leak warnings.
 
-Always `Dispose()` `Persistent` containers; a `using` statement scopes lifetime cleanly. `[NativeDisableParallelForRestriction]` lifts the safety check that blocks parallel write access — use only when you can prove the indices don't overlap.
+Always dispose `Persistent` containers. Use `[NativeDisableParallelForRestriction]` only when index writes cannot overlap.
 
 ## EntityCommandBuffer
 
-Creating or destroying entities mid-system invalidates queries and breaks iteration. `EntityCommandBuffer` (ECB) queues those structural changes and plays them back at a safe sync point.
+Creating/destroying entities mid-iteration invalidates queries. ECB queues structural changes for safe playback.
 
 - `EntityCommandBuffer` (serial) for single-threaded code.
 - `EntityCommandBuffer.ParallelWriter` for parallel jobs (pass a unique `sortKey` per element so playback is deterministic).
-- Get an ECB from a system: `BeginSimulationEntityCommandBufferSystem.Singleton` or `EndSimulationEntityCommandBufferSystem.Singleton` via `SystemAPI.GetSingleton<...>().CreateCommandBuffer(state.WorldUnmanaged)`.
-
-ECS plays the ECB back at the group boundary the system belongs to.
+- Get an ECB from begin/end simulation singleton via `SystemAPI.GetSingleton<...>().CreateCommandBuffer(state.WorldUnmanaged)`.
 
 ## SubScenes and Baking
 
-Authoring lives in regular GameObjects inside a SubScene asset. Bakers convert GameObject components -> ECS components at import / build time.
+Authoring lives in regular GameObjects inside a SubScene asset. Bakers convert GameObject components → ECS components at import/build time.
 
 ```csharp
 public class VelocityAuthoring : MonoBehaviour {
@@ -159,11 +156,11 @@ public class VelocityAuthoring : MonoBehaviour {
 }
 ```
 
-SubScenes lazy-load and stream — great for open worlds. Drag any scene under a SubScene in the hierarchy. Bake on save; runtime sees pure entity data with no GameObject overhead. Changing a Baker requires re-opening the SubScene to re-bake.
+SubScenes stream and bake GameObject authoring into pure entity data. Changing a Baker requires re-opening/rebaking the SubScene.
 
 ## Hybrid GameObject + ECS
 
-Mix paradigms across features, not within one feature. Example: GameObject player controller + UI, ECS for 10000 enemies. Bridge with a singleton component:
+Mix paradigms across features, not inside one feature. Example: GameObject player/UI, ECS enemies. Bridge with singleton components:
 
 ```csharp
 public struct PlayerInput : IComponentData { public float2 move; public bool fire; }
@@ -171,15 +168,15 @@ public struct PlayerInput : IComponentData { public float2 move; public bool fir
 // ECS reads: var input = SystemAPI.GetSingleton<PlayerInput>();
 ```
 
-Render entity meshes via `com.unity.entities.graphics` (Hybrid Renderer) alongside MeshRenderers. Avoid mixing within a single gameplay system — pick one paradigm per feature.
+Render entities through Entities Graphics alongside MeshRenderers.
 
 ## Performance discipline
 
-- Profile before optimizing. Cross-link `unity-profiling`. The Burst-Aware Profiler shows Burst-compiled methods inline.
-- Cache friendliness: order components in a chunk by access pattern; small co-located components beat scattered access.
-- Sync points (main thread waiting on jobs) are the enemy. System group boundaries are sync points; chain `state.Dependency` cleanly so ECS only syncs once per group.
-- Burst Inspector: `Jobs > Burst > Open Burst Inspector` shows generated assembly. Look for SIMD ops (`vmovups`, `vmulps`, `vfmadd...`) — missing vectorization is a tell that a struct layout or branch is blocking it.
-- `[BurstCompile(CompileSynchronously = true)]` forces compile-on-first-call (not interpret-then-compile). Use for benchmark stability; default async is fine for runtime.
+- Profile first (`unity-profiling`).
+- Keep accessed components small and co-located.
+- Avoid sync points; chain `state.Dependency`.
+- Burst Inspector: look for SIMD (`vmovups`, `vmulps`, `vfmadd`).
+- `CompileSynchronously = true` only for benchmark stability.
 
 ## Common patterns
 
@@ -190,10 +187,10 @@ Render entity meshes via `com.unity.entities.graphics` (Hybrid Renderer) alongsi
 
 ## Gotchas
 
-- Managed types in `IComponentData` -> compile error or boxed allocations. Stick to blittable types.
+- Managed types in `IComponentData` → compile error or boxed allocations. Stick to blittable types.
 - Iterating with `ToEntityArray` while structurally changing the world (creating/destroying) corrupts iteration. Use ECB and play back at the sync point.
 - `Entity.Null` is the sentinel for "no reference" — check before access.
-- Forgetting `Complete()` (or not threading `state.Dependency`) before reading job output -> race condition with garbled data.
+- Forgetting `Complete()` (or not threading `state.Dependency`) before reading job output → race condition with garbled data.
 - Burst caches per target platform; first build takes minutes. Subsequent builds incremental. Cache the Burst output directory in CI.
 - `[UpdateBefore]` cycles are silently broken — use the Systems window to inspect actual order.
 - ISystem destroy is `OnDestroy(ref SystemState)`, NOT `OnDestroyManager`.

@@ -1,42 +1,39 @@
 # URP renderer features reference
 
-Renderer features extend a Universal Renderer asset with extra render passes. Add them in the renderer asset inspector (`Add Renderer Feature`). Each feature is a `ScriptableRendererFeature` that injects one or more `ScriptableRenderPass` instances into the frame at a chosen event.
-
-Edit renderer assets directly. Author custom feature/pass C# in your project. Inspect actual frame ordering with the Frame Debugger.
+Renderer features extend a Universal Renderer asset with extra passes. Add via renderer asset inspector. Each feature is a `ScriptableRendererFeature` injecting one+ `ScriptableRenderPass` at a chosen event.
 
 ## Built-in features
 
 ### Screen Space Ambient Occlusion (SSAO)
-Darkens crevices using scene depth (and optionally normals). Settings: Source (Depth / Depth+Normals), Intensity, Radius, Sample Count, Falloff.
-- Depth+Normals is higher quality, requires `_CameraNormalsTexture` (extra pass).
-- Off on mobile by default. Profile before shipping — typically the most expensive renderer feature.
+Darkens crevices using scene depth (optionally normals). Settings: Source (Depth / Depth+Normals), Intensity, Radius, Sample Count, Falloff.
+- Depth+Normals is higher quality, needs `_CameraNormalsTexture` (extra pass).
+- Off on mobile by default. Typically the most expensive feature — profile before shipping.
 
 ### Decal Renderer Feature
-Projection decals. Two techniques:
-- **DBuffer** — writes into a buffer before opaque shading; lit correctly. Requires depth-and-normal prepass; not available on all platforms.
-- **Screen Space** — projects after opaque pass; cheaper, less correct lighting on normal-mapped surfaces.
-Surface Data toggles (Albedo / Normal / MAOS) control which channels decals can write.
+Projection decals.
+- **DBuffer** — writes into a buffer before opaque shading; lit correctly. Needs depth+normal prepass; not all platforms.
+- **Screen Space** — projects after opaque pass; cheaper, less correct on normal-mapped surfaces.
+
+Surface Data toggles (Albedo / Normal / MAOS) control which channels decals write.
 
 ### Screen Space Shadows
-Forward path, directional light only. Replaces per-object shadow sampling with a screen-space pass. Largely superseded by Forward+; still useful for some legacy projects.
+Forward path, directional only. Replaces per-object shadow sampling with a screen-space pass. Largely superseded by Forward+.
 
 ### Render Objects
-The workhorse feature for custom passes without writing C#.
-- **Filters.** Layer Mask, Render Queue (Opaque / Transparent), LightMode tags.
-- **Override Material** — render the filtered objects with a different shader (outline pass, X-ray pass, depth-only).
-- **Event** — `BeforeRenderingPrePasses`, `AfterRenderingPrePasses`, `BeforeRenderingOpaques`, `AfterRenderingOpaques`, `BeforeRenderingSkybox`, `AfterRenderingSkybox`, `BeforeRenderingTransparents`, `AfterRenderingTransparents`, `BeforeRenderingPostProcessing`, `AfterRenderingPostProcessing`.
-- **Depth/Stencil overrides** — write/test for masking effects.
+Workhorse for custom passes without C#.
+- **Filters** — Layer Mask, Render Queue (Opaque/Transparent), LightMode tags.
+- **Override Material** — render filtered objects with a different shader (outline, X-ray, depth-only).
+- **Event** — `BeforeRendering[PrePasses|Opaques|Skybox|Transparents|PostProcessing]`, `AfterRendering[...]`.
+- **Depth/Stencil overrides** — write/test for masking.
 
 ### Full Screen Pass Renderer Feature
-Apply a Shader Graph "Fullscreen" shader as a post-process at a chosen event. Use cases: custom screen-space effects (rain, heat distortion, scan-lines) without writing C#.
+Apply a Shader Graph "Fullscreen" shader as a PP at a chosen event. Rain, heat distortion, scan-lines without C#.
 
 ## Writing a custom ScriptableRendererFeature
 
-Unity 6 ships URP 17, which **defaults to the RenderGraph backend**. New custom passes MUST implement `RecordRenderGraph(RenderGraph, ContextContainer)`; the older `Execute(ScriptableRenderContext, ref RenderingData)` is deprecated and is only invoked when the project has explicitly enabled "Compatibility Mode (Non-Render Graph)" on the URP asset. Do not enable that toggle in new Unity 6 projects.
+Unity 6 ships URP 17, which **defaults to RenderGraph backend**. New custom passes MUST implement `RecordRenderGraph(RenderGraph, ContextContainer)`; the older `Execute(ScriptableRenderContext, ref RenderingData)` is deprecated and only invoked under "Compatibility Mode (Non-Render Graph)" on the URP asset. Do not enable that toggle in new Unity 6 projects.
 
-### RenderGraph path (URP 17 / Unity 6 — the only supported path here)
-
-Skeleton, dropped into a C# file in the project:
+### RenderGraph path (URP 17 / Unity 6 — only supported path)
 
 ```csharp
 using UnityEngine;
@@ -118,20 +115,19 @@ public class MyOutlinePass : ScriptableRenderPass
 ```
 
 Key points:
+- `RecordRenderGraph` registers reads/writes against graph-owned textures (`UniversalResourceData.activeColorTexture` etc.); the graph compiler decides actual GPU work. Don't call `context.ExecuteCommandBuffer` directly.
+- `PassData` is a per-pass POCO captured by the render-func lambda; the graph allocates and pools.
+- `builder.UseRendererList` and `builder.SetRenderAttachment` declare data flow; without them the pass is culled or resources aren't in the right state.
 
-- `RecordRenderGraph` registers reads/writes against textures owned by the graph (`UniversalResourceData.activeColorTexture` etc.) — the graph compiler decides actual GPU work. Do not call `context.ExecuteCommandBuffer` directly.
-- `PassData` is a per-pass POCO captured by the render-func lambda; the graph allocates and pools it.
-- `builder.UseRendererList` and `builder.SetRenderAttachment` declare data flow; without these the pass is culled or the resources are not in the right state when your render-func runs.
-
-After saving, add the feature to the renderer asset (inspector → Add Renderer Feature → MyOutlineFeature). The renderer asset `.asset` file gains a serialized reference — commit it.
+After saving, add the feature to the renderer asset (inspector → Add Renderer Feature). The `.asset` gains a serialized reference — commit it.
 
 ### Out of scope: legacy `Execute`-based passes
 
-The pre-RenderGraph `Execute(ScriptableRenderContext, ref RenderingData)` entry point only runs when "Compatibility Mode (Non-Render Graph)" is enabled on the URP asset. Compatibility Mode is not supported by this skill set — disable it and port to `RecordRenderGraph` if you encounter it.
+The pre-RenderGraph `Execute(ScriptableRenderContext, ref RenderingData)` runs only with "Compatibility Mode (Non-Render Graph)" enabled. Not supported here — disable and port to `RecordRenderGraph`.
 
 ## Render pass events — ordering cheatsheet
 
-In frame execution order:
+Frame execution order:
 
 1. `BeforeRendering`
 2. `BeforeRenderingShadows` / `AfterRenderingShadows`
@@ -143,21 +139,21 @@ In frame execution order:
 8. `BeforeRenderingPostProcessing` / `AfterRenderingPostProcessing`
 9. `AfterRendering`
 
-Pick the event by what data must already exist when the pass runs (e.g. an outline that samples depth runs after opaques; a fog effect runs before transparents so transparents fog correctly).
+Pick the event by what data must already exist (outline that samples depth runs after opaques; fog runs before transparents so transparents fog correctly).
 
 ## Common custom-feature patterns
 
-- **Outline / silhouette.** Render Objects feature filtering by Rendering Layer with an outline-shader override material, event = `AfterRenderingTransparents`. Or two-pass: first pass writes stencil, second pass renders edges where stencil set.
-- **X-ray through walls.** Render Objects on a "X-Ray" layer with a depth-test-disabled material at `AfterRenderingOpaques`.
-- **Selection highlight.** Same as outline, but feature is enabled only while a selection exists; toggle via `feature.SetActive(bool)` at runtime.
+- **Outline / silhouette.** Render Objects feature filtering by Rendering Layer with outline-shader override material, event = `AfterRenderingTransparents`. Or two-pass: first writes stencil, second renders edges where set.
+- **X-ray through walls.** Render Objects on an "X-Ray" layer with depth-test-disabled material at `AfterRenderingOpaques`.
+- **Selection highlight.** Same as outline; toggle via `feature.SetActive(bool)` at runtime.
 - **Custom fog / atmospherics.** Full Screen Pass with a Shader Graph fullscreen shader sampling `_CameraDepthTexture`, event `BeforeRenderingTransparents`.
-- **Pixelation / retro filter.** Full Screen Pass at `AfterRenderingPostProcessing` with a downsample/upsample shader.
+- **Pixelation / retro filter.** Full Screen Pass at `AfterRenderingPostProcessing` with downsample/upsample shader.
 
 ## Gotchas
 
-- Custom features need `Depth Texture` enabled on the pipeline asset if they sample `_CameraDepthTexture`. Same for `Opaque Texture` and `_CameraOpaqueTexture`.
+- Custom features need `Depth Texture` enabled on the pipeline asset if they sample `_CameraDepthTexture`. Same for `Opaque Texture` / `_CameraOpaqueTexture`.
 - Renderer asset edits are project files — review carefully on PRs.
-- A feature added to the default renderer affects every camera using that renderer. Use a separate renderer asset for cameras that should opt out (minimap, render-to-texture preview).
-- Forward+ tile binning runs before `BeforeRenderingOpaques`; features at earlier events don't get accurate light data.
-- Deferred path's GBuffer is only valid between `AfterRenderingGbuffer` and `AfterRenderingOpaques`; sampling it outside that window reads stale data.
-- `RenderPassEvent` ties are broken by feature order in the renderer asset list — drag to reorder for deterministic stacking.
+- A feature added to the default renderer affects every camera using it. Use a separate renderer asset for opt-out cameras (minimap, RT preview).
+- Forward+ tile binning runs before `BeforeRenderingOpaques`; earlier events don't get accurate light data.
+- Deferred GBuffer is only valid between `AfterRenderingGbuffer` and `AfterRenderingOpaques`; sampling outside reads stale data.
+- `RenderPassEvent` ties broken by feature order in the renderer asset list — drag to reorder for deterministic stacking.

@@ -5,24 +5,24 @@ description: 'Use when rotating 2D content in Unity through Unity MCP — sprite
 
 ## When to use
 
-The target is a SpriteRenderer, a Rigidbody2D, a 2D collider parent, or any object intended to live in the X/Y plane viewed by an orthographic 2D camera. If the object is a 3D mesh use unity-3d-rotation; if it is a RectTransform under a Canvas use unity-ugui-rotation.
+Target is a SpriteRenderer, Rigidbody2D, 2D collider parent, or any object in the X/Y plane viewed by an orthographic 2D camera. 3D mesh → `unity-3d-rotation`; RectTransform under Canvas → `unity-ugui-rotation`.
 
 ## Decision tree
 
-1. Z-axis only. Write `transform.eulerAngles = new Vector3(0, 0, deg)` or `transform.Rotate(0, 0, deg)`. Setting X or Y rotation tilts the sprite out of the camera plane and is almost always a bug.
-2. Sign convention: counter-clockwise is positive when viewed from +Z (standard math). A 90-degree rotation moves the sprite's local +X toward +Y.
-3. Is a Rigidbody2D attached? Write through `rb2d.rotation`, `rb2d.MoveRotation`, or `rb2d.angularVelocity`. Do not write `transform.eulerAngles` directly — it fights the simulation.
-4. For left/right facing in a side-scroller, prefer `SpriteRenderer.flipX` over a 180-degree Y rotation. flipX is cheaper, keeps the sprite in the same sorting plane, and avoids back-face issues.
-5. Sprite-up convention: a default Unity sprite's "up" is +Y. Sprites authored facing right (a typical projectile or arrow) need a -90-degree offset when computing facing from a direction vector.
+1. Z-axis only. `transform.eulerAngles = new Vector3(0, 0, deg)` or `transform.Rotate(0, 0, deg)`. Setting X or Y tilts out of camera plane and is almost always a bug.
+2. Sign: counter-clockwise positive viewed from +Z (standard math). 90° rotation moves sprite's local +X toward +Y.
+3. Rigidbody2D attached? Write through `rb2d.rotation`, `rb2d.MoveRotation`, or `rb2d.angularVelocity`. Don't write `transform.eulerAngles` directly — fights the simulation.
+4. Left/right facing in side-scroller: prefer `SpriteRenderer.flipX` over a 180° Y rotation. Cheaper, keeps sprite in same sorting plane, avoids back-face issues.
+5. Sprite-up convention: default Unity sprite's "up" is +Y. Sprites authored facing right (typical projectile/arrow) need a -90° offset when computing facing from a direction vector.
 
 ## Workflow
 
-1. Locate the target GameObject in the scene.
-2. Confirm whether a Rigidbody2D is attached (inspect the live components) — it changes which API to use.
-3. For one-shot rotations: write `eulerAngles` with X=Y=0.
-4. For continuous spin or aim: create a small MonoBehaviour and attach it.
-5. For physics-locked rotation: set `Rigidbody2D.freezeRotation` or constraints.
-6. Editor console clean of errors. Verify visually (see Verification).
+1. Locate target.
+2. Confirm whether Rigidbody2D attached (inspect live components) — changes which API.
+3. One-shot: write `eulerAngles` with X=Y=0.
+4. Continuous spin or aim: small MonoBehaviour and attach.
+5. Physics-locked: `Rigidbody2D.freezeRotation` or constraints.
+6. Editor console clean. Verify visually.
 
 ## Common patterns
 
@@ -34,7 +34,7 @@ float ang = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f; // -90 because spri
 transform.eulerAngles = new Vector3(0, 0, ang);
 ```
 
-If the sprite is authored facing +X (common for projectiles/arrows), drop the `- 90f`.
+If sprite is authored facing +X (common for projectiles/arrows), drop the `- 90f`.
 
 ### Spin
 
@@ -51,7 +51,7 @@ float next = Mathf.LerpAngle(current, targetDeg, Time.deltaTime * turnSpeed);
 transform.eulerAngles = new Vector3(0, 0, next);
 ```
 
-Use `Mathf.LerpAngle`, not `Mathf.Lerp` — it handles the 360-to-0 wrap. Inputs and output are degrees; if you computed the target via `Atan2`, convert with `Mathf.Rad2Deg` first.
+`Mathf.LerpAngle`, not `Lerp` — it handles the 360→0 wrap. Inputs/output in degrees; if target was computed via `Atan2`, convert with `Mathf.Rad2Deg` first.
 
 ### Rigidbody2D set rotation
 
@@ -60,13 +60,13 @@ Rigidbody2D rb;
 void FixedUpdate() { rb.MoveRotation(targetDeg); } // degrees
 ```
 
-For continuous spin without per-frame writes:
+Continuous spin without per-frame writes:
 
 ```csharp
 rb.angularVelocity = degPerSec; // degrees per second
 ```
 
-`angularVelocity` is degrees/sec on Rigidbody2D (unlike 3D Rigidbody which uses radians/sec).
+`angularVelocity` is degrees/sec on Rigidbody2D (unlike 3D Rigidbody — radians/sec).
 
 ### Lock physics rotation
 
@@ -76,34 +76,34 @@ rb2d.freezeRotation = true;
 rb2d.constraints = RigidbodyConstraints2D.FreezeRotation;
 ```
 
-Useful for character controllers so collisions do not spin the body.
+For character controllers so collisions don't spin the body.
 
-### Sprite flipping vs 180-degree rotation
+### Sprite flipping vs 180° rotation
 
 ```csharp
 spriteRenderer.flipX = movingLeft;
 ```
 
-Prefer this over `transform.eulerAngles = new Vector3(0, 180, 0)`. Rotating around Y in 2D moves the sprite slightly out of plane (visible if the sprite has perspective camera or non-zero thickness in pixel-perfect setups) and can flip the back face away from the camera. flipX mirrors UVs only.
+Prefer over `transform.eulerAngles = new Vector3(0, 180, 0)`. Y rotation in 2D moves sprite slightly out of plane (visible with perspective camera or non-zero thickness in pixel-perfect setups) and can flip the back face away. flipX mirrors UVs only.
 
 ## Gotchas
 
-- **Rigidbody2D fight**: writing `transform.eulerAngles` while a Rigidbody2D simulates causes jitter and missed contacts. Always go through `rb2d.rotation` / `MoveRotation` / `angularVelocity`.
-- **LerpAngle vs Lerp**: `Mathf.Lerp(359, 1, 0.5)` returns 180; `Mathf.LerpAngle(359, 1, 0.5)` returns 0. Always LerpAngle for rotational interpolation.
-- **Atan2 unit mismatch**: `Atan2` returns radians, `eulerAngles` is degrees, `LerpAngle` is degrees, `rb2d.rotation` is degrees. Forgetting `Mathf.Rad2Deg` produces a near-zero rotation that looks like nothing happened.
-- **Sprite-up offset**: if facing math looks 90 degrees off, the sprite was probably authored facing the other axis. Adjust the constant offset in the Atan2 expression rather than rotating the sprite asset.
-- **Tilemap rotation**: rotating a Tilemap rotates the entire grid, including chunk boundaries — usually wrong. Rotate child GameObjects (e.g. individual sprite decorations) instead.
-- **Custom Axis sort mode**: if the scene's `Transparency Sort Mode` is Custom Axis, rotating a sprite changes which sprites it draws in front of. Stick to Default sort unless the project explicitly uses custom axis.
-- **Order in Layer is unaffected by rotation**, but a rotated sprite's bounds expand — culling and screen-space effects (post-processing masks, 2D lights) may pick up the new bounds.
-- **Animator overwrite**: an Animator clip that targets `m_LocalRotation` rewrites the rotation every frame. Either bake the spin into the clip or move the script write into `LateUpdate` after the Animator.
-- **Hinge2D / DistanceJoint2D**: setting rotation directly while a joint is active can violate the joint constraint and explode the simulation. Apply torque or set `angularVelocity` instead.
+- **Rigidbody2D fight** — writing `transform.eulerAngles` while a Rigidbody2D simulates causes jitter and missed contacts. Go through `rb2d.rotation` / `MoveRotation` / `angularVelocity`.
+- **LerpAngle vs Lerp** — `Mathf.Lerp(359, 1, 0.5)` returns 180; `Mathf.LerpAngle(359, 1, 0.5)` returns 0. Always LerpAngle for rotational interpolation.
+- **Atan2 unit mismatch** — `Atan2` returns radians, `eulerAngles` is degrees, `LerpAngle` is degrees, `rb2d.rotation` is degrees. Forgetting `Mathf.Rad2Deg` produces a near-zero rotation that looks like nothing happened.
+- **Sprite-up offset** — facing math 90° off = sprite authored facing the other axis. Adjust the constant offset in Atan2 rather than rotating the asset.
+- **Tilemap rotation** — rotating a Tilemap rotates the entire grid including chunk boundaries — usually wrong. Rotate child GOs (sprite decorations) instead.
+- **Custom Axis sort mode** — `Transparency Sort Mode` Custom Axis means rotating a sprite changes draw order. Stick to Default sort unless explicitly using custom axis.
+- **Order in Layer is unaffected by rotation** — but a rotated sprite's bounds expand; culling and screen-space effects (post-process masks, 2D lights) may pick up new bounds.
+- **Animator overwrite** — clip targeting `m_LocalRotation` rewrites every frame. Bake spin into clip or write in `LateUpdate`.
+- **Hinge2D / DistanceJoint2D** — setting rotation directly while joint is active can violate the constraint and explode the simulation. Apply torque or set `angularVelocity`.
 
 ## Verification
 
-After rotating a 2D object, capture a single screenshot from the active 2D camera (the one whose culling mask includes the object) framing the target. Confirm visually that:
+Capture a single screenshot from the active 2D camera (the one whose culling mask includes the object) framing the target. Confirm:
 
-- The sprite faces the intended direction.
-- The sprite did not tilt out of plane (X and Y rotation are zero).
-- Sorting against neighboring sprites is unchanged unless intended.
+- Sprite faces intended direction.
+- No tilt out of plane (X and Y rotation zero).
+- Sorting against neighbors unchanged unless intended.
 
-The 4-shot orthographic capture from `unity-3d-verification` is overkill for flat 2D content; a single in-camera shot is sufficient. If the sprite is meant to face a moving target, take the screenshot at the moment the target is in view to validate the aim math.
+The 4-shot orthographic from `unity-3d-verification` is overkill for flat 2D content; one in-camera shot is sufficient. If sprite is meant to face a moving target, capture at the moment the target is in view to validate aim math.

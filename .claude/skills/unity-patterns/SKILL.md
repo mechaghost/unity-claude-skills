@@ -1,28 +1,15 @@
 ---
 name: unity-patterns
-description: 'Use for the scrappy day-one Unity patterns every indie project ends up needing through Unity MCP — object pool, pooling, ObjectPool, LinkedPool, singleton, MonoBehaviour singleton, persistent manager, DontDestroyOnLoad bootstrap, ScriptableObject event, SO event, GameEvent, runtime config, ScriptableObject runtime, FSM, finite state machine, state machine pattern, pause game, Time.timeScale, unscaled time, unscaledDeltaTime, WaitForSecondsRealtime, debug console, in-game console, cheat console, command pattern, observer pattern, event bus, coroutine sequencing, WaitForSeconds, WaitForFixedUpdate, WaitUntil, WaitWhile, UniTask, async/await Unity, deltaTime, SmoothDamp. Unity 6+ / URP-only / new Input System only. For screenshot capture and 3D verification, use unity-3d-verification.'
+description: 'Use for day-one Unity patterns: ObjectPool/LinkedPool, MonoBehaviour singletons, DontDestroyOnLoad bootstraps, ScriptableObject runtime config/events, FSMs, pause/unscaled time, tweens, coroutines, Awaitable/UniTask, screenshots, and dev consoles. Unity 6+ / URP / new Input System.'
 ---
 
-# Unity Patterns (indie day-one toolkit)
+# Unity Patterns
 
-## When to use
-
-Fire this skill when the user is reaching for the ubiquitous patterns that don't fit a single subsystem skill:
-
-- pooling instantiated objects (bullets, enemies, damage numbers, particle bursts)
-- persistent singletons / cross-scene managers (Audio, Save, GameState)
-- decoupling systems via ScriptableObject events or runtime config
-- finite state machine design for AI, UI flow, or game phase
-- pausing the game without breaking UI tweens or music
-- sequencing async logic with coroutines (cutscenes, intros, fades)
-- capturing screenshots for marketing capsules or debug snapshots
-- in-game cheat console for dev iteration
-
-For dedicated subsystems, defer to: `unity-audio`, `unity-scenes`, `unity-persistence`, `unity-animation`, `unity-shuriken`, `unity-3d-verification`, `unity-best-practices`.
+Use for small cross-cutting patterns that do not belong to a subsystem skill. For dedicated audio, scenes, persistence, animation, particles, or verification, use the named sibling skill.
 
 ## Object pooling
 
-Unity 6 ships `UnityEngine.Pool.ObjectPool<T>` — use it instead of rolling your own.
+Unity 6 ships `UnityEngine.Pool.ObjectPool<T>`; use it before writing a custom pool.
 
 ```csharp
 using UnityEngine;
@@ -48,14 +35,14 @@ public class BulletPool : MonoBehaviour {
 }
 ```
 
-- On Get: pull from pool, set active, reset state (velocity, lifetime, references).
-- On Release: clear references, set inactive. NEVER `Destroy` — that defeats the pool.
-- Pool ParticleSystems (cross-link `unity-shuriken`'s `Stop Action: Disable`), AudioSources, projectiles, enemies, damage numbers.
-- `LinkedPool<T>` for low-allocation linked-list backing when you don't need indexed access.
+- Get: set active and reset state (velocity, lifetime, references).
+- Release: clear references and set inactive. Never `Destroy`.
+- Pool bullets, enemies, damage numbers, AudioSources, and ParticleSystems (`Stop Action: Disable`).
+- Use `LinkedPool<T>` when indexed access is irrelevant.
 
 ## Singleton MonoBehaviour (canonical)
 
-This is the canonical singleton pattern; `unity-scenes`' boot-scene flow and `unity-persistence`'s SaveManager both use it. Pattern for engine-bound persistent managers (Audio, Save, GameState, EventBus). For pure C# services prefer dependency injection.
+Use for engine-bound persistent managers (Audio, Save, GameState, EventBus). Prefer plain C# DI for pure services.
 
 ```csharp
 [DefaultExecutionOrder(-100)]
@@ -77,14 +64,13 @@ public class AudioManager : MonoBehaviour {
 }
 ```
 
-- `[DefaultExecutionOrder(-100)]` pins `Awake` ahead of consumers so `Instance` is non-null when other components run their own `Awake`/`OnEnable`.
-- **Bootstrap scene pattern**: place all singleton-bearing GameObjects in scene index 0; load main scene additively. Cross-link `unity-scenes`.
-- Don't use `Object.FindAnyObjectByType<T>()` to lazy-init singletons — explicit Bootstrap scene is more deterministic and works under `[DefaultExecutionOrder(-100)]`.
-- For testability, prefer DI (constructor params, plain C# services) over MonoBehaviour singletons. Reach for singletons only when the dependency is engine-bound (audio, scenes, input).
+- `[DefaultExecutionOrder(-100)]` runs manager `Awake` before consumers.
+- Bootstrap scene: scene index 0 owns managers, then loads gameplay additively (`unity-scenes`).
+- Do not lazy-init with `Object.FindAnyObjectByType<T>()`; explicit boot order is deterministic.
 
 ## ScriptableObject as runtime config
 
-Replace public-static-data classes with SO assets. Designers edit values in the inspector; data is asset-versioned in git.
+Replace public-static data with asset-versioned SOs designers can edit.
 
 ```csharp
 [CreateAssetMenu(menuName = "Game/WeaponData")]
@@ -96,13 +82,13 @@ public class WeaponData : ScriptableObject {
 }
 ```
 
-- Reference from MonoBehaviours by `[SerializeField]` field.
-- Build a library of WeaponData assets per variant (Pistol.asset, SMG.asset, Shotgun.asset).
-- SO data CHANGES at runtime do NOT persist across runs in builds — use `unity-persistence` for save data. Cross-link.
+- Reference SOs via `[SerializeField]`.
+- Make one asset per variant (`Pistol.asset`, `SMG.asset`, `Shotgun.asset`).
+- Runtime SO mutations do not persist in builds; use `unity-persistence` for saves.
 
 ## ScriptableObject as event bus
 
-Decouple raisers from listeners. Two assets cooperate: a `GameEvent` SO and a `GameEventListener` MonoBehaviour.
+Decouple raisers from listeners with a `GameEvent` SO plus listener MonoBehaviours.
 
 ```csharp
 [CreateAssetMenu(menuName = "Events/GameEvent")]
@@ -124,13 +110,13 @@ public class GameEventListener : MonoBehaviour {
 }
 ```
 
-- One GameEvent asset = one signal channel ("PlayerDied", "WaveCleared", "CheckpointReached"). Raisers know nothing about listeners.
-- Generic variant `GameEvent<T>` carries a payload (damage amount, world position).
-- Cross-link `unity-audio` (AudioManager subscribes to "PlayerDied"), `unity-persistence` (SaveManager subscribes to "CheckpointReached").
+- One asset = one signal (`PlayerDied`, `WaveCleared`, `CheckpointReached`).
+- Generic `GameEvent<T>` can carry payloads.
+- Subscribers: audio reacts to death, persistence reacts to checkpoint, UI reacts to inventory.
 
 ## Simple finite state machine
 
-For ~5 states, an enum + switch in Update is fine and beats over-engineering:
+For small machines, enum + switch beats framework overhead:
 
 ```csharp
 enum State { Idle, Patrol, Chase, Attack, Dead }
@@ -151,21 +137,21 @@ void TransitionTo(State next) {
 }
 ```
 
-- For >10 states or hierarchical machines, consider Animator state machines (cross-link `unity-animation`), behavior trees (NodeCanvas / Behavior Designer), or a coded HFSM library.
-- Avoid coroutine-based state machines that hard-block control flow inside states — they're hard to interrupt cleanly.
+- >10 states or hierarchy: consider Animator (`unity-animation`), behavior trees, or an HFSM.
+- Avoid coroutine states that block control flow; they are hard to interrupt.
 
 ## Tweens
 
-This skill is the canonical home for tween / code-driven motion guidance. Reach for a tween when you need short, parametric motion that doesn't deserve an Animator state — UI bounces, panel slide-ins, button squash-and-stretch, camera shake, color flashes on hit, value counters, fade-in/out. For Animator-driven character/UI animation, cross-link `unity-animation`.
+Use tweens for short parametric motion: UI bounce, panel slides, camera shake, hit flashes, counters, fades. Animator-owned clips belong in `unity-animation`.
 
-- **DOTween (free, asset store)** — pick when you want one-line tweens like `transform.DOMoveX(5, 1f)` or chained sequencing (`DOTween.Sequence().Append(...).Join(...)`). Allocation-free after warm-up.
+- **DOTween** — concise sequencing; allocation-free after warm-up.
 
   ```csharp
   transform.DOScale(1.2f, 0.15f).SetEase(Ease.OutBack)
            .OnComplete(() => transform.DOScale(1f, 0.1f));
   ```
 
-- **Without DOTween**, use `Mathf.SmoothDamp` / `Vector3.SmoothDamp` for camera-style smoothing, or coroutines with `Mathf.Lerp`+`SmoothStep` (or `Unity.Mathematics.math.smoothstep`) for one-shot animations. Zero dependencies.
+- **No DOTween** — use `SmoothDamp` for following, or coroutine/`Awaitable` + `Lerp`/`SmoothStep` for one-shots.
 
   ```csharp
   Vector3 vel;
@@ -175,15 +161,15 @@ This skill is the canonical home for tween / code-driven motion guidance. Reach 
   }
   ```
 
-- Always tween in unscaled time when the tween is UI-during-pause — DOTween: `.SetUpdate(true)`; manual: drive via `Time.unscaledDeltaTime`. See `Pause and unscaled time` below.
-- Kill tweens on object destroy — DOTween: `tween.Kill()` in `OnDestroy`, or `DOTween.Kill(targetTransform)` to kill all by target. Otherwise tweens fire on a destroyed transform and throw.
+- Pause UI: DOTween `.SetUpdate(true)` or manual `Time.unscaledDeltaTime`.
+- Kill tweens in `OnDestroy` (`tween.Kill()` / `DOTween.Kill(target)`) to avoid destroyed-target exceptions.
 
 ## Pause and unscaled time
 
-- `Time.timeScale = 0f` pauses physics, Animator, particle systems, and any `Time.deltaTime`-driven script. Set to `1f` to resume.
-- **Audio is NOT paused by `Time.timeScale`.** Use `AudioListener.pause = true` for full audio pause, OR `audioSource.ignoreListenerPause = true` to keep music/UI clicks playing through pause.
-- **UI should still animate during pause.** Use `Time.unscaledDeltaTime` in tween code; set Animator `Update Mode` to `Unscaled Time` so menu animations survive `timeScale = 0`.
-- **Coroutines yielding `WaitForSeconds(t)` use scaled time** (frozen at 0). Use `WaitForSecondsRealtime(t)` for unscaled timing.
+- `Time.timeScale = 0f` pauses physics, Animator, particles, and `deltaTime` scripts.
+- Audio ignores timeScale; use `AudioListener.pause` or per-source `ignoreListenerPause`.
+- Pause UI needs `unscaledDeltaTime` or Animator `Update Mode = Unscaled Time`.
+- `WaitForSeconds` freezes at timeScale 0; use `WaitForSecondsRealtime`.
 
 ```csharp
 public static class GamePause {
@@ -197,20 +183,18 @@ public static class GamePause {
 }
 ```
 
-A counted push/pop survives nested pauses (pause menu opened on top of dialog already paused).
+Counted push/pop survives nested pauses.
 
 ## UnityEngine.Awaitable (Unity 6, first-party async-without-GC)
 
-Unity 6 ships built-in allocation-free awaitables. This is the first-party answer to async sequencing without GC churn — reach for it before coroutines or UniTask on Unity 6 projects. UniTask is still the right call on older Unity versions or when you need its broader feature set (PlayerLoopTiming variants, `UniTaskTracker`, async LINQ).
-
-Core API:
+Unity 6 has allocation-free first-party awaitables. Prefer them before coroutines/UniTask unless you need UniTask's broader feature set.
 
 - `Awaitable.NextFrameAsync()` — resume next frame (replaces `yield return null`).
 - `Awaitable.WaitForSecondsAsync(t)` — scaled-time delay, no per-call allocation.
 - `Awaitable.EndOfFrameAsync()` — after rendering (replaces `WaitForEndOfFrame`).
 - `Awaitable.FixedUpdateAsync()` — next physics step.
-- `Awaitable.BackgroundThreadAsync()` / `MainThreadAsync()` — thread hopping.
-- `MonoBehaviour.destroyCancellationToken` — cancels automatically when the component is destroyed; pass it everywhere to avoid leaked tasks across scene loads.
+- `Awaitable.BackgroundThreadAsync()`/`MainThreadAsync()` — thread hopping.
+- `MonoBehaviour.destroyCancellationToken` — cancels automatically when component is destroyed; pass it everywhere to avoid leaked tasks across scene loads.
 
 ```csharp
 async Awaitable IntroSequence() {
@@ -225,15 +209,13 @@ async Awaitable IntroSequence() {
 void Start() => _ = IntroSequence();
 ```
 
-`Awaitable` methods return a pooled `Awaitable` — no `Task` allocation, no closure boxing. Cancellation throws `OperationCanceledException`; let it propagate or catch to clean up.
+Pooled `Awaitable` means no `Task` allocation. Cancellation throws `OperationCanceledException`; let it propagate unless cleanup is needed.
 
 ## Coroutine sequencing
 
-Coroutines remain a fine choice for short-lived gameplay sequences and predate `Awaitable`:`IEnumerator`, `yield return null / new WaitForSeconds(t) / AsyncOperation / another coroutine`.
+Coroutines remain fine for short sequences: `IEnumerator`, `yield return null`, `WaitForSeconds`, `AsyncOperation`, nested coroutine. `StartCoroutine` returns a handle for `StopCoroutine`.
 
-Common yield types: `null` (next frame), `WaitForSeconds(t)`, `WaitForFixedUpdate`, `WaitForEndOfFrame`, `WaitUntil(() => cond)`, `WaitWhile(() => cond)`. `StartCoroutine` returns a `Coroutine` handle; pass to `StopCoroutine`.
-
-**Allocation hygiene.** `new WaitForSeconds(1f)` allocates 16 B per call. Cache instead:
+Cache repeated yield instructions:
 
 ```csharp
 static readonly WaitForSeconds wait1s     = new WaitForSeconds(1f);
@@ -248,7 +230,7 @@ IEnumerator Tick() {
 }
 ```
 
-`WaitUntil(() => cond)` allocates a closure (~40 B) each time the coroutine enters that yield, plus the `WaitUntil` instance itself. For hot paths either capture state via a member-field predicate (no closure):
+`WaitUntil(() => cond)` allocates a closure; use method-group predicates on hot paths:
 
 ```csharp
 WaitUntil _waitForLanding;
@@ -261,9 +243,7 @@ IEnumerator AfterLand() {
 }
 ```
 
-…or skip coroutines and `await Awaitable.NextFrameAsync()` in a loop checking the condition — same shape, zero allocs.
-
-**Async/await alternative (older Unity, broader features):** install `com.cysharp.unitask` (UniTask, MIT) for allocation-free awaitables, `await UniTask.Delay`, `CancellationToken` integration with destroyed components, WebGL-friendly. On Unity 6, prefer `Awaitable` first.
+Or use `await Awaitable.NextFrameAsync()` in a loop. Older Unity / broader async features: UniTask.
 
 ```csharp
 IEnumerator IntroSequence() {
@@ -275,12 +255,12 @@ IEnumerator IntroSequence() {
 }
 ```
 
-Avoid coroutines on disabled GameObjects — they pause silently when the host disables. Run "fire and forget" sequences from a persistent manager GameObject, an `Awaitable`, or UniTask.
+Avoid fire-and-forget coroutines on objects that may disable; use a persistent runner, `Awaitable`, or UniTask.
 
 ## Screenshot helpers
 
-- **Marketing capsule**: `ScreenCapture.CaptureScreenshot(path, superSize: 4)` — 4× resolution capture for Steam capsules.
-- **Debug snapshot** (this skill set is new-Input-System-only; the legacy `Input` class is forbidden):
+- **Marketing capsule**: `ScreenCapture.CaptureScreenshot(path, superSize: 4)`.
+- **Debug snapshot** (this skill set is new-Input-System-only; legacy `Input` is forbidden):
   ```csharp
   using UnityEngine.InputSystem;
 
@@ -291,16 +271,16 @@ Avoid coroutines on disabled GameObjects — they pause silently when the host d
   }
   #endif
   ```
-- **Render-to-texture** (precise framing): camera → RenderTexture → readback. Use for verification (cross-link `unity-3d-verification`).
-- **WebGL**: `ScreenCapture.CaptureScreenshot` writes to virtual filesystem; serve via JS or use `ScreenCapture.CaptureScreenshotAsTexture` + base64 download.
+- **Precise framing**: Camera -> RenderTexture -> readback (`unity-3d-verification`).
+- **WebGL**: virtual filesystem; serve via JS or use `CaptureScreenshotAsTexture` + base64 download.
 
 ## In-game debug console
 
-For an in-game debug console, install `IngameDebugConsole` (asset store, free) or `Quantum Console`. Roll-your-own is a UGUI InputField + a `Dictionary<string, Action<string[]>>` command map; gate behind `DEVELOPMENT_BUILD` define and a key-combo (Tilde, F1, three-finger tap on mobile). Common commands: `god`, `noclip`, `give <item>`, `tp <x> <y> <z>`, `kill all`, `setflag <name>`, `dumpsave`.
+Install `IngameDebugConsole` or `Quantum Console`, or build UGUI InputField + `Dictionary<string, Action<string[]>>`. Gate behind `DEVELOPMENT_BUILD` and a deliberate key combo / gesture. Useful commands: `give`, `tp`, `setflag`, `dumpsave`.
 
 ## Common patterns
 
-- **DontDestroyOnLoad bootstrapper**: scene 0 has a Managers GameObject; `Awake` calls `DontDestroyOnLoad` on each manager and loads main scene additively. Cross-link `unity-scenes`.
+- **DontDestroyOnLoad bootstrapper**: scene 0 owns Managers, calls `DontDestroyOnLoad`, then loads gameplay additively.
 - **Lazy-found references**: never call `Object.FindAnyObjectByType<T>()` in `Update`; cache in `OnEnable`.
 - **`[SerializeField] private` fields > public fields** — inspector exposure without API surface.
 - **`Application.targetFrameRate = 60`** in a startup script — mobile defaults to 30; desktop defaults to vsync.
@@ -308,14 +288,14 @@ For an in-game debug console, install `IngameDebugConsole` (asset store, free) o
 ## Gotchas
 
 - Singleton recreated on scene reload because someone forgot `DontDestroyOnLoad`. Always check `Instance != null` and Destroy duplicates.
-- SO event bus with persistent (DDOL) listeners registering in `OnEnable` but not unregistering on quit can throw missing-reference errors during shutdown — clear in `OnApplicationQuit`.
-- Coroutines tied to a GameObject pause when the GameObject disables — surprising for fire-and-forget sequences. Use a static MonoBehaviour helper or UniTask for global async.
+- SO event listeners must unregister; persistent listeners may also need `OnApplicationQuit` cleanup.
+- Coroutines tied to a disabled GameObject pause silently.
 - `Time.unscaledTime` resets to game-start clock; `Time.realtimeSinceStartup` is wallclock since process start. Different.
 - Object pool capacity mis-tuned (too small) thrashes between Get/Release allocs. Profile and tune `defaultCapacity` and `maxSize`.
 - `Time.timeScale = 0` does not pause AudioSource pitch tied to `Time.deltaTime`; pause via `AudioListener.pause` or per-source.
 - SO config edits in Editor can leak into runtime saves if you mutate via reference; clone via `Instantiate(soAsset)` before mutating.
-- Async/await without `Awaitable` or UniTask leaks tasks across scene loads. On Unity 6 always pass `MonoBehaviour.destroyCancellationToken` into `Awaitable` calls; on older Unity, UniTask provides equivalent cancellation tied to component destruction.
-- `WaitUntil(() => cond)` and similar lambda-yield forms allocate ~40 B closures per coroutine entry; cache the `WaitUntil` with a method-group predicate or move to `Awaitable`.
+- Async without cancellation leaks across scene loads. Pass `destroyCancellationToken` to Unity 6 `Awaitable`; use UniTask cancellation on older Unity.
+- `WaitUntil(() => cond)` and similar lambda-yield forms allocate ~40 B closures per coroutine entry; cache `WaitUntil` with method-group predicate or move to `Awaitable`.
 - `ScreenCapture.CaptureScreenshot` writes async; reading the file immediately may fail. Use `CaptureScreenshotAsTexture` for sync access.
 
 ## Verification

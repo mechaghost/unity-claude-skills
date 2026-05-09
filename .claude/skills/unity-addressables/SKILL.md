@@ -3,41 +3,41 @@ name: unity-addressables
 description: 'Use when working with Unity Addressables through Unity MCP — Addressables, AssetReference, AssetReferenceT, Addressables.LoadAssetAsync, Addressables.InstantiateAsync, Addressables.LoadSceneAsync, Addressables.Release, addressable group, label, content catalog, remote group, local group, build remote catalog, async asset loading, lazy load, Resources alternative, AsyncOperationHandle, asset bundle, content update, smart bundle compression, BuildPipelineProfile. Unity 6+ / 6000.x, URP-only, new Input System only.'
 ---
 
-Companion skills: `unity-scenes` (scene Addressables and additive loading), `unity-persistence` (data versioning across content updates), `unity-build` (CI build hook for `BuildPlayerContent`), `unity-best-practices` (foundational MCP rules).
+Companion: `unity-scenes` (scene Addressables, additive loading), `unity-persistence` (data versioning across content updates), `unity-build` (CI hook for `BuildPlayerContent`).
 
 ## When to use
 
-- Replacing a `Resources/` folder with async, on-demand loading.
-- Shipping content updates (skins, levels, fixes) without an app store rebuild.
-- Streaming levels, localization packs, or DLC from a CDN.
-- Lazy-loading prefabs, audio, or sprites referenced by `AssetReference` fields.
-- Diagnosing leaked bundles or "asset not found" failures after a build.
+- Replace `Resources/` with async on-demand loading.
+- Ship content updates (skins, levels, fixes) without an app store rebuild.
+- Stream levels, localization packs, DLC from a CDN.
+- Lazy-load prefabs/audio/sprites referenced by `AssetReference`.
+- Diagnose leaked bundles or "asset not found" failures after a build.
 
-## Why Addressables (vs Resources / direct refs / asset bundles)
+## Why Addressables
 
-- `Resources/` folder bakes every asset into the player at build time and inflates startup memory; the asset database also slows down Editor imports as the folder grows. Unity has discouraged it since 2019.
-- Direct `[SerializeField]` references load the entire dependency chain when the owning scene/prefab loads. Fine for small scenes; punitive for hub scenes that point at every weapon, enemy, and VFX.
-- Raw AssetBundle API works but forces you to manage paths, dependencies, variants, and catalogs by hand. Addressables is the supported wrapper around AssetBundles + the Scriptable Build Pipeline.
-- Addressables gives you: async loads, address-based lookup, group-level packing/compression, remote bundles + content updates, reference counting, and an Editor play mode that skips bundle building.
+- `Resources/` bakes every asset into the player at build, inflates startup memory, slows Editor imports as it grows. Discouraged since 2019.
+- Direct `[SerializeField]` references load the entire dependency chain when the owner loads. Punitive for hub scenes pointing at every weapon/enemy/VFX.
+- Raw AssetBundle API forces manual paths/dependencies/variants/catalogs. Addressables is the supported wrapper.
+- Provides: async loads, address-based lookup, group-level packing/compression, remote bundles + content updates, refcounting, Editor play mode that skips bundle building.
 
 ## Package install
 
-Add `com.unity.addressables` via the package-manager capability. It pulls `com.unity.scriptablebuildpipeline` automatically. After install, open `Window > Asset Management > Addressables > Groups` and click **Create Addressables Settings** if prompted. This creates `Assets/AddressableAssetsData/` — commit it.
+Add `com.unity.addressables` (pulls `com.unity.scriptablebuildpipeline`). After install, `Window > Asset Management > Addressables > Groups`; click **Create Addressables Settings** if prompted. Creates `Assets/AddressableAssetsData/` — commit it.
 
 ## Authoring (groups, labels, addresses)
 
-- **Mark addressable** — tick "Addressable" in the Inspector, or drag the asset into the Groups window. Address defaults to the full asset path (`Assets/Prefabs/Goblin.prefab`); rename to a stable key like `Enemies/Goblin`. Renaming the asset later does NOT change the address; renaming the address breaks string lookups.
-- **Groups** — a group bundles multiple addressables that share download/memory behavior. Organize by content (`Levels`, `Audio`, `UI`, `Localization-EN`), not by type. Each group has a Schema (Content Packing & Loading) controlling:
+- **Mark addressable** — tick "Addressable" in Inspector, or drag into Groups window. Address defaults to full path; rename to a stable key like `Enemies/Goblin`. Renaming the asset doesn't change the address; renaming the address breaks string lookups.
+- **Groups** — bundle multiple addressables sharing download/memory behavior. Organize by content (`Levels`, `Audio`, `UI`, `Localization-EN`), not type. Schema (Content Packing & Loading) controls:
   - **Build Path / Load Path** — Local (StreamingAssets) or Remote (CDN URL).
-  - **Bundle Mode** — Pack Together (one bundle per group), Pack Separately (one bundle per asset), or Pack Together By Label (one bundle per label within the group).
-  - **Compression** — `LZ4` (Default) is correct for **mobile and runtime-decompressed groups**: fast, ~5x decode speed of LZMA, slightly larger file. `LZMA` produces ~30% smaller bundles but is **CPU-bound on low-end Android** — mid-load hitches and cold-start stalls are routine. Use LZMA only for **desktop** or for **pre-warmed downloads** that you stage to disk and decompress to LZ4 once before play. Default new mobile groups to LZ4.
-- **Labels** — string tags applied to an addressable (`hat`, `weapon`, `level1`). Load all assets with a label via `Addressables.LoadAssetsAsync<T>(label, callback)`. Labels cross groups; an asset can have many.
+  - **Bundle Mode** — Pack Together (one bundle per group), Pack Separately (per asset), Pack Together By Label.
+  - **Compression** — `LZ4` (Default) for **mobile and runtime-decompressed groups**: ~5x faster decode than LZMA, slightly larger. `LZMA` is ~30% smaller but **CPU-bound on low-end Android** — mid-load hitches and cold-start stalls. Use LZMA only for **desktop** or **pre-warmed downloads** staged to disk and decompressed to LZ4 before play. Default new mobile groups to LZ4.
+- **Labels** — string tags (`hat`, `weapon`, `level1`). Load all with `Addressables.LoadAssetsAsync<T>(label, callback)`. Cross groups; assets can have many.
 
-Two addressables sharing the same address is a build error. Plan a namespace prefix scheme early.
+Two addressables sharing an address = build error. Plan a namespace prefix scheme early.
 
 ## AssetReference fields
 
-Typed references show only matching addressable assets in the Inspector picker:
+Typed references show only matching assets in the picker:
 
 ```csharp
 [SerializeField] AssetReferenceGameObject enemyPrefab;
@@ -45,7 +45,7 @@ Typed references show only matching addressable assets in the Inspector picker:
 [SerializeField] AssetReferenceSprite icon;
 ```
 
-Drag-drop or pick by address. Prefer typed references over raw string addresses — they survive renames and fail at compile time when the type is wrong.
+Prefer typed references over raw strings — survive renames, fail at compile time on type mismatch.
 
 ## Loading API
 
@@ -53,7 +53,7 @@ Drag-drop or pick by address. Prefer typed references over raw string addresses 
 AsyncOperationHandle<GameObject> handle =
     Addressables.LoadAssetAsync<GameObject>("Enemies/Goblin");
 
-await handle.Task; // or `yield return handle;` in a coroutine
+await handle.Task; // or `yield return handle;`
 
 if (handle.Status == AsyncOperationStatus.Succeeded)
 {
@@ -61,10 +61,10 @@ if (handle.Status == AsyncOperationStatus.Succeeded)
     Instantiate(prefab);
 }
 
-Addressables.Release(handle); // critical — see lifecycle section
+Addressables.Release(handle); // critical
 ```
 
-Or via `AssetReference`:
+Via `AssetReference`:
 
 ```csharp
 var go = await enemyPrefab.LoadAssetAsync<GameObject>().Task;
@@ -72,7 +72,7 @@ var go = await enemyPrefab.LoadAssetAsync<GameObject>().Task;
 enemyPrefab.ReleaseAsset();
 ```
 
-For a label:
+By label:
 
 ```csharp
 Addressables.LoadAssetsAsync<Sprite>("hat", sprite => cache.Add(sprite));
@@ -80,34 +80,34 @@ Addressables.LoadAssetsAsync<Sprite>("hat", sprite => cache.Add(sprite));
 
 ## Scene Addressables
 
-Mark the scene asset addressable, then:
+Mark the scene addressable, then:
 
 ```csharp
 var sceneHandle =
     Addressables.LoadSceneAsync(levelRef, LoadSceneMode.Additive);
 await sceneHandle.Task;
 SceneInstance instance = sceneHandle.Result;
-// ...later
+// later
 Addressables.UnloadSceneAsync(instance);
 ```
 
-`SceneInstance` (not the `Scene` struct) is what unloads correctly — passing the underlying `Scene` to `SceneManager.UnloadSceneAsync` leaks the bundle. Cross-link `unity-scenes` for streaming patterns.
+`SceneInstance` (not the `Scene` struct) is what unloads correctly — passing the underlying `Scene` to `SceneManager.UnloadSceneAsync` leaks the bundle. See `unity-scenes`.
 
 ## Instantiate vs Load
 
-- `Addressables.InstantiateAsync(reference)` — loads if needed AND instantiates. Use `Addressables.ReleaseInstance(go)` to destroy AND decrement the bundle ref count.
-- `Addressables.LoadAssetAsync<GameObject>(reference)` then a manual `UnityEngine.Object.Instantiate(prefab)` — load once, instantiate many. Better for spawners that fire frequently. Release the original handle when the spawner shuts down.
+- `Addressables.InstantiateAsync(reference)` — loads if needed AND instantiates. Use `Addressables.ReleaseInstance(go)` to destroy AND decrement bundle refcount.
+- `Addressables.LoadAssetAsync<GameObject>(reference)` then `Object.Instantiate(prefab)` — load once, instantiate many. Better for spawners. Release the handle on shutdown.
 
-Mixing them on the same prefab is fine, but track which path each consumer uses so the right release call gets made.
+Mixing on the same prefab is fine — track which path each consumer uses for the right release call.
 
 ## Release / handle lifecycle
 
-Every `LoadAssetAsync` / `LoadSceneAsync` / `LoadAssetsAsync` returns a handle that increments a refcount on its bundle. The bundle stays in memory until every issued handle is released.
+Every Load returns a handle that increments bundle refcount. Bundle stays loaded until every handle is released.
 
 - Hold the handle as a field; release in `OnDestroy`.
-- For `InstantiateAsync` results, store the GameObject and call `ReleaseInstance(go)` on destroy.
-- For `AssetReference`, call `assetRef.ReleaseAsset()` (releases the handle the reference itself is holding).
-- A leaked handle = a bundle stuck in memory for the lifetime of the player.
+- For `InstantiateAsync` results, store the GameObject and call `ReleaseInstance(go)`.
+- For `AssetReference`, call `assetRef.ReleaseAsset()`.
+- Leaked handle = bundle stuck for the session.
 
 ```csharp
 AsyncOperationHandle<GameObject> _handle;
@@ -115,7 +115,6 @@ AsyncOperationHandle<GameObject> _handle;
 async void Start() {
     _handle = Addressables.LoadAssetAsync<GameObject>("Enemies/Goblin");
     var prefab = await _handle.Task;
-    // use prefab
 }
 
 void OnDestroy() {
@@ -125,28 +124,28 @@ void OnDestroy() {
 
 ## Memory model
 
-- **Reference counting** — a bundle stays loaded while any of its addressables is loaded. Releasing the last loaded asset releases the bundle.
-- **Pack Together** — one bundle per group; loading any asset pulls the whole bundle into memory. Cheap inter-group references; bad if the group is huge and you only need one asset.
-- **Pack Separately** — one bundle per asset; lazy memory but more bundle metadata, more files on disk, slower discovery.
-- **Pack Together By Label** — sweet spot for grouped content like `level1` or `language-en`; load the level, get only that level's bundle.
+- **Refcounting** — bundle stays loaded while any of its addressables is loaded. Releasing the last asset releases the bundle.
+- **Pack Together** — one bundle per group; loading any asset pulls the whole bundle. Cheap inter-group refs; bad for huge groups when you need one asset.
+- **Pack Separately** — one bundle per asset; lazy memory but more metadata, more files, slower discovery.
+- **Pack Together By Label** — sweet spot for grouped content (`level1`, `language-en`).
 
-Profile with the Addressables Event Viewer (`Window > Asset Management > Addressables > Event Viewer`) and the Memory Profiler.
+Profile with Addressables Event Viewer (`Window > Asset Management > Addressables > Event Viewer`) and Memory Profiler.
 
 ## Content catalogs and remote
 
-- The **catalog** is the manifest mapping addresses to bundle locations. It ships as `catalog.json` (and `.bin` / `.hash`).
-- **Local catalog** ships inside the player at StreamingAssets.
-- **Remote catalog** is hosted on a CDN; on boot the player downloads `catalog.hash`, compares, and pulls a fresh catalog if the hash changed.
-- **Profiles** (`Window > Asset Management > Addressables > Profiles`) define `Local.BuildPath`, `Remote.LoadPath`, etc. per environment (Dev / Staging / Prod). Switch profile before each build.
-- **Content updates** — instead of a full rebuild, run `Build > Update a Previous Build`. Only changed bundles are rebuilt and uploaded. The app version stays the same; the catalog hash changes; old clients pick up new content next launch.
+- **Catalog** — manifest mapping addresses to bundle locations. `catalog.json` (and `.bin`/`.hash`).
+- **Local catalog** — ships in StreamingAssets.
+- **Remote catalog** — hosted on CDN; on boot, player downloads `catalog.hash`, compares, pulls fresh catalog if changed.
+- **Profiles** (`Window > Asset Management > Addressables > Profiles`) define `Local.BuildPath`, `Remote.LoadPath`, etc. per environment (Dev/Staging/Prod). Switch before each build.
+- **Content updates** — `Build > Update a Previous Build`. Only changed bundles rebuild and upload. App version stays; catalog hash changes; old clients pick up new content next launch.
 
 ## Build pipeline
 
-- **Manual** — `Window > Asset Management > Addressables > Groups > Build > New Build > Default Build Script`. Outputs to `Library/com.unity.addressables/aa/<platform>/`. Local groups' bundles are copied into StreamingAssets for the player build to pick up.
-- **CI / scripted** — call `AddressableAssetSettings.BuildPlayerContent()` before `BuildPipeline.BuildPlayer`. Wire it as an `IPreprocessBuildWithReport` so it cannot be forgotten.
-- **Remote** — after the build, sync the `RemoteBuildPath` directory to the CDN bucket. The player loads from `RemoteLoadPath` baked into the active profile at build time.
+- **Manual** — `Groups > Build > New Build > Default Build Script`. Outputs to `Library/com.unity.addressables/aa/<platform>/`. Local bundles copied into StreamingAssets.
+- **CI / scripted** — call `AddressableAssetSettings.BuildPlayerContent()` before `BuildPipeline.BuildPlayer`. Wire as `IPreprocessBuildWithReport` so it can't be forgotten.
+- **Remote** — sync `RemoteBuildPath` to the CDN bucket. Player loads from `RemoteLoadPath` baked into the active profile at build.
 
-Cross-link `unity-build` for the CI hook.
+See `unity-build` for CI hook.
 
 ```csharp
 public class AddressablesPreBuild : IPreprocessBuildWithReport
@@ -159,28 +158,28 @@ public class AddressablesPreBuild : IPreprocessBuildWithReport
 
 ## Common patterns
 
-- **Lazy enemy load** — `AssetReferenceGameObject` on a Spawner; `LoadAssetAsync` on first activation; cache the prefab; instantiate per spawn; release on `OnDestroy`.
-- **Level streaming** — `Addressables.LoadSceneAsync(LoadSceneMode.Additive)` for adjacent zones, `UnloadSceneAsync` once distant. Pair with a portal trigger to start the load early.
-- **Hot-swap content** — push a remote content update with new VFX / textures / balance prefabs; players get them on next launch with no app store update.
-- **Localization packs** — group per language with a label; load only the active language's bundle, switch by reload on language change.
-- **Boot warm-up** — `LoadAssetsAsync` on a `boot` label to preload critical menu assets while the splash plays.
+- **Lazy enemy load** — `AssetReferenceGameObject` on a Spawner; `LoadAssetAsync` on first activation; cache prefab; instantiate per spawn; release on `OnDestroy`.
+- **Level streaming** — `LoadSceneAsync(Additive)` for adjacent zones, `UnloadSceneAsync` once distant. Pair with a portal trigger to start the load early.
+- **Hot-swap content** — push a remote content update; players get new VFX/textures/balance on next launch with no store update.
+- **Localization packs** — group per language with a label; load only active language; reload on language change.
+- **Boot warm-up** — `LoadAssetsAsync` on a `boot` label to preload critical menu assets during splash.
 
 ## Gotchas
 
-- **Forgetting to Release** — leaked memory; bundle stuck for the session. Always pair Load with Release in `OnDestroy`.
-- **Mixed direct + AssetReference** — if a prefab is both serialized directly into a scene AND referenced as an `AssetReference`, it goes into both the player and the bundle. Pick one.
-- **Android StreamingAssets** — path is a `jar:file://` URI inside the APK; `File.ReadAllText` chokes. Use `UnityWebRequest` for raw reads. Addressables itself handles this — only an issue for adjacent code that touches StreamingAssets.
-- **Editor play mode** — Groups window has a Play Mode Script setting. "Use Asset Database (faster)" loads via AssetDatabase with no bundle build (fast iteration, no build verification). "Use Existing Build" requires a successful Addressables build first and exercises the real bundle path. Test with the latter before shipping.
-- **Remote bundles + offline player** — load fails. Ship a fallback (cached default content, retry UI, or a "go online to update" message). Do not assume connectivity.
-- **Duplicate addresses** — two assets sharing the same address is a build error. Catch in CI by inspecting the build report.
-- **Stale save data after content update** — older saves reference an addressable you renamed or deleted; lookup fails on load. Cross-link `unity-persistence`: version your save data and migrate dead references.
-- **Synchronous waits** — `handle.WaitForCompletion()` exists but blocks the main thread; defeats the purpose of Addressables. Reserve for boot-time loads where a hitch is acceptable.
+- **Forgetting Release** — leaked memory; bundle stuck. Always pair Load with Release in `OnDestroy`.
+- **Mixed direct + AssetReference** — prefab in both serialized scene AND `AssetReference` ships in both player and bundle. Pick one.
+- **Android StreamingAssets** — path is `jar:file://` URI inside APK; `File.ReadAllText` chokes. Use `UnityWebRequest`. Addressables handles this — only an issue for adjacent code touching StreamingAssets.
+- **Editor play mode** — Play Mode Script setting. "Use Asset Database (faster)" loads via AssetDatabase, no bundle build (fast iteration, no build verification). "Use Existing Build" requires a successful build first; tests the real path. Use the latter before shipping.
+- **Remote bundles + offline** — load fails. Ship a fallback (cached default content, retry UI, "go online to update").
+- **Duplicate addresses** — build error. Catch in CI by inspecting the build report.
+- **Stale save data after content update** — older saves reference an addressable you renamed/deleted; lookup fails. Version save data and migrate dead references (`unity-persistence`).
+- **Synchronous waits** — `handle.WaitForCompletion()` blocks main thread; defeats the purpose. Reserve for boot loads where a hitch is OK.
 
 ## Verification
 
-- **Editor console** — search for "Addressable asset failed to load", "Operation failed: Asset not found", "RemoteProviderException", "Exception encountered in operation".
-- **Memory Profiler** — capture in Play mode; bundle memory shows up under the Addressables provider. Drift across scene loads = leaked handle.
-- **Play mode round-trip** — switch the Groups window to "Use Existing Build", run a fresh Addressables build, enter Play, exercise every load path. Failures surface only in this mode.
-- **Remote offline test** — block the CDN URL (firewall or fake DNS) and confirm the offline fallback handles the load failure gracefully instead of soft-locking.
-- **Inspect catalog** — open `Library/com.unity.addressables/aa/<platform>/catalog.json` after a build. Every expected address should be present; a missing entry means the asset slipped out of the addressable group.
-- **Reflect on settings** — inspect `AddressableAssetSettingsDefaultObject.Settings.groups` to confirm group composition matches expectations after authoring changes.
+- Console — search for "Addressable asset failed to load", "Operation failed: Asset not found", "RemoteProviderException", "Exception encountered in operation".
+- Memory Profiler — capture in Play; bundle memory under the Addressables provider. Drift across scene loads = leaked handle.
+- Play-mode round-trip — switch Groups to "Use Existing Build", run a fresh build, exercise every load path. Failures surface only here.
+- Remote offline test — block the CDN URL and confirm graceful failure handling instead of soft-lock.
+- Inspect catalog — open `Library/com.unity.addressables/aa/<platform>/catalog.json` after build. Every expected address should be present.
+- Reflect on `AddressableAssetSettingsDefaultObject.Settings.groups` to confirm group composition.

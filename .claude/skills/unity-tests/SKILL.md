@@ -5,23 +5,24 @@ description: 'Use when authoring or running Unity tests through Unity MCP — Un
 
 ## When to use
 
-Reach for this skill any time you are writing automated tests in Unity, configuring a test asmdef, running tests from the Test Runner window, kicking a test job through the test-runner capability, wiring code coverage, or hooking tests into CI. UTF is the official test framework; it is NUnit-based but adds Unity-specific affordances such as `[UnityTest]` coroutines and PlayMode runs. Open the runner via `Window > General > Test Runner`.
+Authoring automated tests, configuring a test asmdef, running tests from Test Runner, kicking a test job, wiring code coverage, hooking into CI. UTF is NUnit-based with Unity-specific affordances (`[UnityTest]` coroutines, PlayMode runs). Open via `Window > General > Test Runner`.
 
 ## Test framework setup
 
-1. Create a folder like `Assets/Tests/EditMode/` or `Assets/Tests/PlayMode/`.
-2. Add a Tests asmdef inside it (create the asmdef asset, see unity-asmdef).
-3. In the asmdef inspector, check Test Assemblies. This automatically scopes the asmdef and hides it from non-test builds.
-4. Add precompiled references: `nunit.framework.dll`, `UnityEngine.TestRunner`, `UnityEditor.TestRunner` (the Editor one only when the asmdef includes the Editor platform). **Note**: the `Override References` checkbox in the asmdef inspector must be enabled before the precompiled-references list field appears. Without that toggle, the field is hidden and adding nunit/TestRunner fails silently. For the canonical Tests asmdef JSON template see `unity-asmdef`.
-5. Reference the asmdef under test (e.g. `Game.Runtime`).
-6. EditMode Tests asmdef: include only Editor platform OR all platforms with the Test Assemblies flag set.
-7. PlayMode Tests asmdef: include Standalone or Any Platform so it compiles into a built Player when needed.
+1. Create `Assets/Tests/EditMode/` or `Assets/Tests/PlayMode/`.
+2. Add a Tests asmdef inside (see `unity-asmdef`).
+3. Inspector: tick **Test Assemblies**. Auto-scopes the asmdef, hides from non-test builds.
+4. Add precompiled references: `nunit.framework.dll`, `UnityEngine.TestRunner`, `UnityEditor.TestRunner` (Editor-only when included). Enable `Override References` in the inspector first — without it, the precompiled-references field is hidden and adding nunit/TestRunner fails silently. Canonical Tests asmdef JSON: `unity-asmdef`.
+5. Reference the asmdef under test (`Game.Runtime`).
+6. EditMode Tests asmdef — Editor platform only OR all platforms with Test Assemblies set.
+7. PlayMode Tests asmdef — Standalone or Any Platform so it compiles into a built Player.
 
 ## EditMode vs PlayMode
 
-- EditMode tests run in the Editor without entering Play mode. They are fast and ideal for pure logic: math, parsers, ScriptableObject behavior, serialization, validation.
-- PlayMode tests run with the full Unity runtime. Use them for gameplay, MonoBehaviour callbacks (`Update`, `FixedUpdate`), physics, animation, UI, and scene boots. They are slower but exercise the engine.
-- Pick the cheapest tier that proves the behavior. Most logic should be EditMode; PlayMode is reserved for things that genuinely need the loop.
+- **EditMode** — runs in Editor without entering Play. Fast; pure logic — math, parsers, ScriptableObject behavior, serialization, validation.
+- **PlayMode** — full runtime. Gameplay, MonoBehaviour callbacks (`Update`, `FixedUpdate`), physics, animation, UI, scene boots. Slower but exercises engine.
+
+Use the cheapest tier that proves behavior. Most logic → EditMode; PlayMode for things that need the loop.
 
 ## Writing tests
 
@@ -46,7 +47,7 @@ public class CombatMathTests {
 }
 ```
 
-Layout each test arrange-act-assert. Keep tests deterministic — no real time, no real RNG, no live network. Inject seams (interfaces, virtual clocks) so tests can pin behavior.
+Arrange-act-assert. Deterministic — no real time, RNG, or live network. Inject seams (interfaces, virtual clocks).
 
 ## Common assertions
 
@@ -55,26 +56,26 @@ Layout each test arrange-act-assert. Keep tests deterministic — no real time, 
 - `Assert.IsTrue(cond)` / `Assert.IsFalse(cond)`.
 - `Assert.IsNull(x)` / `Assert.IsNotNull(x)`.
 - `Assert.That(value, Is.EqualTo(x).Within(epsilon))` — float tolerance.
-- `CollectionAssert.AreEquivalent(a, b)` — order-insensitive collection compare.
-- `Assert.Throws<ArgumentException>(() => Code())` — exception assertions.
-- `LogAssert.Expect(LogType.Error, "regex or string")` before code that should log; otherwise stray errors fail the test.
+- `CollectionAssert.AreEquivalent(a, b)` — order-insensitive.
+- `Assert.Throws<ArgumentException>(() => Code())`.
+- `LogAssert.Expect(LogType.Error, "regex or string")` before code that should log; otherwise stray errors fail.
 
 ## [UnityTest] coroutines
 
-Use for time- or frame-based behavior:
+For time- or frame-based behavior:
 
 ```csharp
 [UnityTest] public IEnumerator Player_Moves_Forward() {
     var go = new GameObject("Player");
     go.AddComponent<PlayerMovement>();
-    yield return null;                  // wait one frame
+    yield return null;
     yield return new WaitForSeconds(1f);
     Assert.Greater(go.transform.position.z, 0f);
     Object.Destroy(go);
 }
 ```
 
-`yield return null` advances one frame. `yield return new WaitForFixedUpdate()` advances physics. Avoid `WaitForSeconds` for long durations — prefer `WaitUntil(() => cond)` with a timeout guard.
+`yield return null` advances one frame. `WaitForFixedUpdate` advances physics. Avoid long `WaitForSeconds` — prefer `WaitUntil(() => cond)` with a timeout guard.
 
 ## Scene fixtures
 
@@ -86,20 +87,20 @@ Use for time- or frame-based behavior:
 }
 ```
 
-Test scenes must be in Build Settings (cross-link unity-scenes), or load from a `TestSceneAsset` referenced via a `[PrebuildSetup]` / `TestSceneManager` helper that adds the scene to the build list before PlayMode runs and removes it after.
+Test scenes must be in Build Settings (`unity-scenes`), or load from a `TestSceneAsset` referenced via `[PrebuildSetup]`/`TestSceneManager` that adds before PlayMode and removes after.
 
-**Object lookup APIs**: Unity 6 deprecated `FindObjectOfType<T>()` and `FindObjectsOfType<T>()` with editor obsolescence warnings on every call. Use `Object.FindAnyObjectByType<T>()` or `Object.FindFirstObjectByType<T>()` for the singular case, and `Object.FindObjectsByType<T>(FindObjectsSortMode.None)` for the plural case. The legacy names still compile but emit obsolescence warnings.
+**Object lookup**: Unity 6 deprecated `FindObjectOfType<T>()` and `FindObjectsOfType<T>()` with obsolescence warnings. Use `Object.FindAnyObjectByType<T>()` or `Object.FindFirstObjectByType<T>()` (singular) and `Object.FindObjectsByType<T>(FindObjectsSortMode.None)` (plural).
 
 ## MonoBehaviour testing
 
-- Instantiate with `new GameObject().AddComponent<T>()` rather than spawning prefabs in EditMode tests; prefab references in PlayMode are fine.
+- Instantiate with `new GameObject().AddComponent<T>()` rather than spawning prefabs in EditMode tests; prefab refs in PlayMode are fine.
 - Drive the loop with `yield return null` between frames.
-- Snapshot expected state via public fields, properties, or expose internals through `[InternalsVisibleTo("Game.Tests")]` rather than reflection.
-- Always `Object.Destroy(go)` or `Object.DestroyImmediate(go)` (EditMode) in `[TearDown]`.
+- Snapshot via public fields, properties, or `[InternalsVisibleTo("Game.Tests")]` — not reflection.
+- Always `Object.Destroy(go)` (or `DestroyImmediate` in EditMode) in `[TearDown]`.
 
 ## Mocks vs fakes
 
-NSubstitute and Moq exist via NuGet but are uncommon in Unity (and IL2CPP-friendliness varies). Idiomatic Unity testing prefers hand-rolled fakes:
+NSubstitute and Moq exist via NuGet but are uncommon in Unity (IL2CPP-friendliness varies). Prefer hand-rolled fakes:
 
 ```csharp
 class FakeAudioService : IAudioService {
@@ -108,21 +109,21 @@ class FakeAudioService : IAudioService {
 }
 ```
 
-Inject via constructor, field, or `[Inject]` (if using a DI container). Avoid singletons and statics in code under test — they leak across tests and force ordering. If a singleton is unavoidable, expose a reset hook and call it in `[SetUp]`.
+Inject via constructor, field, or `[Inject]`. Avoid singletons and statics in code under test — they leak across tests and force ordering. If unavoidable, expose a reset hook and call in `[SetUp]`.
 
 ## Code coverage
 
-Install `com.unity.testtools.codecoverage` via the package manager. Open `Window > Analysis > Code Coverage`. Settings:
+Install `com.unity.testtools.codecoverage`. `Window > Analysis > Code Coverage`:
 
 - Enable Code Coverage in Settings.
 - Generate HTML Report after run.
-- Test asmdefs are excluded by default. Use Included/Excluded Paths to scope to your runtime asmdefs (`+Game.Runtime,+Game.Combat`) and exclude generated code.
+- Test asmdefs excluded by default. Use Included/Excluded Paths to scope (`+Game.Runtime,+Game.Combat`) and exclude generated code.
 
-The report drops into `<project>/CodeCoverage/Report/index.html`. Track line coverage and branch coverage; aim for high coverage on systems with branching logic, lower on glue code.
+Report at `<project>/CodeCoverage/Report/index.html`. Track line and branch coverage; high on branching systems, lower on glue.
 
 ## CI integration
 
-Headless run:
+Headless:
 
 ```
 unity -batchmode -nographics -runTests \
@@ -131,42 +132,41 @@ unity -batchmode -nographics -runTests \
   -projectPath . -logFile -
 ```
 
-Repeat with `-testPlatform playmode`. Exit code is nonzero on red. Parse `*-results.xml` (NUnit3 schema) in CI. The `game-ci/unity-test-runner` GitHub Action wraps this and uploads results + coverage.
+Repeat with `-testPlatform playmode`. Exit code is nonzero on red. Parse `*-results.xml` (NUnit3) in CI. The `game-ci/unity-test-runner` GitHub Action wraps this.
 
-Through the test-runner capability: kick a job, then poll for completion. Use this for quick local smoke runs; use the Test Runner window for iterative authoring.
+Through the test-runner capability: kick a job, poll for completion. For quick local smoke; use Test Runner window for iterative authoring.
 
 ## Common patterns
 
-- Arrange-act-assert layout, one logical assertion per test.
+- Arrange-act-assert, one logical assertion per test.
 - Data-driven via `[TestCase]` and `[TestCaseSource(nameof(Cases))]`.
-- `[SetUp]` / `[TearDown]` per test for shared init/cleanup.
-- `[OneTimeSetUp]` / `[OneTimeTearDown]` per fixture for expensive resources.
-- `[Category("Slow")]` to filter long tests out of the inner loop.
-- `[Ignore("reason")]` rather than commented-out tests.
-- `[Order(n)]` only as a last resort — order-dependent tests are a smell.
+- `[SetUp]`/`[TearDown]` per test.
+- `[OneTimeSetUp]`/`[OneTimeTearDown]` per fixture for expensive resources.
+- `[Category("Slow")]` to filter long tests.
+- `[Ignore("reason")]` over commented-out tests.
+- `[Order(n)]` last resort — order-dependent tests are a smell.
 
 ## Gotchas
 
-- PlayMode tests share the running Editor's loaded scenes — destroy GameObjects in `[TearDown]` or scenes in `[OneTimeTearDown]`, otherwise leaks cascade.
-- Static state (singletons, static caches, `MonoBehaviour` static fields) leaks between tests. Reset in `[SetUp]`.
-- `Time.timeScale` modifications persist across tests — restore to 1f in `[TearDown]`.
-- PlayMode tests cannot run during a build, and they need the Game view focusable.
-- Tests in the default `Assembly-CSharp` are second-class — always asmdef them so they cleanly toggle and don't pollute Player builds.
-- `LogAssert.NoUnexpectedReceived()` at end of test catches stray errors that would otherwise make the next test fail.
-- Async/Task-based tests need `[UnityTest]` + `IEnumerator` adapters or `Task` returning tests with the right UTF version — async void will silently swallow failures.
-- Coroutines that allocate (`new WaitForSeconds`) accumulate GC pressure across many tests; cache or use plain frame yields where possible.
+- PlayMode tests share the Editor's loaded scenes — destroy GameObjects in `[TearDown]` or scenes in `[OneTimeTearDown]`, else leaks cascade.
+- Static state (singletons, caches, static fields) leaks between tests. Reset in `[SetUp]`.
+- `Time.timeScale` persists across tests — restore to 1f in `[TearDown]`.
+- PlayMode tests can't run during a build; need Game view focusable.
+- Tests in default `Assembly-CSharp` are second-class — always asmdef them.
+- `LogAssert.NoUnexpectedReceived()` at end of test catches stray errors that would otherwise fail the next.
+- Async/Task tests need `[UnityTest]` + `IEnumerator` adapters or `Task`-returning tests with the right UTF version — async void silently swallows failures.
+- Coroutines that allocate (`new WaitForSeconds`) accumulate GC across many tests; cache or use plain frame yields.
 
 ## Verification
 
-- Test Runner window shows green for the suite (EditMode and PlayMode).
-- Editor console clean — no stray errors or warnings during runs.
-- Code Coverage HTML report shows touched lines for the system under test.
-- CI build fails on a red test (verify by intentionally breaking one once).
-- For runner-capability-driven runs: the job returns `passed` and `failures: 0`.
+- Test Runner shows green (EditMode and PlayMode).
+- Console clean — no stray errors during runs.
+- Code Coverage HTML shows touched lines.
+- CI fails on red test (verify by intentionally breaking once).
+- Runner-capability runs: `passed`, `failures: 0`.
 
 ## Cross-links
 
-- unity-asmdef — required to set up Test Assemblies flag and references.
-- unity-scenes — for PlayMode scene fixtures and Build Settings additions.
-- unity-build — for headless CI builds and Development Build profiling.
-- unity-best-practices — read-console and batch-related-calls discipline applies to test runs too.
+- `unity-asmdef` — Test Assemblies flag and references.
+- `unity-scenes` — PlayMode scene fixtures, Build Settings.
+- `unity-build` — headless CI builds, Development Build profiling.

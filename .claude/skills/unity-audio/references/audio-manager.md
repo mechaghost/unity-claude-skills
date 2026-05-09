@@ -1,10 +1,10 @@
 # AudioManager and music crossfade
 
-Reference patterns called out from SKILL.md. Author the scripts and attach the components in the scene.
+Reference patterns from SKILL.md.
 
 ## Singleton AudioManager with pooled SFX
 
-A `DontDestroyOnLoad` GameObject that survives scene loads (cross-link `unity-scenes`), exposes `PlaySFX` / `PlayMusic` / `SetVolume`, and round-robins through a small pool of AudioSources for SFX so overlapping plays don't stomp.
+`DontDestroyOnLoad` GameObject that survives scene loads, exposes `PlaySFX`/`PlayMusic`/`SetVolume`, round-robins through an SFX pool.
 
 ```csharp
 using System.Collections;
@@ -37,7 +37,6 @@ public class AudioManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        // SFX pool
         sfxPool = new AudioSource[sfxPoolSize];
         for (int i = 0; i < sfxPoolSize; i++)
         {
@@ -46,16 +45,14 @@ public class AudioManager : MonoBehaviour
             var src = go.AddComponent<AudioSource>();
             src.playOnAwake = false;
             src.outputAudioMixerGroup = sfxGroup;
-            src.spatialBlend = 0f; // override per-call for 3D SFX
+            src.spatialBlend = 0f;
             sfxPool[i] = src;
         }
 
-        // Two music sources for crossfade
         musicA = CreateMusicSource("Music_A");
         musicB = CreateMusicSource("Music_B");
         currentMusic = musicA;
 
-        // Apply persisted volumes (cross-link unity-persistence once it exists)
         ApplyVolume("MasterVolume", PlayerPrefs.GetFloat("vol.master", 1f));
         ApplyVolume("MusicVolume",  PlayerPrefs.GetFloat("vol.music",  1f));
         ApplyVolume("SFXVolume",    PlayerPrefs.GetFloat("vol.sfx",    1f));
@@ -70,11 +67,10 @@ public class AudioManager : MonoBehaviour
         src.loop = true;
         src.outputAudioMixerGroup = musicGroup;
         src.spatialBlend = 0f;
-        src.ignoreListenerPause = true; // music keeps playing through pause menus
+        src.ignoreListenerPause = true;
         return src;
     }
 
-    // Fire-and-forget 2D SFX
     public void PlaySFX(AudioClip clip, float volume = 1f, float pitch = 1f)
     {
         if (clip == null) return;
@@ -86,7 +82,6 @@ public class AudioManager : MonoBehaviour
         src.PlayOneShot(clip, volume);
     }
 
-    // 3D SFX at a worldspace point
     public void PlaySFXAt(AudioClip clip, Vector3 position, float volume = 1f)
     {
         if (clip == null) return;
@@ -118,7 +113,7 @@ public class AudioManager : MonoBehaviour
         float fromStart = from.volume;
         while (t < fadeSec)
         {
-            t += Time.unscaledDeltaTime; // immune to Time.timeScale and pause
+            t += Time.unscaledDeltaTime;
             float k = (fadeSec <= 0f) ? 1f : Mathf.Clamp01(t / fadeSec);
             from.volume = Mathf.Lerp(fromStart, 0f, k);
             to.volume   = Mathf.Lerp(0f, 1f, k);
@@ -129,7 +124,6 @@ public class AudioManager : MonoBehaviour
         currentMusic = to;
     }
 
-    // Linear 0..1 from a UI Slider
     public void SetVolume(string exposedParam, float linear01)
     {
         ApplyVolume(exposedParam, linear01);
@@ -146,12 +140,12 @@ public class AudioManager : MonoBehaviour
 }
 ```
 
-Wire-up checklist:
+Wire-up:
 
-- Create the mixer asset and groups (`Master`, `Music`, `SFX`, optionally `UI` / `Voice`).
-- Expose Volume on Master / Music / SFX as `MasterVolume` / `MusicVolume` / `SFXVolume`.
-- Drop a single `AudioManager` GameObject in your bootstrap scene; assign mixer, sfxGroup, musicGroup in the Inspector.
-- Confirm exactly one `AudioListener` in the scene (cross-link the AudioListener section of SKILL.md).
+- Create mixer + groups (`Master`, `Music`, `SFX`, optionally `UI`/`Voice`).
+- Expose Volume on Master/Music/SFX as `MasterVolume`/`MusicVolume`/`SFXVolume`.
+- Drop one `AudioManager` in bootstrap scene; assign mixer, sfxGroup, musicGroup.
+- Confirm exactly one `AudioListener`.
 
 ## UI volume slider hookup
 
@@ -181,18 +175,17 @@ public class VolumeSlider : MonoBehaviour
 
 ## Footstep AnimationEvent hook
 
-Driven by the animation clip's foot-down event (cross-link `unity-animation`). Surface tag picks from a sound bank ScriptableObject — keep clips short, ADPCM, Decompress On Load.
+Driven by foot-down event (`unity-animation`). Surface tag picks from a sound bank ScriptableObject — short clips, ADPCM, Decompress On Load.
 
 ```csharp
 using UnityEngine;
 
 public class FootstepReceiver : MonoBehaviour
 {
-    [SerializeField] FootstepBank bank;       // ScriptableObject mapping tag -> AudioClip[]
+    [SerializeField] FootstepBank bank;
     [SerializeField] LayerMask groundMask;
     [SerializeField] float probeDist = 1.2f;
 
-    // Called from an AnimationEvent on the foot-down keyframe.
     public void PlayFootstep()
     {
         if (!Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, out var hit, probeDist, groundMask)) return;
@@ -219,7 +212,7 @@ public class DialogueDucker : MonoBehaviour
 
 ## Notes
 
-- Crossfade uses `Time.unscaledDeltaTime` so it works through pause menus (`Time.timeScale = 0`). If you want music fading to honor a slow-motion bullet-time effect, switch to `Time.deltaTime`.
-- The pool round-robin is intentionally dumb. For voice-stealing by priority, sort the pool each call by `isPlaying` and `time` remaining and reuse the oldest non-priority source first.
-- `outputAudioMixerGroup` is set in code on each pooled source. If you spawn AudioSources from prefabs at runtime, set the group on the prefab — code-set groups don't survive prefab re-instantiation.
-- Streaming clips (typically music) cannot play in parallel. The crossfade above plays two clips simultaneously for `fadeSec`, so set music import to a non-streaming Vorbis if your music tracks are short, OR accept a brief overlap risk on streaming and shorten the crossfade.
+- Crossfade uses `Time.unscaledDeltaTime` so it works through pause (`Time.timeScale = 0`). For bullet-time, switch to `Time.deltaTime`.
+- Pool round-robin is dumb. For voice-stealing by priority, sort by `isPlaying` and `time` remaining; reuse oldest non-priority source first.
+- `outputAudioMixerGroup` set in code doesn't survive prefab re-instantiation. Set on the prefab if you spawn from prefabs.
+- Streaming clips can't play in parallel. Crossfade plays two simultaneously for `fadeSec` — use non-streaming Vorbis for short tracks, or shorten the crossfade.

@@ -1,38 +1,38 @@
 ---
 name: unity-consent-att-gdpr
-description: 'Use when implementing privacy/consent compliance for store launch in Unity through Unity MCP — iOS ATT (App Tracking Transparency), GDPR/CCPA via UMP/CMP, COPPA age-gating, or any store-review blocker around tracking permissions and consent dialogs. Triggers — ATT, App Tracking Transparency, AppTrackingTransparency, IDFA, NSUserTrackingUsageDescription, IDFV, GDPR, CCPA, COPPA, age gate, age gating, consent, consent dialog, consent management platform, CMP, IAB TCF, TCF v2.2, UMP, User Messaging Platform, Google Funding Choices, AppLovin Consent, IronSource ATT, AdMob UMP, Apple ATT prompt, ATT request, request authorization, tracking authorization status, Authorized, Denied, NotDetermined, Restricted, privacy policy URL, data deletion request, opt out, Do Not Sell, Limit Ad Tracking, IDFA fingerprinting, SKAdNetwork, SKAN. Unity 6+ / 6000.x, URP-only, new Input System only. NOT the same as Apple PrivacyInfo.xcprivacy manifest — use unity-privacy-manifests for that. They pair together but are different artifacts.'
+description: 'Use for Unity 6+ runtime privacy consent: iOS ATT/IDFA prompts, GDPR/CCPA UMP/CMP flows, COPPA age gates, TCF strings, consent SDK wiring, opt-out/data-deletion UX. Not PrivacyInfo.xcprivacy or Play Data Safety forms.'
 ---
 
 # unity-consent-att-gdpr
 
-Privacy and consent compliance for store launch. ATT, GDPR/CCPA, COPPA. If any of these are missing or broken, the app will not pass review.
+ATT, GDPR/CCPA, COPPA. Missing or broken = no review pass.
 
 ## When to use
 
-- Adding ATT prompt for iOS 14+ before any ad SDK or fingerprinting analytics call.
-- Wiring a Consent Management Platform (UMP, AppLovin, IronSource, OneTrust, Sourcepoint) for EU/EEA/UK GDPR + California CCPA.
-- Adding COPPA age-gating for Family-category apps or apps with under-13 audience.
-- Implementing in-app data deletion request UI (Google Play 2024 policy + GDPR Article 17).
-- Pre-submission audit of consent flow before App Store / Play Console upload.
+- Adding ATT prompt for iOS 14+ before any ad SDK or fingerprinting analytics.
+- Wiring a CMP (UMP, AppLovin, IronSource, OneTrust, Sourcepoint) for EU/EEA/UK GDPR + California CCPA.
+- COPPA age-gating for Family-category or under-13 audiences.
+- In-app data deletion UI (Google Play 2024 + GDPR Article 17).
+- Pre-submission audit of consent flow.
 
-## Why this is a store-review blocker
+## Store-review blockers
 
-- **Apple App Store Guideline 5.1.2**: tracking without ATT flow = rejection. `NSUserTrackingUsageDescription` Info.plist string is mandatory if any SDK in your build accesses IDFA.
-- **Google Play Data Safety + EEA consent**: requires declared data collection matching runtime behavior; missing CMP in EEA can trigger policy strike.
-- **GDPR (EU/EEA/UK)**: tracking EU users without consent = up to EUR 20M fine ceiling per violation (theoretical; realistic indie risk is ad revenue clawback + store removal).
-- **Dead Privacy Policy URL**: both stores reject. Reviewers actually click it.
+- **Apple App Store Guideline 5.1.2**: tracking without ATT = rejection. `NSUserTrackingUsageDescription` Info.plist string mandatory if any SDK accesses IDFA.
+- **Google Play Data Safety + EEA consent**: declared collection must match runtime; missing CMP in EEA can trigger policy strike.
+- **GDPR (EU/EEA/UK)**: tracking EU users without consent = up to EUR 20M ceiling. Realistic indie risk: ad revenue clawback + store removal.
+- **Dead Privacy Policy URL**: both stores reject. Reviewers click it.
 
 ## ATT (iOS 14+)
 
-Required Info.plist key: `NSUserTrackingUsageDescription` — short string explaining the tracking purpose ("We use tracking to deliver more relevant ads"). Without it the ATT prompt never shows and Apple rejects.
+Required Info.plist key: `NSUserTrackingUsageDescription` — short string explaining purpose ("We use tracking to deliver more relevant ads"). Without it the ATT prompt never shows; Apple rejects.
 
 Unity package: `com.unity.ads.ios-support` provides `Unity.Advertisement.IosSupport.ATTrackingStatusBinding` with async `RequestAuthorizationTracking()`.
 
-Status enum values:
+Status enum:
 - `NOT_DETERMINED` (0) — never asked.
-- `RESTRICTED` (1) — parental controls / MDM blocks tracking.
+- `RESTRICTED` (1) — parental controls / MDM.
 - `DENIED` (2) — user said no.
-- `AUTHORIZED` (3) — user said yes; IDFA available.
+- `AUTHORIZED` (3) — IDFA available.
 
 ```csharp
 using Unity.Advertisement.IosSupport;
@@ -45,19 +45,19 @@ if (status == ATTrackingStatusBinding.AuthorizationTrackingStatus.NOT_DETERMINED
 }
 ```
 
-**Timing**: show ATT prompt BEFORE the first ad SDK init and before any analytics that fingerprints. Many studios run a "soft prompt" tutorial frame first ("we use tracking to keep ads relevant; tap Allow on the next dialog") — Apple permits this if it does not pre-bias the user with reward language.
+**Timing**: BEFORE first ad SDK init and before fingerprinting analytics. Soft-prompt tutorial frame first ("we use tracking to keep ads relevant; tap Allow") is permitted if it doesn't pre-bias with reward language.
 
-**Denied / Restricted path**: ad SDKs fall back to SKAdNetwork (SKAN) for attribution — no IDFA. Most networks handle this automatically when they detect Denied; verify in their dashboard the SKAN config is live.
+**Denied/Restricted**: ad SDKs fall back to SKAdNetwork (SKAN) for attribution. Verify SKAN config is live in network dashboards.
 
-## GDPR/CCPA via UMP (Google User Messaging Platform / Funding Choices)
+## GDPR/CCPA via UMP
 
-Most ad networks bundle a UMP-compliant CMP. AppLovin MAX has built-in CMP, LevelPlay uses IronSource Consent Solution, AdMob ships Google UMP. Cross-link unity-ads-mediation.
+Most ad networks bundle a UMP-compliant CMP. AppLovin MAX has built-in CMP, LevelPlay uses IronSource Consent Solution, AdMob ships Google UMP. See `unity-ads-mediation`.
 
-**EU / EEA / UK**: must show consent form (Accept All / Reject All / Configure). Consent string (TCF v2.2) is passed to ad networks. Rejected = limited / contextual ads only — eCPM drops 50-70% but ads still serve.
+**EU / EEA / UK**: must show consent form (Accept All / Reject All / Configure). Consent string (TCF v2.2) passed to ad networks. Rejected = limited / contextual ads only — eCPM drops 50-70% but ads still serve.
 
-**CCPA (California)**: "Do Not Sell My Personal Information" toggle in settings. Opt-out signal sent to ad networks via SDK API.
+**CCPA (California)**: "Do Not Sell My Personal Information" toggle in settings. Opt-out signal sent via SDK API.
 
-Show on first launch in EU. Geo-detect via ad SDK helper or device locale (cheap fallback). Outside EU/CA, no dialog needed.
+Show on first launch in EU. Geo-detect via ad SDK helper or device locale. Outside EU/CA, no dialog.
 
 ```csharp
 using GoogleMobileAds.Ump.Api;
@@ -71,74 +71,74 @@ ConsentInformation.Update(parameters, error => {
 
 ## IAB TCF v2.2 CMPs
 
-Required since Sept 2023 for Google ads in EEA. Most CMP SDKs (OneTrust, Sourcepoint, Quantcast Choice) handle the v2.1 to v2.2 upgrade. If you roll your own consent UI, the consent string must match TCF v2.2 format — do not. Use a vendor CMP.
+Required since Sept 2023 for Google ads in EEA. CMP SDKs (OneTrust, Sourcepoint, Quantcast Choice) handle the v2.1 → v2.2 upgrade. Don't roll your own — use a vendor CMP.
 
 ## COPPA age-gating
 
-Required for apps targeting children (Family category, US under-13). On first launch, age dialog ("Enter year of birth"). If under threshold (<13 US, varies by region):
-- Disable behavioral ads (set Tag For Child Directed Treatment = true in ad SDK).
+Required for Family-category / US under-13 apps. First launch: age dialog ("Enter year of birth"). If under threshold (<13 US, varies by region):
+- Disable behavioral ads (Tag For Child Directed Treatment = true).
 - Disable analytics PII (no user ID, no email).
 - Disable social features (chat, leaderboards with names).
 
-Google Play Families program is stricter — every third-party SDK must be COPPA-certified, or the app cannot ship in Families. Many ad networks won't serve traffic in this mode.
+Google Play Families is stricter — every third-party SDK must be COPPA-certified. Many ad networks won't serve traffic in this mode.
 
 ## Order of operations on first launch
 
-1. Splash + boot scene (cross-link unity-scenes).
+1. Splash + boot scene (`unity-scenes`).
 2. Region detect (ad SDK helper or device locale).
-3. EU/EEA/UK: show CMP consent form. Block boot until dismissed.
+3. EU/EEA/UK: CMP consent form. Block boot until dismissed.
 4. US (and family-eligible): COPPA age gate.
-5. iOS only: ATT prompt. Apple recommends on the first launch where ad value is established, NOT before user understands the app.
-6. Initialize analytics + ad SDKs with consent string and ATT status.
+5. iOS only: ATT prompt. Apple recommends on first launch where ad value is established, NOT before user understands the app.
+6. Initialize analytics + ad SDKs with consent string + ATT status.
 7. Continue to main menu.
 
 ## Data deletion requests
 
 GDPR Article 17 + CCPA + Google Play Data Deletion Policy 2024.
 
-- **In-app**: Settings > "Delete my data" button. Plus email or web URL fallback.
-- **Backend**: receive deletion request, anonymize / delete user record, IAP receipts (legal retention requirements vary — consult counsel; typically retain receipts for tax period), analytics events. Service must process within 30 days.
+- **In-app**: Settings > "Delete my data" + email or web URL fallback.
+- **Backend**: receive request, anonymize/delete user record, IAP receipts (legal retention varies — consult counsel; typically retain receipts for tax period), analytics events. Must process within 30 days.
 - **Apple**: Privacy Policy URL must include data deletion contact.
-- **Google Play (since 2024)**: app must offer in-app deletion OR a public web URL referenced in Play Console listing. Both are fine; pick one and document it.
+- **Google Play (since 2024)**: in-app deletion OR a public web URL referenced in Play Console listing. Either is fine.
 
-**No-backend fallback** for the deletion endpoint: a public web form (Google Form, Tally, Typeform) that emails the team is sufficient for the Google Play listing requirement and Apple Privacy Policy reference. The in-app deletion entry remains best practice but is not strictly required if the URL is provided in the store listings.
+**No-backend fallback**: a public web form (Google Form, Tally, Typeform) emailing the team satisfies the Play listing requirement and Apple Privacy Policy reference. In-app deletion remains best practice.
 
 ## Common patterns
 
-- **`ConsentManager` singleton**: tracks state, persists last-seen consent string in PlayerPrefs (cross-link unity-persistence), passes consent to ad SDKs on init.
-- **Settings "Privacy" section**: re-show CMP, "Delete my data" button, link to Privacy Policy URL, "Do Not Sell" toggle (CCPA).
-- **Region detection via ad SDK**: `MaxSdkUtils.GetSdkConfiguration().ConsentDialogState` or AdMob equivalent — simpler than rolling your own geo IP.
-- **Analytics gating**: every analytics event call routes through `ConsentManager.IsAnalyticsAllowed()` check (cross-link unity-analytics-events).
+- **`ConsentManager` singleton**: tracks state, persists last-seen consent string in PlayerPrefs (`unity-persistence`), passes consent to ad SDKs on init.
+- **Settings "Privacy" section**: re-show CMP, "Delete my data", Privacy Policy URL link, "Do Not Sell" toggle.
+- **Region detection via ad SDK**: `MaxSdkUtils.GetSdkConfiguration().ConsentDialogState` or AdMob equivalent — simpler than rolling your own geo-IP.
+- **Analytics gating**: every analytics call routes through `ConsentManager.IsAnalyticsAllowed()` (`unity-analytics-events`).
 
 ## Gotchas
 
-- Forgetting `NSUserTrackingUsageDescription` in Info.plist = ATT prompt never shows + Apple rejection. Add a post-build hook to assert it (cross-link unity-build, `OnPostprocessBuild`).
-- Showing ATT before user understands the app = 80%+ deny rate. Soft-prompt first.
-- GDPR consent must be granular: Accept All and Reject All buttons EQUALLY prominent. "Reject" cannot be hidden behind a "Manage Settings" submenu — that's a regulator finding waiting to happen.
-- CCPA isn't optional even outside California in 2026 — most studios make "Do Not Sell" globally available in settings to stay safe across state-level laws (Colorado CPA, Virginia VCDPA, etc.).
-- COPPA + Family category: SDKs must be COPPA-certified; many ad networks won't serve traffic in this mode. Plan revenue accordingly.
-- Privacy Policy URL must be live and accurate. App Store reviewers click it. 404 = rejection. Status-200 with stale content (mentions a different app) = rejection.
-- Storing consent in PlayerPrefs is fine; clearing PlayerPrefs (or app uninstall) resets consent — must re-prompt on next launch. Document this for support.
-- SKAN versions: SKAN 4 is the current spec. Ad networks need SKAN 4 conversion value mapping configured in their dashboard or attribution breaks silently.
-- ATT can only be re-prompted via iOS Settings — once the user denies in-app, you cannot re-prompt programmatically. Add a "How to enable tracking" deep link to Settings in your privacy screen.
-- Editor returns mock ATT values — you cannot validate timing in the Editor. Always test on a fresh install on device.
+- Forgetting `NSUserTrackingUsageDescription` = ATT never shows + Apple rejection. Add a post-build hook to assert it (`unity-build`, `OnPostprocessBuild`).
+- ATT before user understands the app = 80%+ deny rate. Soft-prompt first.
+- GDPR consent must be granular: Accept All and Reject All EQUALLY prominent. "Reject" cannot hide behind "Manage Settings".
+- CCPA isn't optional even outside California in 2026 — most studios make "Do Not Sell" globally available (covers Colorado CPA, Virginia VCDPA, etc.).
+- COPPA + Family: SDKs must be COPPA-certified; many ad networks won't serve in this mode. Plan revenue accordingly.
+- Privacy Policy URL must be live and accurate. App Store reviewers click it. 404 = rejection. 200 with stale content = rejection.
+- Storing consent in PlayerPrefs is fine; clearing PlayerPrefs / app uninstall resets consent — must re-prompt. Document for support.
+- SKAN 4 is current spec. Networks need SKAN 4 conversion value mapping in their dashboard or attribution breaks silently.
+- ATT can only be re-prompted via iOS Settings — once denied in-app, no programmatic re-prompt. Add "How to enable tracking" deep link to Settings.
+- Editor returns mock ATT values — cannot validate timing in Editor. Test on fresh install on device.
 
 ## Verification
 
-- **Editor**: ATT API returns mock value; logic paths run but do not exercise the iOS prompt.
-- **iOS device, fresh install**: ATT prompt appears at the right time → status changes from `NOT_DETERMINED` to `AUTHORIZED` / `DENIED`. Verify ad SDK logs the new state.
-- **EU device or VPN**: CMP form appears on first launch. Verify TCF string is set in ad SDK.
-- **LogAssert**: ad SDK logs consent state ("TCF string set", "ATT denied — using SKAN"). Cross-link unity-tests.
-- **Post-build hook**: `OnPostprocessBuild` confirms `NSUserTrackingUsageDescription` is present in Info.plist before archive (cross-link unity-build).
-- **Privacy Policy URL**: HEAD request returns 200, body mentions current app name + data deletion contact.
+- **Editor**: ATT API returns mock; logic paths run but don't exercise iOS prompt.
+- **iOS device, fresh install**: ATT prompt at right time → status changes from `NOT_DETERMINED` to `AUTHORIZED`/`DENIED`. Verify ad SDK logs new state.
+- **EU device or VPN**: CMP form on first launch. Verify TCF string set in ad SDK.
+- **LogAssert**: ad SDK logs consent state ("TCF string set", "ATT denied — using SKAN").
+- **Post-build hook**: `OnPostprocessBuild` confirms `NSUserTrackingUsageDescription` in Info.plist before archive.
+- **Privacy Policy URL**: HEAD returns 200, body mentions current app name + data deletion contact.
 - **Settings flow**: re-open CMP, toggle "Do Not Sell", trigger "Delete my data" → end-to-end through backend.
 
 ## Cross-links
 
-- **unity-privacy-manifests** — paired requirement for App Store; PrivacyInfo.xcprivacy is a separate artifact.
-- **unity-ads-mediation** — consent string and ATT status feed into ad SDKs.
+- **unity-privacy-manifests** — paired ASC requirement; PrivacyInfo.xcprivacy is a separate artifact.
+- **unity-ads-mediation** — consent string + ATT status feed into ad SDKs.
 - **unity-analytics-events** — consent gates every analytics call.
 - **unity-build** — `OnPostprocessBuild` hook verifies Info.plist keys.
-- **unity-persistence** — consent string and CCPA opt-out persist in PlayerPrefs.
+- **unity-persistence** — consent string + CCPA opt-out in PlayerPrefs.
 - **unity-scenes** — boot scene blocks until consent flow completes.
-- **unity-best-practices** — render pipeline / Input System / paradigm rules apply.
+- **unity-best-practices** — paradigm rules apply.

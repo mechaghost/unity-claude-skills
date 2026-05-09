@@ -1,6 +1,6 @@
 ---
 name: unity-anti-cheat-iap-fraud
-description: 'Use when defending a Unity F2P game against cheating, IAP fraud, and tampering — anti-cheat, anticheat, IAP fraud, receipt forgery, jailbroken device, rooted device, root detection, jailbreak detection, EasyAntiCheat, BattlEye, Beebyte, IL2CPP obfuscation, code obfuscation, server-authoritative, server validation, leaderboard fraud, currency fraud, modded client, hacked client, packet sniffing, certificate pinning, anti-tamper, integrity check, signature verification, addressables signing, content catalog signing, hash check. Unity 6+ / 6000.x, URP-only, new Input System only. NOT for IAP basics (use unity-iap), NOT for crash reporting (use unity-crash-reporting).'
+description: 'Use for Unity 6+ anti-cheat/IAP-fraud/tamper defense: server authority, receipt forgery, root/jailbreak checks, obfuscation, leaderboard/currency fraud, modded clients, packet sniffing, cert pinning, signatures, Addressables catalog signing. Not IAP basics.'
 ---
 
 # Unity Anti-Cheat & IAP Fraud Defense

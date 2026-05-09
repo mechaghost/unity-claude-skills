@@ -1,6 +1,6 @@
 ---
 name: unity-push-local-notifications
-description: 'Use when wiring push notifications and local scheduled notifications into a Unity F2P mobile game through Unity MCP — push notification, FCM, Firebase Messaging, APNs, Apple Push Notification, OneSignal, Airship, local notification, scheduled notification, Unity Mobile Notifications, com.unity.mobile.notifications, NotificationManager, AndroidNotificationCenter, iOSNotificationCenter, notification permission, channel, category, payload, deep link from notification, silent push, win-back, retention notification, energy refill notification. Unity 6+ / 6000.x, URP-only, new Input System only. NOT for in-game UI toasts (use unity-ugui), NOT for analytics-driven messaging campaigns (campaign tooling lives in MMP — pair with unity-analytics-events for open-event logging).'
+description: 'Use for Unity 6+ mobile push/local notifications: FCM/APNs/OneSignal/Airship, Unity Mobile Notifications, Android/iOS centers, permissions, channels/categories, payloads, deep links, silent push, scheduled win-back/retention/energy reminders. Not UI toasts.'
 ---
 
 # Unity Push & Local Notifications

@@ -5,174 +5,162 @@ description: 'Use when authoring Unity UGUI through Unity MCP — Canvas, RectTr
 
 ## UGUI vs UI Toolkit
 
-This skill is UGUI (the GameObject-based Canvas / RectTransform stack under `UnityEngine.UI` and `TMPro`). Unity 6 also ships **UI Toolkit** (UITK, package `com.unity.ui`) — a retained-mode UI system based on `UIDocument`, `VisualElement`, USS stylesheets, and UXML. UITK is the future-direction system for editor tooling and a viable runtime UI choice in Unity 6 when no world-space surface is needed. Pick **UGUI** for: World Space canvases, Animator-driven UI states, complex per-Graphic shader effects (custom Image materials, `BaseMeshEffect` chains), and anything that leans on the mature UGUI ecosystem (TMP, DOTween, Unity Ads/IAP prefabs, third-party scroll-pool assets). Pick **UITK** for: dense data-bound lists with virtualization, USS-styled dashboards, editor windows / inspectors, and runtime UI where you do not need a world-space surface. If the user describes a UITK problem (`UIDocument`, `VisualElement`, `UQuery`, USS, UXML), this skill is the wrong file — note the mismatch rather than forcing the request into UGUI.
+This is UGUI (`UnityEngine.UI` + `TMPro`, GameObject-based Canvas/RectTransform). Unity 6 also ships **UI Toolkit** (UITK, `com.unity.ui` — `UIDocument`, `VisualElement`, USS, UXML).
 
-## When to use
+- **UGUI for**: World Space canvases, Animator-driven UI states, custom per-Graphic shader effects (Image materials, `BaseMeshEffect`), TMP/DOTween/IAP-prefab ecosystem.
+- **UITK for**: dense data-bound lists with virtualization, USS dashboards, editor windows, runtime UI without a world-space surface.
 
-The user is building or editing UI under a Canvas: HUDs, menus, dialogs, popups, world-space signage, button hookup, layout containers, dropdown population, text rendering, anchoring/pivoting RectTransforms, sorting issues, masking, or fixing UI input that does not respond. Specialised companions:
+If the request is `UIDocument` / `VisualElement` / `UQuery` / USS / UXML, this is the wrong skill — note the mismatch.
 
-- Rotating a RectTransform: see `unity-ugui-rotation`.
-- Project uses the new Input System package: see `unity-input-system` for the EventSystem swap.
-- World Space canvases sitting in a 3D scene that need camera verification: hand off to `unity-3d-verification`.
+## Companions
 
-For deeper material see `references/layout.md` (layout group quirks) and `references/canvas-scaler.md` (resolution handling).
+- Rotating a RectTransform → `unity-ugui-rotation`.
+- New Input System EventSystem swap → `unity-input-system`.
+- World Space canvas in a 3D scene → `unity-3d-verification` for camera shots.
+- Layout group quirks → `references/layout.md`. Resolution → `references/canvas-scaler.md`. TMP atlases/fallbacks → `references/textmeshpro.md`.
 
 ## Canvas modes
 
-- **Screen Space Overlay**: drawn after everything, no camera needed, ignores 3D depth. Default for HUDs.
-- **Screen Space Camera**: rendered by an assigned camera at a fixed plane distance. Other cameras can render on top. Perspective foreshortens tilted UI; switch the camera to orthographic if foreshortening is unwanted.
-- **World Space**: Canvas is a 3D plane in the scene. For VR, in-world signage, diegetic UI. `RectTransform.sizeDelta` is the canvas size in world units; author at native pixel size (e.g. 1920x1080) and scale the Transform — do not shrink `sizeDelta` to a few units (atlas sampling goes blurry).
-- One Canvas per render mode is the norm. Mixing Overlay and Camera in the same hierarchy without intent breaks sorting expectations.
+- **Screen Space Overlay** — drawn last, no camera, ignores 3D depth. HUD default.
+- **Screen Space Camera** — rendered by an assigned camera at fixed plane distance. Perspective foreshortens tilted UI; switch camera to ortho if not wanted.
+- **World Space** — Canvas is a 3D plane. Author at native pixel size (e.g. 1920×1080) and scale the Transform; do NOT shrink `sizeDelta` to a few units (atlas blurs).
+- One Canvas per render mode. Mixing Overlay + Camera in one hierarchy breaks sorting.
 
 ## RectTransform geometry
 
-The piece everyone gets wrong. Four fields cooperate:
+Four fields cooperate:
 
-- **Anchors (min/max, normalized 0..1 within parent rect)** define how the rect grows when the parent resizes. `(0,0)-(0,0)` pins to the parent's bottom-left corner, `(1,1)-(1,1)` pins to top-right, `(0,0)-(1,1)` stretches to fill.
-- **Anchored Position** is the offset from the anchor reference point to the pivot. When anchors are stretched on an axis, the inspector swaps to `Left`/`Right`/`Top`/`Bottom` offsets on that axis.
-- **Pivot (normalized 0..1 within own rect)** is the local origin used for both position and rotation. `(0.5,0.5)` = center, `(0,0)` = bottom-left, `(0.5,0)` = bottom-center.
-- **Size Delta** with non-stretched anchors IS the rect size in pixels — what you author is what you get. With stretched anchors `sizeDelta` IS the offset from the anchor rect: `sizeDelta.x = -(left + right)`, `sizeDelta.y = -(top + bottom)`. The inspector synthesizes the `Left` / `Right` / `Top` / `Bottom` fields from `offsetMin` and `offsetMax`, which derive from `sizeDelta` and `pivot`. Setting Left/Right in the inspector writes back through to `sizeDelta`, not the other way round.
+- **Anchors** (min/max, 0..1 in parent) — how the rect grows when parent resizes. `(0,0)-(0,0)` pins bottom-left, `(1,1)-(1,1)` pins top-right, `(0,0)-(1,1)` stretches.
+- **Anchored Position** — offset from anchor reference to pivot. Stretched anchors swap to `Left`/`Right`/`Top`/`Bottom`.
+- **Pivot** (0..1 in own rect) — local origin for position AND rotation.
+- **Size Delta** — with non-stretched anchors IS rect pixel size. With stretched anchors IS offset from anchor rect: `sizeDelta.x = -(left + right)`. Inspector synthesizes Left/Right/Top/Bottom from `offsetMin`/`offsetMax`.
 
 Quick rules:
+- Centered fixed HUD: anchors `(0.5,0.5)-(0.5,0.5)`, pivot `(0.5,0.5)`, sizeDelta = pixel size.
+- Full-screen panel: anchors `(0,0)-(1,1)`, all offsets `0`.
+- Top banner: anchors `(0,1)-(1,1)`, pivot `(0.5,1)`, sizeDelta `(0, height)`.
 
-- Centered HUD element of fixed size: anchors `(0.5, 0.5)-(0.5, 0.5)`, pivot `(0.5, 0.5)`, sizeDelta = pixel size.
-- Full-screen panel: anchors `(0,0)-(1,1)`, all four offsets `0`.
-- Top banner full-width with fixed height: anchors `(0,1)-(1,1)`, pivot `(0.5,1)`, sizeDelta `(0, height)`.
+Editor: Alt-click the anchors-preset menu sets anchors + position + pivot in one click.
 
-In the editor, Alt-click the anchors-preset menu to set anchors AND position AND pivot in one click — by far the fastest path for common configs.
-
-Set these fields at edit time through UGUI tooling. For one-off transform writes, write the Transform directly. Prefer `RectTransform.anchoredPosition` over `position`; world position ignores the anchor system.
+Prefer `RectTransform.anchoredPosition` over `position` (world position bypasses anchors).
 
 ## Selectables and widgets
 
-`Selectable` is the shared base class for `Button`, `Toggle`, `Slider`, `Scrollbar`, `InputField` (legacy), `TMP_InputField`, `Dropdown`, `TMP_Dropdown`. `ScrollRect` is related but not a Selectable.
+`Selectable` base for `Button`, `Toggle`, `Slider`, `Scrollbar`, `InputField`, `TMP_InputField`, `Dropdown`, `TMP_Dropdown`. `ScrollRect` is related but not a Selectable.
 
-- **Transition**: None (no visual change), Color Tint (cheapest), Sprite Swap, Animation (Animator-driven). Color Tint is the default for HUD widgets; Animation when hover/press needs richer motion.
-- **Navigation**: Automatic, Horizontal, Vertical, Explicit (manually wire select-on-up/down/left/right). Use Explicit for grid menus to avoid wrong picks.
-- **Button**: `onClick` UnityEvent. Wire by setting the persistent target/method on the component or in code:
-  ```csharp
-  button.onClick.AddListener(() => Debug.Log("clicked"));
-  ```
-- **Slider**: `minValue`, `maxValue`, `value`, `wholeNumbers`, `direction` (LeftToRight, BottomToTop, etc.). No two-handle slider out of the box.
-- **ScrollRect**: needs a `Viewport` (with `Mask` or `RectMask2D`), a `Content` rect that moves, optional `Scrollbar` references. Content's RectTransform size drives whether scrolling happens; if Content is the same size as Viewport there is nothing to scroll.
-- **Dropdown / TMP_Dropdown**: `options` list of label+sprite. `onValueChanged` fires with the selected `int` index.
+- **Transition**: None / Color Tint (cheapest, default) / Sprite Swap / Animation.
+- **Navigation**: Automatic / Horizontal / Vertical / Explicit. Use Explicit for grid menus.
+- **Button** — `onClick` UnityEvent: `button.onClick.AddListener(() => Debug.Log("clicked"));`
+- **Slider** — `minValue`, `maxValue`, `value`, `wholeNumbers`, `direction`. No two-handle out of box.
+- **ScrollRect** — needs `Viewport` (with `Mask`/`RectMask2D`), `Content` rect that moves, optional `Scrollbar`. Content same size as Viewport = nothing scrolls.
+- **Dropdown / TMP_Dropdown** — `options` list (label+sprite), `onValueChanged(int index)`.
 
 ## Layout system
 
-Three layout groups, two fitters, one per-child override:
+Three groups, two fitters, one per-child override:
 
-- **HorizontalLayoutGroup / VerticalLayoutGroup** lay children along an axis. Settings: Padding, Spacing, Child Alignment, Control Child Size (W/H), Use Child Scale, Child Force Expand.
-- **GridLayoutGroup** tiles children with a fixed cell size. Constraint: Flexible / Fixed Column Count / Fixed Row Count.
-- **ContentSizeFitter** auto-resizes the rect from children's preferred sizes. Horizontal Fit / Vertical Fit: Unconstrained / Min Size / Preferred Size.
-- **AspectRatioFitter** locks an aspect ratio. Mode: Width Controls Height / Height Controls Width / Fit In Parent / Envelope Parent.
-- **LayoutElement** overrides per-child min/preferred/flexible W/H. `ignoreLayout = true` opts a child out (use this for floating overlays that sit inside a layout group).
+- **Horizontal/VerticalLayoutGroup** — Padding, Spacing, Child Alignment, Control Child Size, Use Child Scale, Child Force Expand.
+- **GridLayoutGroup** — fixed cell size. Constraint: Flexible / Fixed Column / Fixed Row Count.
+- **ContentSizeFitter** — auto-resize rect from children. Horizontal/Vertical Fit: Unconstrained / Min / Preferred Size.
+- **AspectRatioFitter** — locks ratio. Modes: Width Controls Height / Height Controls Width / Fit In Parent / Envelope Parent.
+- **LayoutElement** — per-child min/preferred/flexible W/H overrides. `ignoreLayout = true` opts out (floating overlays inside a group).
 
-Order of operations: layout group asks children for preferred sizes, ContentSizeFitter resizes the parent from those, then the layout pass repeats. Circular driving (CSF on a parent of a layout group whose child has a layout-driven size) emits "Layout is being rebuilt during a layout rebuild" warnings — break the cycle by fixing one size somewhere. Deeper write-up in `references/layout.md`.
+Order: bottom-up preferred sizes → top-down sizing. CSF on a parent of a layout-driven child = "Layout is being rebuilt during a layout rebuild" cycle. Break by fixing a size. See `references/layout.md`.
 
 ## Text (TextMeshPro)
 
-Prefer TMP for any new UI — better atlas, MSDF rendering, rich text, and shader effects than legacy `Text`.
+Use TMP for new UI — better atlas, MSDF, rich text, shader effects.
 
-- In Unity 6, TextMeshPro is folded into `com.unity.ugui` — there is no separate `com.unity.textmeshpro` package to install. First use of any TMP component still prompts to import TMP Essentials; accept the import. The default font asset and settings land under `Assets/TextMesh Pro/`; do not move that folder.
-- `TextMeshProUGUI` is for UI under a Canvas. `TextMeshPro` (non-UGUI) is for 3D world-space text on a MeshRenderer.
-- TMP project settings live at `Window > TextMeshPro > Settings` and edit a `TMP_Settings` asset under `Assets/TextMesh Pro/Resources/`.
-- Legacy `Text` only autosizes via `BestFit`, which is jagged at runtime resize. Migrate to TMP for any new UI.
+- Unity 6 folds TMP into `com.unity.ugui` — no separate package. First TMP component prompts to import TMP Essentials; accept. Default assets land at `Assets/TextMesh Pro/`; do not move.
+- `TextMeshProUGUI` for Canvas UI; `TextMeshPro` (non-UGUI) for 3D world-space.
+- Settings: `Window > TextMeshPro > Settings` → `TMP_Settings` asset under `Assets/TextMesh Pro/Resources/`.
+- Legacy `Text` only autosizes via jagged `BestFit`. Migrate.
 
-Deeper material — atlas population modes (Static vs Dynamic), fallback chains, SDF tuning, missing-glyph behavior, the full rich-text tag list, RTL / Arabic shaping caveats, `BaseMeshEffect`, material presets, and recovery from poisoned dynamic atlases — lives in `references/textmeshpro.md`.
+Atlas modes (Static vs Dynamic), fallbacks, SDF tuning, missing-glyph, rich-text tags, RTL/Arabic, `BaseMeshEffect`, material presets, dynamic-atlas recovery → `references/textmeshpro.md`.
 
 ## Localization handoff
 
-This skill stops at the layout / TMP-component boundary. Anything translation-related belongs to `unity-localization`:
+Stops at layout/TMP boundary. Translation is `unity-localization`:
 
-- All user-facing strings, `LocalizedString` field bindings on UI components, language switching at runtime.
-- TMP font fallback chains for CJK and emoji, RTL / Arabic shaping with the Arabic Text Plug-in, locale-specific font assets.
-- Plural and gender rules via Smart Format, locale-aware date / number / currency formatting.
-- Per-locale asset variants (sprites, layouts, audio) wired through `LocalizedAsset` and the Localization Tables system.
-
-When the request crosses that boundary — multi-language UI, RTL menus, font fallback, plural copy — consult `unity-localization` and stay in this skill only for the underlying RectTransform / TMP / layout work the localized content sits in.
+- User-facing strings, `LocalizedString` bindings, runtime language switch.
+- TMP CJK/emoji fallback chains, RTL/Arabic shaping, locale-specific font assets.
+- Smart Format plurals/genders, locale-aware date/number/currency.
+- Per-locale asset variants via `LocalizedAsset`.
 
 ## Canvas Scaler and resolution
 
-UI Scale Mode picks how pixel sizes map to physical screens:
+UI Scale Mode:
+- **Constant Pixel Size** — 1 unit = 1 pixel. Editor-only; tiny on 4K.
+- **Scale With Screen Size** — Reference Resolution + Match (Width/Height/0..1 blend). Default `(1920, 1080)` Match `0.5` for adaptive HUDs.
+- **Constant Physical Size** — DPI-based. Niche (tablets where physical button size matters).
 
-- **Constant Pixel Size**: 1 UI unit = 1 pixel always. Editor authoring only — looks tiny on 4K screens.
-- **Scale With Screen Size**: scale relative to a Reference Resolution. Match: Width / Height / 0..1 blend. Default to `(1920, 1080)` and `Match = 0.5` for adaptive HUDs.
-- **Constant Physical Size**: scale by DPI. Niche; for tablets where physical button size matters.
+`Reference Pixels Per Unit` must match sprite import `Pixels Per Unit`. See `references/canvas-scaler.md` for mobile + safe area.
 
-Reference Pixels Per Unit pairs with sprite import `Pixels Per Unit` — mismatch produces wrong scale. See `references/canvas-scaler.md` for mobile patterns and safe-area handling.
-
-**Pixel Perfect**: `Canvas.pixelPerfect` (and the Canvas Scaler's matching toggle) snaps Graphic vertices to integer pixel coordinates after the CanvasScaler scale factor is applied. This eliminates sub-pixel filtering on aligned UI sprites — useful for pixel-art HUDs — but introduces shimmer when UI animates fractional positions (the snap discretizes motion). Leave OFF for tweened HUDs; turn ON only for pixel-art canvases that do not animate.
+**Pixel Perfect** (`Canvas.pixelPerfect` / Canvas Scaler toggle) — snaps Graphic vertices to integer pixels post-scale. Eliminates sub-pixel filtering on aligned UI; introduces shimmer when animating fractional positions. OFF for tweened HUDs; ON for non-animating pixel-art.
 
 ## Sorting and rendering order
 
-- Within one Canvas: sibling order in the hierarchy IS render order. Top of the list draws first (behind), bottom draws last (in front).
-- Multiple Canvases: each has `Sort Order` (int) and `Sorting Layer`. Higher Sort Order renders later (in front).
-- Nested canvases break batching with the parent and have their own Sort Order. Use a nested canvas for any high-frequency-redraw widget (a counter that ticks every frame, an FPS meter) so it does not dirty the static canvas.
-- World Space canvases sort by **Canvas `Sorting Order`** first, then by the **transparent queue + camera distance** rules — NOT like opaque 3D meshes. The default UGUI shader has `ZWrite Off` and renders in the transparent queue, so a world-space UI plane will not write depth and will always sort against opaque geometry by distance, with ties broken by `Sorting Order`. When mixing UI with 3D geometry, expect the UI to draw on top of any nearer transparent surface that has a lower `Sorting Order`, and to be drawn over by opaque geometry that is closer to the camera.
+- One Canvas: hierarchy sibling order = render order. Top of list = behind, bottom = in front.
+- Multiple Canvases: each has `Sort Order` (int) + `Sorting Layer`. Higher Sort Order = in front.
+- Nested canvases break batching with parent + have their own Sort Order. Use for high-frequency-redraw widgets so they don't dirty the static canvas.
+- World Space canvases sort by **Canvas `Sorting Order`** then **transparent queue + camera distance** — NOT like opaque meshes. Default UGUI shader is `ZWrite Off` in transparent queue: world-space UI doesn't write depth, sorts by distance, ties broken by `Sorting Order`. Mixed with 3D: UI draws over nearer transparents with lower `Sorting Order`, drawn over by closer opaques.
 
 ## Masks and clipping
 
-- **RectMask2D**: cheap, rectangular soft-edge clipping using the rect's bounds. Preferred for ScrollRect viewports.
-- **Mask** (Image-based): clips to a `MaskableGraphic` (Image / RawImage / TMP_Text) via the stencil buffer. Required component on the same GameObject is a `MaskableGraphic` — Mask without one does nothing. Supports non-rectangular shapes through the Image alpha.
-- **8-bit stencil ceiling**: the stencil buffer is 8 bits and Unity reserves bits for nesting depth. In practice only ~8 nested `Mask` layers work before stencil bits are exhausted and clipping silently fails. RectMask2D does not consume stencil bits, so prefer it when nesting deep.
-- **`showMaskGraphic = false` does NOT save a draw call**: the masking graphic still has to render to the stencil buffer; the flag only controls whether its color contribution writes to the color buffer.
-- **`MaskableGraphic.maskable = false`** is the escape hatch when a child Graphic should not be clipped by an ancestor `Mask` or `RectMask2D` (for example a tooltip that sits inside a clipped scroll view but visually overflows it).
+- **RectMask2D** — cheap rectangular soft-edge clipping. Preferred for ScrollRect viewports.
+- **Mask** (Image-based) — clips to a `MaskableGraphic` via stencil. Required: a `MaskableGraphic` on the same GO. Supports non-rectangular shapes via Image alpha.
+- **Stencil 8-bit ceiling** — Unity reserves bits for nesting; only ~8 nested `Mask` layers before clipping silently fails. RectMask2D doesn't consume stencil — prefer when nesting deep.
+- **`showMaskGraphic = false` does NOT save a draw call** — masking graphic still writes stencil; flag controls only color contribution.
+- **`MaskableGraphic.maskable = false`** — escape hatch when a child shouldn't be clipped (tooltip overflowing a scroll view).
 - Both break batching at the mask boundary. Keep masked content modest.
 - Rotated masked content has caveats — see `unity-ugui-rotation`.
 
 ## EventSystem and input
 
-One `EventSystem` per scene; UI input does not work without it.
+One `EventSystem` per scene; UI input dies without it.
 
-- **Standalone Input Module**: legacy, reads via `Input.GetAxis("Horizontal")`. This skill set assumes the new Input System, so this module is out of scope — replace it with the Input System UI Input Module when porting older scenes.
-- **Input System UI Input Module**: the only supported module under this skill set. Required because Project Settings > Active Input Handling is `Input System Package (New)`. Cross-link `unity-input-system` for the swap and the action asset wiring.
-- **Graphic Raycaster** is required on every Canvas that should receive pointer events. World Space canvases also need an `Event Camera` reference, otherwise no clicks register.
+- **Standalone Input Module** — legacy (`Input.GetAxis`); out of scope. Replace with Input System UI Input Module on porting.
+- **Input System UI Input Module** — only supported. Required because Active Input Handling = New. See `unity-input-system`.
+- **Graphic Raycaster** required on every Canvas receiving pointer events. World Space also needs `Event Camera`.
 - **GraphicRaycaster settings**:
-  - `ignoreReversedGraphics`: when ON (default), Graphics whose normal points away from the camera (rotated past 90 degrees) are ignored. Turn OFF for double-sided world-space UI.
-  - `blockingObjects`: which non-UI objects block raycasts before they reach the canvas — `None`, `TwoD` (2D colliders), `ThreeD` (3D colliders), `All`. Set to `ThreeD` or `All` when 3D world geometry should occlude clicks on a world-space canvas.
-  - `blockingMask`: layer mask filter applied on top of `blockingObjects`. Combined with `blockingObjects = ThreeD`, this is how you let only specific layers (e.g. `Default`, `Walls`) occlude UI clicks while other 3D layers (e.g. effects, debug gizmos) pass through.
-- Pointer events: implement on a MonoBehaviour attached to the UI element to receive callbacks. Pointer/drag handlers — `IPointerEnterHandler`, `IPointerExitHandler`, `IPointerClickHandler`, `IPointerDownHandler`, `IPointerUpHandler`, `IBeginDragHandler`, `IDragHandler`, `IEndDragHandler`, `IInitializePotentialDragHandler` (fires when a press could become a drag, before the threshold is crossed — use to prime drag state), `IDropHandler` (fires on the target the pointer is over when a drag ends), `IScrollHandler`. Submit/select handlers (driven by EventSystem navigation, not the mouse) — `ISubmitHandler`, `ICancelHandler`, `IMoveHandler`, `ISelectHandler`, `IDeselectHandler`, `IUpdateSelectedHandler` (fires every frame the GameObject is the EventSystem's selected object).
+  - `ignoreReversedGraphics` (default ON) — Graphics whose normal points away from camera are ignored. OFF for double-sided world-space UI.
+  - `blockingObjects` — `None` / `TwoD` / `ThreeD` / `All`. Set ThreeD/All when 3D geometry should occlude clicks on world-space canvas.
+  - `blockingMask` — layer filter on top of `blockingObjects`. Combine to allow only specific layers to occlude UI clicks.
+- Pointer/drag handlers: `IPointerEnter/Exit/Click/Down/UpHandler`, `IBeginDrag/Drag/EndDragHandler`, `IInitializePotentialDragHandler` (press could become drag, before threshold), `IDropHandler` (target the pointer is over at drag end), `IScrollHandler`.
+- Submit/select handlers (EventSystem nav, not mouse): `ISubmit/CancelHandler`, `IMoveHandler`, `ISelect/DeselectHandler`, `IUpdateSelectedHandler` (every frame while selected).
 
 ## Performance
 
-- A Canvas re-batches whenever ANY of its Graphics changes (vertex, color, text). Animated widgets should live on their own nested Canvas so they do not dirty the static content.
-- An FPS counter on a busy HUD canvas re-batches the entire HUD every frame. Put it on a nested Canvas of its own.
-- **Nested Canvas cost model**: a nested Canvas does NOT save draw calls — it adds a draw call boundary, because batching does not cross Canvas boundaries. The actual win is **isolating dirty propagation**: changes inside the nested Canvas do not force the parent Canvas to rebuild its mesh, and vice versa. Use nested Canvases on high-frequency-redraw widgets (timers, counters, animated gauges) to keep the static parent clean, accepting the extra draw call as the cost of isolation.
-- Set `Raycast Target = false` on every non-interactive Image and Text. The graphic raycaster is O(N) per pointer event over every Graphic with `raycastTarget = true` on the canvas. On a 200-Graphic canvas, switching the 180 non-interactive ones to `raycastTarget = false` routinely halves the frame time spent inside `EventSystem.Update` during continuous pointer movement (drag, hover, touch).
-- Toggling visibility: `CanvasGroup.alpha = 0` + `interactable = false` + `blocksRaycasts = false` does NOT make the panel free. Graphics under it still rebuild geometry when their fields change, and pointer raycasts still walk them unless `blocksRaycasts = false` is set explicitly. The real win over `SetActive(false)` is avoiding `OnEnable`/`OnDisable` churn and the layout rebuild that fires on re-show — use it for panels you toggle frequently. Use `SetActive(false)` for panels that stay hidden long enough that the OnDisable path is cheaper than keeping the subtree resident.
-- **`Image.Type = Filled`** re-tessellates the Image mesh every frame `fillAmount` changes — this is the #1 hot-path pitfall for radial cooldown UIs. A 60 Hz cooldown wheel rebuilds the mesh 60 times per second AND dirties the parent Canvas. Put filled cooldown wheels on their own nested Canvas, and prefer a shader-driven radial fill (uv-angle vs `_FillAmount`) when many cooldowns animate at once.
-- Coalesce draws with sprite atlases (`Window > 2D > Sprite Atlas`). Authored atlases support **variant atlases** — a Master atlas with a child Variant that re-uses the same sprite list at a different scale (e.g. 1.0 master + 0.5 variant) so quality tier can swap atlases at runtime without changing references. **Late binding**: subscribe to `SpriteAtlasManager.atlasRequested` to load atlases on demand (e.g. from Addressables) when a sprite first resolves; the loaded atlas is then cached for the session. `SpriteAtlasManager.atlasRegistered` notifies after registration. Use this combo for localized art swaps and quality-tier sprite swap without baking every variant into the build.
-- **Canvas update phases**: `CanvasUpdateRegistry` runs registered `ICanvasElement.Rebuild(CanvasUpdate phase)` callbacks in five phases each frame: **PreLayout → Layout → PostLayout → PreRender → LatePreRender**. Layout groups and ContentSizeFitter participate in the layout phases; Graphics rebuild meshes in PreRender. Hooks: `Canvas.willRenderCanvases` fires after PreRender / before render, `Canvas.preWillRenderCanvases` fires earlier — useful for one-frame layout corrections. `LayoutRebuilder.ForceRebuildLayoutImmediate(rect)` walks up the parents chain to find the topmost rect that drives the passed child and runs ONLY the layout phase on that subtree; it does NOT rebuild Graphics meshes and is not the same as `Canvas.ForceUpdateCanvases()`, which fires the full registry across every Canvas.
-- **`GraphicRebuildTracker`** (editor-only, `UnityEditor.UI.GraphicRebuildTracker`) is the hook for profiling which Graphic dirties a Canvas. Enable it during a Profiler capture to see Graphic-level rebuild causes — far easier than guessing from Canvas.BuildBatch frame samples.
-- `Canvas.ForceUpdateCanvases()` is a sledgehammer; calling every frame causes layout thrash. Only after a batch of runtime UI changes when sizes must be read immediately.
+- A Canvas re-batches when ANY Graphic changes (vertex, color, text). Animated widgets → own nested Canvas.
+- An FPS counter on a busy HUD canvas re-batches the whole HUD every frame. Nested Canvas.
+- **Nested Canvas cost model**: does NOT save draw calls (batching doesn't cross Canvas boundaries) — adds a draw call boundary. The win is **dirty-propagation isolation**: nested changes don't force parent rebuild, vice versa. Use for high-frequency widgets (timers, counters, gauges); accept the extra draw call.
+- Set `Raycast Target = false` on every non-interactive Image/Text. Graphic raycaster is O(N) per pointer event over all `raycastTarget = true` Graphics. On a 200-Graphic canvas, switching 180 to false routinely halves frame time in `EventSystem.Update` during continuous pointer movement.
+- `CanvasGroup.alpha = 0` + `interactable = false` + `blocksRaycasts = false` does NOT make a panel free. Graphics rebuild on field changes; pointer raycasts walk them unless `blocksRaycasts = false`. Win over `SetActive(false)` is avoiding `OnEnable`/`OnDisable` churn + show-time layout rebuild — use for frequent toggles. `SetActive(false)` for long-hidden panels.
+- **`Image.Type = Filled`** re-tessellates mesh every frame `fillAmount` changes — #1 hot-path for radial cooldowns. 60 Hz cooldown wheel rebuilds 60×/sec AND dirties parent Canvas. Put on nested Canvas, prefer shader-driven radial fill (uv-angle vs `_FillAmount`) when many cooldowns animate.
+- Coalesce with Sprite Atlases (`Window > 2D > Sprite Atlas`). **Variant atlases** — Master + child Variant at different scale (1.0 + 0.5) so quality tier swaps atlases without changing references. **Late binding** — `SpriteAtlasManager.atlasRequested` loads on demand (e.g. Addressables); cached for session. `SpriteAtlasManager.atlasRegistered` fires after registration. Use for localized art swaps and quality-tier swaps without baking every variant.
+- **Canvas update phases**: `CanvasUpdateRegistry` runs `ICanvasElement.Rebuild(CanvasUpdate phase)` in five phases: PreLayout → Layout → PostLayout → PreRender → LatePreRender. Layout groups + CSF run in layout phases; Graphics rebuild meshes in PreRender. Hooks: `Canvas.willRenderCanvases` (after PreRender, before render), `Canvas.preWillRenderCanvases` (earlier) — useful for one-frame layout corrections. `LayoutRebuilder.ForceRebuildLayoutImmediate(rect)` walks parents to topmost driving rect, runs ONLY layout phase on that subtree; does NOT rebuild Graphics meshes (different from `Canvas.ForceUpdateCanvases()`, which fires the full registry on every Canvas).
+- **`UnityEditor.UI.GraphicRebuildTracker`** (editor-only) profiles which Graphic dirties a Canvas. Enable during Profiler capture for Graphic-level rebuild causes.
+- `Canvas.ForceUpdateCanvases()` is a sledgehammer; per-frame = thrash. Use only after a runtime UI batch when sizes must be read immediately.
 
 ## Common patterns
 
 ### Modal dialog
-
-Full-screen Image with semi-transparent fill (Raycast Target ON, swallows clicks behind), child Panel with content, close Button.
+Full-screen Image semi-transparent fill (Raycast Target ON, swallows clicks), child Panel, close Button.
 
 ### Health bar (Image fill)
-
 ```csharp
 public Image fill; // Image.Type = Filled, Fill Method = Horizontal
 public void Set(float pct) { fill.fillAmount = Mathf.Clamp01(pct); }
 ```
-
-Or two stacked Images (background + foreground rect with a stretch anchor and a tweened sizeDelta.x).
+Or two stacked Images (background + foreground rect with stretch anchor + tweened sizeDelta.x).
 
 ### Tabs
-
-A `ToggleGroup` with one `Toggle` per tab. Each tab's `onValueChanged` toggles the matching content panel via `SetActive` or `CanvasGroup`.
+`ToggleGroup` + one `Toggle` per tab. Each tab's `onValueChanged` toggles content via `SetActive` or `CanvasGroup`.
 
 ### Pop-in
-
-Animator on the panel with Idle/In/Out states, parameter-driven. Or DOTween for code-driven scale/alpha tweens.
+Animator on panel with Idle/In/Out states, parameter-driven. Or DOTween for code-driven.
 
 ### Safe area (notches)
-
-Sample `Screen.safeArea` and rewrite a top RectTransform's anchors each frame or on orientation change.
-
 ```csharp
 using UnityEngine;
 [RequireComponent(typeof(RectTransform))]
@@ -198,41 +186,35 @@ public class SafeAreaFitter : MonoBehaviour {
     }
 }
 ```
-
-Attach to a top-level RectTransform that wraps your HUD content. The reference file (`references/canvas-scaler.md`) can keep a deeper variant for orientation-change handling.
+Attach to a top-level RectTransform wrapping HUD content. Deeper orientation handling in `references/canvas-scaler.md`.
 
 ### Tooltip near a 3D point
-
-Convert world to screen, then screen to local-rect:
-
 ```csharp
 Vector2 screen = RectTransformUtility.WorldToScreenPoint(uiCamera, worldPos);
 RectTransformUtility.ScreenPointToLocalPointInRectangle(parentRect, screen, uiCamera, out Vector2 local);
 tooltip.anchoredPosition = local;
 ```
-
-For Overlay canvases pass `null` as the camera.
+Overlay canvases: pass `null` as camera.
 
 ### Long scroll list
-
-Pool N visible items in a ScrollRect and reposition them as the user scrolls instead of instantiating thousands of children. Use a community asset (LoopScrollRect-style) or roll your own with `Content.anchoredPosition` + a recycle threshold.
+Pool N visible items in a ScrollRect; reposition as user scrolls instead of instantiating thousands. LoopScrollRect-style asset, or roll your own with `Content.anchoredPosition` + recycle threshold.
 
 ## Gotchas
 
-- **Anchors vs pivot**: anchors define how the rect grows with its parent; pivot defines the local origin for position AND rotation. If something rotates around the wrong point, fix the pivot, not the anchor.
-- **anchoredPosition vs position**: writing `RectTransform.position` (world) bypasses the anchor system. Prefer `anchoredPosition` for UI math.
-- **World Space Canvas authoring**: small `sizeDelta` (e.g. 2 units) plus a 100x Transform scale gives blurry text and broken atlas sampling. Author at native pixel size (1920x1080) and scale the Transform.
-- **Layout cycle warning**: "Layout is being rebuilt during a layout rebuild" = ContentSizeFitter on a parent that drives children that drive its size. Break the cycle with a fixed size somewhere.
-- **Mixing input systems**: this skill set assumes the new Input System exclusively. A leftover Standalone Input Module on the EventSystem will double-fire or swallow events when paired with the Input System UI Input Module — delete the Standalone module. See `unity-input-system`.
-- **Missing Graphic Raycaster** on a Canvas = no clicks. World Space additionally needs `Event Camera` set.
-- **Legacy `Text`**: no clean autosize. Migrate to TMP for any new UI.
-- **TMP Essentials import**: first use of any TMP component prompts an import. Run it; do not move the resulting `Assets/TextMesh Pro/` folder.
-- **ScrollRect that does not clip**: viewport is missing a `RectMask2D` (or `Mask`), or Content's pivot/sizeDelta is not configured to drive the scroll axis.
-- **Rotated content under a layout group, mask, or fitter**: see `unity-ugui-rotation` — those components ignore rotation.
+- **Anchors vs pivot** — anchors = how rect grows; pivot = local origin for position AND rotation. Wrong rotation point = pivot.
+- **anchoredPosition vs position** — `RectTransform.position` (world) bypasses anchors. Use `anchoredPosition`.
+- **World Space Canvas authoring** — small `sizeDelta` (e.g. 2 units) + 100× Transform scale = blurry text + broken atlas sampling. Author at native pixel size, scale the Transform.
+- **Layout cycle warning** — "Layout is being rebuilt during a layout rebuild" = ContentSizeFitter on a parent driving children that drive its size. Fix one size somewhere.
+- **Mixing input systems** — leftover Standalone Input Module + Input System UI Input Module = double-fire/swallow. Delete Standalone. See `unity-input-system`.
+- **Missing Graphic Raycaster** = no clicks. World Space also needs `Event Camera`.
+- **Legacy `Text`** — no clean autosize. Migrate to TMP.
+- **TMP Essentials import** — first TMP component prompts; run, don't move `Assets/TextMesh Pro/`.
+- **ScrollRect doesn't clip** — viewport missing `RectMask2D`/`Mask`, or Content's pivot/sizeDelta wrong on the scroll axis.
+- **Rotated content under layout group, mask, or fitter** — those ignore rotation. See `unity-ugui-rotation`.
 
 ## Verification
 
-- Game-view screenshot at the project's reference resolution AND at one off-target resolution (e.g. 1920x1080 reference + a 1080x1920 portrait test) to catch anchor breakage.
-- For world-space canvases sitting in a 3D scene, hand off to `unity-3d-verification` for the four-shot orthographic capture.
-- Editor console clean of: layout cycle warnings, missing-EventSystem warnings, TMP Essentials nags, Graphic Raycaster errors.
-- For interactive flows, reflect on the live components to confirm `Selectable.interactable` matches intent and `Button.onClick` listener count is greater than zero.
+- Game-view screenshot at reference resolution AND one off-target (e.g. 1920×1080 + 1080×1920 portrait) to catch anchor breakage.
+- World-space canvases in 3D scenes → `unity-3d-verification` for 4-shot orthographic.
+- Editor console clean of: layout cycle warnings, missing-EventSystem, TMP Essentials nags, Graphic Raycaster errors.
+- Interactive flows: reflect on live components — `Selectable.interactable` matches intent, `Button.onClick` listener count > 0.

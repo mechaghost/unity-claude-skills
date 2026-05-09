@@ -1,6 +1,6 @@
 ---
 name: unity-cloud-save-conflict
-description: 'Use when wiring cloud-save sync, schema migration, and conflict resolution in Unity through Unity MCP — cloud save, cloud sync, Steam Cloud, iCloud, Google Play Saved Games, Unity Cloud Save, Firebase Realtime Database, Firestore, save conflict, conflict resolution, last writer wins, vector clock, schema migration, cloud schema, save migration, save versioning, sync save, save merge, save reconcile, three-way merge, server timestamp. Complements unity-persistence (local saves) and unity-auth-account-linking (the user identity behind cloud saves). Unity 6+ / 6000.x, URP-only, new Input System only.'
+description: 'Use for Unity 6+ cloud-save sync and conflicts: Steam Cloud, iCloud, Google Play Saved Games, Unity Cloud Save, Firebase, schema/version migration, last-writer/vector-clock/three-way merge, server timestamps. Complements persistence and auth.'
 ---
 
 ## When to use

@@ -1,34 +1,30 @@
 ---
 name: unity-ci
-description: 'Use when wiring CI/CD orchestration around a Unity project — CI, CD, CI/CD, continuous integration, continuous delivery, GitHub Actions, GameCI, game-ci, unity-builder, unity-test-runner, Unity Cloud Build, UCB, Jenkins, GitLab CI, Bitbucket Pipelines, headless build, batchmode, -batchmode, -executeMethod, -runTests, license activation, ULF, Unity license, return-license, build agent, build runner, build matrix, secrets management, GitHub Secrets, fastlane match, signing CI, P12, P8 secret, keystore CI, build cache, asset cache, Library cache, accelerator, Unity Accelerator, build report parsing, BuildReport, artifact upload, slack notification, build notification, .github/workflows, ci.yml. Unity 6+ / 6000.x / URP-only / new Input System only. NOT for build pipeline mechanics (use unity-build), NOT for store submission (use unity-store-shipping-pipeline), NOT for test authoring (use unity-tests).'
+description: 'Use for Unity 6+ CI/CD: GitHub Actions/GameCI/Unity Cloud Build/Jenkins/GitLab, batchmode builds/tests, license activation, secrets/signing, Library/cache/Accelerator, BuildReport parsing, artifacts, notifications. Not build scripts, store submission, or test authoring.'
 ---
 
 ## When to use
 
-Any time a Unity project needs to build outside a developer's local machine: setting up GitHub Actions / GameCI / Unity Cloud Build / Jenkins, activating Unity licenses on a runner, wiring keystores and signing certs into CI secrets, configuring a build matrix across platforms, caching `Library/`, hooking fastlane lanes after a build, parsing `BuildReport` in CI, or sending build notifications. Read `unity-best-practices` first. Cross-link `unity-build` (build pipeline mechanics), `unity-store-shipping-pipeline` (fastlane lanes + store APIs), `unity-tests` (test authoring), `unity-vcs` (LFS in CI, .gitignore, secrets hygiene), `unity-crash-reporting` (symbol upload as a CI step).
-
-## Why distinct skill
-
-`unity-build` knows how to call `BuildPipeline.BuildPlayer` and configure `PlayerSettings`. `unity-store-shipping-pipeline` knows fastlane lanes and store APIs. `unity-tests` knows how to author EditMode/PlayMode tests. The connective tissue — runner setup, license activation, secret handoff, cache strategy, matrix builds, notifications — has no home in those skills and is consistently the largest gap for teams setting up CI for the first time. This skill owns that tissue.
+GitHub Actions / GameCI / Unity Cloud Build / Jenkins setup, Unity license activation on a runner, keystores and signing certs in CI secrets, build matrix across platforms, caching `Library/`, hooking fastlane lanes after a build, parsing `BuildReport`, build notifications. See `unity-build` (build mechanics), `unity-store-shipping-pipeline` (fastlane + store APIs), `unity-tests` (test authoring), `unity-vcs` (LFS in CI, secrets hygiene), `unity-crash-reporting` (symbol upload step).
 
 ## Pick a runner
 
-- **GitHub Actions + GameCI** (`game-ci/unity-builder`, `game-ci/unity-test-runner`) — most popular for indie / mid-size studios. Dockerized Unity images per version, free tier 2000 min/month for public repos, paid runners for self-hosted speed. Default pick.
-- **Unity Cloud Build (UCB / Unity DevOps)** — hosted by Unity, simplest setup, integrates with Plastic SCM well; cost scales with build minutes. Good if your team already pays for Unity DevOps.
-- **Self-hosted GitHub runners / Jenkins** — faster builds (Library cache stays warm), required for macOS/iOS at scale (~10+ Mac builds/day) because GitHub-hosted Mac minutes are 10x Linux pricing. Operational overhead is real.
-- **GitLab CI / Bitbucket Pipelines** — similar Docker-image patterns to GameCI; less Unity ecosystem support. Use when your team is already committed to that platform.
+- **GitHub Actions + GameCI** (`game-ci/unity-builder`, `game-ci/unity-test-runner`) — most popular for indie/mid. Dockerized Unity images per version, free tier 2000 min/month for public repos, paid/self-hosted runners for speed. Default pick.
+- **Unity Cloud Build (UCB / Unity DevOps)** — hosted by Unity, simplest setup, integrates with Plastic SCM. Cost scales with build minutes. Good if already paying for Unity DevOps.
+- **Self-hosted GitHub runners / Jenkins** — faster (warm Library cache), required for macOS/iOS at scale (~10+ Mac builds/day) — GitHub-hosted Mac is 10x Linux pricing. Operational overhead is real.
+- **GitLab CI / Bitbucket Pipelines** — similar Docker patterns; less Unity ecosystem. Use when committed to that platform.
 
 ## Unity license activation
 
-The most-painful step for first-time CI setups.
+Most-painful step for first-time CI.
 
-- **Personal license** — free, machine-bound. Activate via `-username/-password` (legacy) or `-manualLicenseFile` (.ulf) for the current Unity Hub flow. GameCI handles this with `UNITY_EMAIL`, `UNITY_PASSWORD`, `UNITY_SERIAL` secrets.
-- **Plus / Pro / Enterprise** — serial-based; activate at start of build, return at end (`-returnlicense`). Skipping the return = floating-license drift; eventually CI runs hit `no licenses available` and fail until you manually return seats.
-- **Floating license server** (Enterprise only) — runner checks out license, returns on completion. Best for teams of >5 builders.
+- **Personal license** — free, machine-bound. Activate via `-username/-password` (legacy) or `-manualLicenseFile` (.ulf). GameCI uses `UNITY_EMAIL`, `UNITY_PASSWORD`, `UNITY_SERIAL` secrets.
+- **Plus / Pro / Enterprise** — serial-based; activate at start, return at end (`-returnlicense`). Skip the return = floating-license drift; CI eventually hits `no licenses available` until you manually return seats.
+- **Floating license server** (Enterprise only) — runner checks out, returns on completion. Best for >5 builders.
 
 ## GitHub Actions + GameCI
 
-Boilerplate for an Android build job:
+Android build job:
 
 ```yaml
 jobs:
@@ -64,7 +60,7 @@ jobs:
 
 ## Build matrix per platform
 
-Split jobs by `targetPlatform: [Android, iOS, WebGL, StandaloneWindows64, StandaloneOSX]`. Mac runners are required for iOS and StandaloneOSX. Each platform gets its own job and its own scoped secrets. Don't try to build everything in one job — failures in one target block all the others.
+Split jobs by `targetPlatform: [Android, iOS, WebGL, StandaloneWindows64, StandaloneOSX]`. Mac runners required for iOS and StandaloneOSX. Each platform gets its own job and scoped secrets. Don't build everything in one job — failures in one block all the others.
 
 ```yaml
 strategy:
@@ -75,7 +71,7 @@ strategy:
 
 ## Test runs in CI
 
-Run a separate job using `game-ci/unity-test-runner` with `testMode: editmode` and `testMode: playmode`. Headless flag form: `-batchmode -runTests -testPlatform editmode -testResults results.xml -quit`. Parse `results.xml` in CI; fail the build on any test failure. Cross-link `unity-tests` for what to put inside the tests.
+Separate job using `game-ci/unity-test-runner` with `testMode: editmode` and `testMode: playmode`. Headless: `-batchmode -runTests -testPlatform editmode -testResults results.xml -quit`. Parse `results.xml`; fail on any test failure. See `unity-tests`.
 
 ```yaml
 - uses: game-ci/unity-test-runner@v4
@@ -87,10 +83,10 @@ Run a separate job using `game-ci/unity-test-runner` with `testMode: editmode` a
 
 ## Signing secrets management
 
-- **iOS** — `.p12` cert + provisioning profile + App Store Connect API key (`.p8`). Store as base64-encoded GitHub secrets; decode at runtime on the runner.
+- **iOS** — `.p12` cert + provisioning profile + App Store Connect API key (`.p8`). Base64-encode as GitHub secrets; decode on the runner.
 - **Android** — keystore (`.jks`) base64-encoded; key alias + passwords as separate secrets.
-- **fastlane match** (recommended for iOS) — a private git repo holds encrypted certs / profiles; `match` decrypts on the CI runner using a `MATCH_PASSWORD` secret. Eliminates code-signing drift across machines and CI. Cross-link `unity-store-shipping-pipeline`.
-- **Never commit secrets**. Cross-link `unity-vcs` for `.gitignore` / `.gitattributes` rules that keep keystores and `.p12` files out of git.
+- **fastlane match** (recommended for iOS) — private git repo holds encrypted certs/profiles; `match` decrypts on CI using `MATCH_PASSWORD`. Eliminates code-signing drift. See `unity-store-shipping-pipeline`.
+- **Never commit secrets**. See `unity-vcs` for `.gitignore`/`.gitattributes` rules.
 
 ### Generating and encoding secrets
 
@@ -103,19 +99,19 @@ base64 -w 0 my.keystore           # Linux
 echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > my.keystore
 
 # iOS .p8 from App Store Connect:
-# Users and Access > Keys > tap "+" > download once (irretrievable after).
-# Then base64 -i AuthKey_XXX.p8 | pbcopy
+# Users and Access > Keys > "+" > download once (irretrievable after).
+# base64 -i AuthKey_XXX.p8 | pbcopy
 
 # fastlane match Personal Access Token:
-# GitHub > Settings > Developer settings > Personal access tokens > generate new (repo scope)
+# GitHub > Settings > Developer settings > Personal access tokens > generate (repo scope)
 # Pass to fastlane as MATCH_PASSWORD env var.
 ```
 
-**Unity Personal license activation**: GameCI Personal license workflow: leave `UNITY_SERIAL` blank or omit; GameCI auto-runs `-createManualActivationFile` on first run, generates `.alf`, you upload to license.unity3d.com, get a `.ulf` file, paste contents into a `UNITY_LICENSE` secret. Pro/Enterprise: set `UNITY_EMAIL`, `UNITY_PASSWORD`, `UNITY_SERIAL` directly.
+**Unity Personal license activation** — GameCI: leave `UNITY_SERIAL` blank or omit; GameCI auto-runs `-createManualActivationFile` first run, generates `.alf`, you upload to license.unity3d.com, get a `.ulf`, paste contents into a `UNITY_LICENSE` secret. Pro/Enterprise: set `UNITY_EMAIL`, `UNITY_PASSWORD`, `UNITY_SERIAL` directly.
 
 ## fastlane orchestration
 
-After the Unity build step succeeds, call a fastlane lane to ship the artifact:
+After Unity build succeeds, call a fastlane lane to ship:
 
 ```yaml
 - name: Upload to Play Internal
@@ -124,23 +120,23 @@ After the Unity build step succeeds, call a fastlane lane to ship the artifact:
     SUPPLY_JSON_KEY_DATA: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
 ```
 
-Lane definitions live in `fastlane/Fastfile`. Cross-link `unity-store-shipping-pipeline` for the lane content (`pilot`, `supply`, `match`, `deliver`, `gym`).
+Lanes live in `fastlane/Fastfile`. See `unity-store-shipping-pipeline` for lane content (`pilot`, `supply`, `match`, `deliver`, `gym`).
 
 ## Library / asset cache strategy
 
-`Library/` rebuilds are 5-30 minutes per fresh build. Cache it.
+`Library/` rebuilds take 5–30 min. Cache it.
 
-- **GitHub Actions cache key**: `Library-${platform}-${hash(Assets, Packages, ProjectSettings)}`. The `restore-keys` fall through to the most-recent platform cache when an exact match isn't found.
-- **What NOT to cache**: `Logs/`, `MemoryCaptures/`, `Builds/`, `UserSettings/`, `Temp/`. These pollute the cache and slow restores.
-- **Cache poisoning warning** — if your hash key doesn't include a relevant input (e.g. a custom `.csproj.template`, a code generator script), `Library/` can drift from sources. Symptoms: "asset failed to import" on cached runs but works fresh. Bust the cache by changing the key prefix.
+- **GitHub Actions cache key**: `Library-${platform}-${hash(Assets, Packages, ProjectSettings)}`. `restore-keys` fall through to the most-recent platform cache.
+- **Don't cache**: `Logs/`, `MemoryCaptures/`, `Builds/`, `UserSettings/`, `Temp/`.
+- **Cache poisoning** — if hash key doesn't include a relevant input (custom `.csproj.template`, code generator), `Library/` drifts from sources. Symptom: "asset failed to import" on cached runs but works fresh. Bust by changing the key prefix.
 
 ## Unity Accelerator
 
-Shared cache server for asset import results. Speeds cold builds dramatically (5x+ for art-heavy projects). Self-hosted Docker container; configure via `Edit > Preferences > Asset Pipeline > Cache Server` (or its v2 equivalent in Unity 6). Worth it for teams of 3+, effectively required for any build farm.
+Shared cache server for asset import results. 5x+ speedup on art-heavy projects. Self-hosted Docker; configure via `Edit > Preferences > Asset Pipeline > Cache Server`. Worth it for 3+ teams, effectively required for any build farm.
 
 ## BuildReport parsing in CI
 
-In your Editor build script, write the `BuildReport` to JSON. CI uploads the JSON as an artifact and posts a size summary to Slack — catch unintended size growth before ship rather than after a TestFlight upload.
+Write `BuildReport` to JSON in your Editor build script. CI uploads as artifact and posts a size summary to Slack — catch unintended size growth before ship.
 
 ```csharp
 var report = BuildPipeline.BuildPlayer(opts);
@@ -152,41 +148,41 @@ var json = JsonUtility.ToJson(new BuildSummary {
 File.WriteAllText("build-report.json", json);
 ```
 
-Cross-link `unity-build` for the full `BuildReport` schema.
+Full schema: `unity-build`.
 
 ## Notifications and dashboards
 
-- **Slack / Discord webhook** on build success/failure with the `.aab` / `.ipa` download link.
-- **PR comment** with test result summary via `dorny/test-reporter` or similar.
-- **Daily digest** job posts crash-free %, build size delta, test coverage to a team channel. Cross-link `unity-crash-reporting`.
+- **Slack/Discord webhook** on build success/failure with `.aab`/`.ipa` link.
+- **PR comment** with test result summary via `dorny/test-reporter`.
+- **Daily digest** job posts crash-free %, build size delta, test coverage. See `unity-crash-reporting`.
 
 ## Common patterns
 
-- **PR builds** — dev-flavor build, run tests, post summary as a PR comment. Don't upload to TestFlight on PRs.
-- **Main-merge builds** — prod-flavor build, run tests, upload to TestFlight + Play Internal Testing automatically.
-- **Tag builds** (`v1.2.3`) — prod build, upload to App Store Connect / Play Store production track with phased rollout.
-- **Nightly builds** — full clean `Library/`, run all tests including expensive ones, baseline crash test on a real device farm.
+- **PR builds** — dev flavor, tests, summary PR comment. Don't upload to TestFlight on PRs.
+- **Main-merge builds** — prod flavor, tests, auto-upload to TestFlight + Play Internal.
+- **Tag builds** (`v1.2.3`) — prod build, upload to App Store Connect / Play Store production with phased rollout.
+- **Nightly** — clean `Library/`, all tests including expensive, baseline crash test on a real device farm.
 
 ## Gotchas
 
-- **`-quit` flag MUST be on the command line.** Without it, the Unity process hangs forever and the runner times out.
-- **`-batchmode` + exception** throws a non-zero exit, but the next-line behavior depends on Unity version. Always check the exit code AND parse the log.
-- **`Library/` cache should NOT include `Logs`, `MemoryCaptures`, `Builds`, `UserSettings`.** They pollute restores.
-- **GitHub-hosted Mac runners cost 10x Linux minutes.** Minimize iOS jobs (only on main + tags, not PRs) or use self-hosted Macs.
-- **License return on cancelled jobs** — catch SIGTERM in the runner cleanup step and run `-returnlicense` so a cancelled CI run doesn't burn a seat.
-- **Unity version mismatch between local + CI** = different build outputs. Pin Unity version via the Editor / Unity.exe path or GameCI's `unityVersion` input.
-- **LFS bandwidth on GitHub free tier** (1 GB/month) is tight for art-heavy projects. Either pay for an LFS Pack or self-host an LFS server. Cross-link `unity-vcs`.
-- **Cache restore on the first PR build** can take 5-10 min just to download. Acceptable; still faster than rebuilding `Library/`.
-- **Secrets logged to console = leaked.** GitHub auto-redacts known secrets, but custom env vars need explicit masking via `::add-mask::`.
-- **Apple ASC API rate limits** (50 req/min) — fastlane retries with exponential backoff; don't tighten your job concurrency past the limit.
-- **Build agents drift** (OS updates, Xcode versions). Pin runner image versions; bump deliberately, not implicitly.
+- **`-quit` MUST be on command line.** Without it Unity hangs forever and the runner times out.
+- **`-batchmode` + exception** throws non-zero exit, but next-line behavior varies by Unity version. Check exit code AND parse log.
+- **`Library/` cache should NOT include `Logs`, `MemoryCaptures`, `Builds`, `UserSettings`.**
+- **GitHub-hosted Mac runners cost 10x Linux minutes.** Minimize iOS jobs (main + tags only) or self-host Macs.
+- **License return on cancelled jobs** — catch SIGTERM in cleanup step and run `-returnlicense` so cancelled runs don't burn a seat.
+- **Unity version mismatch local vs CI** = different outputs. Pin via Editor path or GameCI `unityVersion` input.
+- **LFS bandwidth on GitHub free tier** (1 GB/month) is tight for art-heavy projects. Pay for an LFS Pack or self-host. See `unity-vcs`.
+- **First-PR cache restore** takes 5–10 min download. Acceptable; faster than rebuilding `Library/`.
+- **Secrets logged to console = leaked.** GitHub auto-redacts known; custom env vars need explicit `::add-mask::`.
+- **Apple ASC API rate limits** (50 req/min) — fastlane retries with backoff; don't tighten concurrency past the limit.
+- **Build agents drift** (OS, Xcode). Pin runner image versions; bump deliberately.
 
 ## Verification
 
-- First green build end-to-end: clean checkout → license activate → build → tests → artifact upload → return license.
-- Cache hit on the second run: build time drops from ~25 min to ~5 min.
-- A test failure correctly fails the job (verify by intentionally breaking one test).
-- Artifact uploaded and downloadable from the run page.
-- Secrets masked in logs (search for the literal value of one to confirm it's redacted).
-- License returned (verify via Unity ID dashboard seat count after the run).
-- PR builds run automatically; main-merge auto-deploys to TestFlight / Play Internal Testing.
+- First green end-to-end: clean checkout → license activate → build → tests → artifact upload → return license.
+- Cache hit on second run: ~25 min → ~5 min.
+- Test failure fails the job (intentionally break once to verify).
+- Artifact downloadable from run page.
+- Secrets masked in logs (grep for one to confirm redaction).
+- License returned (Unity ID dashboard seat count).
+- PR builds auto; main-merge auto-deploys to TestFlight / Play Internal.
