@@ -34,7 +34,7 @@ Camera stacks: **Base** owns the render target; **Overlay** cameras render into 
 
 See `references/renderer-features.md` for the full feature catalog.
 
-- **Rendering Path.** `Forward` (legacy, simple, per-object light cap), `Forward+` (modern default — many lights via tile binning, no per-object cap), `Deferred` (many-lights AAA; transparents still go forward, MSAA unsupported, narrower shader compatibility).
+- **Rendering Path.** `Forward` (default, simple, per-object light cap), `Forward+` (modern option for many lights via tile binning, no per-object cap), `Deferred` (many-lights AAA; transparents still go forward, MSAA unsupported, narrower shader compatibility).
 - **Default Stencil State, Render Pass Strategy, Native RenderPass** (mobile tile-based GPUs benefit from Native RenderPass).
 - **Renderer Features list.** Built-ins: SSAO, Decal, Screen Space Shadows, Render Objects, Full Screen Pass.
 - **Filtering.** `Opaque Layer Mask`, `Transparent Layer Mask` — restrict scene layers. `Rendering Layer Mask` — light-layer filtering at renderer level.

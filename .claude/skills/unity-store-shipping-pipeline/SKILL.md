@@ -37,7 +37,7 @@ Use for everything between signed artifact and live binary: TestFlight / Play tr
 - **Internal Testing**: <=100 testers, no review, minutes.
 - **Closed Testing**: invitation-only via list / Google Group. Review (~hours). Multiple closed tracks supported.
 - **Open Testing**: public, requires review.
-- **Pre-launch Report**: Firebase Test Lab devices, crashes, screenshots; required before Production.
+- **Pre-launch Report**: Firebase Test Lab devices, crashes, screenshots; generated automatically when available. Treat critical findings as a release blocker, but check current Play account/testing requirements separately.
 
 ## Phased / staged rollout
 
@@ -98,7 +98,7 @@ One folder per locale (`en-US`, `de-DE`, `ja`, `zh-Hans`). Apple keywords: 100 c
 
 Required device classes:
 
-- **Apple**: iPhone 6.7", iPhone 6.5", iPhone 5.5", iPad Pro 12.9". (Apple scales largest provided down; explicit sets required for listed classes.)
+- **Apple**: 6.9" iPhone required for iPhone apps; 6.5" only if 6.9" screenshots are absent. 13" iPad required for iPad apps; smaller classes can scale per App Store Connect rules.
 - **Google Play**: phone (required), 7" tablet, 10" tablet (recommended).
 
 Automate screenshots with `snapshot` / `screengrab`. Preview videos are 15-30s loops, usually recorded separately.
@@ -123,7 +123,7 @@ First session boot order matters: wrong order causes IDFA-less attribution, miss
 
 ```
 1. Boot scene / Bootstrapper (`unity-scenes`).
-2. Crashlytics/Sentry first (`unity-crash-reporting`).
+2. Initialize Crashlytics/Sentry in opt-in-safe mode: automatic collection and user IDs disabled until consent or documented legal basis (`unity-crash-reporting`).
 3. Firebase/analytics SDK, no events yet (`unity-analytics-events`).
 4. EU/EEA/UK consent form; block until dismissed (`unity-consent-att-gdpr`).
 5. iOS ATT before tracked ad init.
@@ -132,7 +132,7 @@ First session boot order matters: wrong order causes IDFA-less attribution, miss
 8. Ad SDK with consent string (`unity-ads-mediation`).
 9. IAP v5 connect/fetch products/fetch purchases (`unity-iap`).
 10. Push SDK; request permission later (`unity-push-local-notifications`).
-11. Now safe to log first analytics event ('first_session_start').
+11. Now safe to enable consent-allowed crash collection/user ID and log first analytics event ('first_session_start').
 ```
 
 Hard rules: ATT before ad SDK init; Crashlytics first; Firebase before UMP; Auth before user-targeted Remote Config; block consent in EU/EEA/UK only.

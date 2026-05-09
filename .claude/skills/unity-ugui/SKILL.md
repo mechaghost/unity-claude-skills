@@ -5,7 +5,7 @@ description: 'Use when authoring Unity UGUI through Unity MCP — Canvas, RectTr
 
 ## UGUI vs UI Toolkit
 
-This is UGUI (`UnityEngine.UI` + `TMPro`, GameObject-based Canvas/RectTransform). Unity 6 also ships **UI Toolkit** (UITK, `com.unity.ui` — `UIDocument`, `VisualElement`, USS, UXML).
+This is UGUI (`UnityEngine.UI` + `TMPro`, GameObject-based Canvas/RectTransform). Unity 6 also includes **UI Toolkit** (UITK: `UIDocument`, `VisualElement`, USS, UXML).
 
 - **UGUI for**: World Space canvases, Animator-driven UI states, custom per-Graphic shader effects (Image materials, `BaseMeshEffect`), TMP/DOTween/IAP-prefab ecosystem.
 - **UITK for**: dense data-bound lists with virtualization, USS dashboards, editor windows, runtime UI without a world-space surface.

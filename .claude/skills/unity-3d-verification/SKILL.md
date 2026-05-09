@@ -130,7 +130,7 @@ The 4-shot capture is heavy: 4 camera moves + 4 PNG writes + 4 PNG reads. For bu
 
 - **Verify HERO and NOVEL changes only.** New prefab, hand-authored mesh, custom-shaded material, one-off ProBuilder edit — yes. Bulk re-imports of a known asset pack — no.
 - **Batch >5 objects when supported.** Lay out all camera moves + captures (4/object → 20 PNGs for 5) into one batched round-trip. Issue all PNG `Read` calls in a single message so the harness fetches in parallel. Serial is the slow path.
-- **Trusted-shape skip list.** Default URP primitives (`Cube`, `Sphere`, `Cylinder`, `Capsule`, `Plane`, `Quad`) with `Universal Render Pipeline/Lit` and no transform tricks always look right. Skip. Verify only with non-uniform scale, custom material, or non-default rotation.
+- **Trusted primitive fast path.** Default URP primitives (`Cube`, `Sphere`, `Cylinder`, `Capsule`, `Plane`, `Quad`) with stock Lit material can skip the full 4-shot only after reflecting transform, parent, layer/culling mask, and material assignment. Still take one Game-view screenshot framing the object; escalate to 4-shot for non-uniform scale, custom material, non-default rotation, or any mismatch.
 - **Per-session budget.** At most 4 objects fully verified per session unless asked. Beyond that, a single Game-view screenshot framing the object is sufficient — escalate to 4-shot only if the single shot reveals a problem.
 
 ## After verification

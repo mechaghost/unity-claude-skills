@@ -13,7 +13,7 @@ Web builds do not support arbitrary managed C# threading because WebAssembly lac
 
 Plan async work through coroutines, `UnityWebRequestAsyncOperation`, or `Awaitable` (Unity 6) — those yield to the engine's main loop without blocking. See `unity-patterns` for async/coroutine patterns that survive WebGL.
 
-Unity 6.4+ adds Web multithreading for compatible Burst-compiled C# jobs. Those jobs must stay inside the Burst/HPC# subset (blittable structs and `NativeContainer` data, no managed allocations or object references) and still schedule from the main thread. Non-Burst jobs and managed threads remain main-thread/unsupported on Web.
+Unity Web multithreading support is limited to documented native C/C++ paths and browser isolation requirements. Do not assume C# jobs or managed threads parallelize on Web; design gameplay async around coroutines, `Awaitable`, and nonblocking web requests.
 
 ## IndexedDB persistence
 

@@ -1,6 +1,6 @@
 ---
 name: unity-build
-description: 'Use for Unity builds and platform targeting: Build Profiles, BuildPipeline.BuildPlayer, PlayerSettings, IL2CPP/Mono, stripping/link.xml, define symbols, BuildReport, post-build hooks, Android/iOS/WebGL/desktop signing and lifecycle. Unity 6+ / URP / new Input System.'
+description: 'Use for Unity builds and platform targeting: Build Profiles, BuildPipeline.BuildPlayer, PlayerSettings, IL2CPP/Mono, stripping/link.xml, define symbols, BuildReport, post-build hooks, Android/iOS/Web platform/WebGL/WebGL2/WebGPU/desktop signing and lifecycle. Unity 6+ / URP / new Input System.'
 ---
 
 ## When to use
@@ -11,7 +11,7 @@ Use for Player binaries, platform switches, PlayerSettings, IL2CPP/Mono, link.xm
 
 Unity 6 **Build Profiles** bundle platform, scenes, backend, defines, and overrides. GUI builds still funnel through `BuildPipeline.BuildPlayer`, so every build should be scriptable.
 
-Use `File > Build Profiles` for manual switching. In CI, set `PlayerSettings`, `BuildSettings`, and `EditorBuildSettings.scenes` through editor APIs before `BuildPlayer`.
+Use `File > Build Profiles` for manual switching. In CI, prefer `-activeBuildProfile <profileName>` or a build method that loads a `BuildProfile` and calls `BuildPipeline.BuildPlayer(new BuildPlayerWithProfileOptions { buildProfile = profile, ... })`; use `BuildPlayerOptions` only as the non-profile fallback.
 
 ## PlayerSettings essentials
 

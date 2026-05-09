@@ -27,7 +27,7 @@ Unity Ads alone (without LevelPlay) isn't real mediation — only use it as a ne
 ## Package install
 
 - **AppLovin MAX** — download AppLovin Unity SDK Manager from dashboard, drop `.unitypackage`, install adapters per network through the Manager window. MAX manages adapter versions; do not hand-install adapter `.aar`/`.framework`.
-- **Unity LevelPlay** — `com.unity.services.levelplay` via Package Manager. Configure mediation in LevelPlay dashboard; package fetches runtime adapters at build.
+- **Unity LevelPlay** — install `com.unity.services.levelplay`, configure mediation in the LevelPlay dashboard, then use the LevelPlay Network Manager to install/update the selected network adapters. Resolve native dependencies with Mobile Dependency Manager / Android Resolver, or enable the package's Gradle patching flow.
 - **AdMob** — `com.google.ads.mobile` (Google Mobile Ads Unity plugin). Use External Dependency Manager (EDM4U): `Assets/Play Services Resolver/Android Resolver/Resolve` (Android) and CocoaPods (iOS).
 
 All three need an iOS `SKAdNetworkIdentifier` list in `Info.plist` — each platform ships an injection tool. Run before every store build.
@@ -55,7 +55,7 @@ public class AdsBootstrap : MonoBehaviour {
 }
 ```
 
-Init AFTER ATT prompt on iOS (see `unity-consent-att-gdpr`). LevelPlay: `IronSource.Agent.init(appKey, IronSourceAdUnits.REWARDED_VIDEO, ...)`. AdMob: `MobileAds.Initialize(initStatus => {...})`.
+Init AFTER ATT prompt on iOS (see `unity-consent-att-gdpr`). LevelPlay 9.x uses `Unity.Services.LevelPlay`: subscribe to `LevelPlay.OnInitSuccess` / `LevelPlay.OnInitFailed`, then call `LevelPlay.Init(appKey, userId)`. AdMob: `MobileAds.Initialize(initStatus => {...})`.
 
 ## Placements and ad formats
 
@@ -93,7 +93,7 @@ Without consent, ads serve at low fill (no personalization) and low eCPM (50-80%
 Enable test ads in dev builds — never ship.
 
 - **MAX** — `MaxSdk.SetTestDeviceAdvertisingIdentifiers(new[]{"YOUR_GAID_OR_IDFA"});` then `MaxSdk.ShowMediationDebugger()` from a debug menu. Shows per-network "Ready"/"Not Ready" and integration errors.
-- **LevelPlay** — `IronSource.Agent.setMetaData("is_test_suite","enable");` then `IronSource.Agent.launchTestSuite();`.
+- **LevelPlay** — `LevelPlay.SetMetaData("is_test_suite", "enable");` then `LevelPlay.LaunchTestSuite();`.
 - **AdMob** — hard-coded test ad unit IDs (`ca-app-pub-3940256099942544/...`) per format. Swap for real IDs only on release.
 
 Gate the swap with `#if DEVELOPMENT_BUILD || UNITY_EDITOR`. Shipping test IDs = $0 revenue, hard to detect post-launch.
