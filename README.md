@@ -39,10 +39,9 @@ The published repository should stay focused on the skill pack:
 
 - `.claude/skills/` — canonical skills and references.
 - `README.md` — installation, routing, contribution, and maintenance docs.
-- `scripts/validate_skills.rb` — local validation for the skill pack.
 - `.gitignore` — keeps generated exports and agent working files out of GitHub.
 
-Agent worktrees, Superpowers plan notes, Codex scratch state, and generated exports are local workflow artifacts. They are intentionally ignored and should not be committed.
+Agent worktrees, Superpowers plan notes, Codex scratch state, local scripts, and generated exports are workflow artifacts. They are intentionally ignored and should not be committed.
 
 ## How the skills work
 
@@ -131,8 +130,6 @@ Domain skills load when their trigger keywords appear in the user's prompt. The 
     SKILL.md            # frontmatter (name, description with triggers + disambiguators) + body
     references/         # optional: deep catalogs / cookbooks / reference tables
       <topic>.md
-scripts/
-  validate_skills.rb    # checks count, frontmatter, Unity 6 policy, and stale patterns
 ```
 
 Each skill is self-contained. Cross-links between skills are by name (`unity-physics`, `unity-iap`, etc.). Reference files hold deep cookbook content that the parent SKILL.md links into when relevant.
@@ -143,18 +140,19 @@ These paths are not part of the source layout and should remain local only:
 - `.claude/worktrees/` — local Claude/Codex worktrees.
 - `docs/superpowers/` — temporary implementation plans and execution notes.
 - `.codex/` — local Codex state.
+- `scripts/` — local validation or migration helpers.
 
 Generate or copy ignored trees only when a downstream runtime or local workflow needs them.
 
 ## Maintenance
 
-Run the validator before publishing changes:
+Before publishing changes, review the canonical `.claude/skills/` tree for:
 
-```bash
-ruby scripts/validate_skills.rb
-```
-
-It checks that the canonical `.claude/skills/` tree has 43 skills, valid frontmatter, explicit Unity 6 / 6000.x targeting, and no stale patterns such as old Unity IAP APIs, old skill counts, pre-Unity-6 URP versions, or hard-coded MCP tool names.
+- exactly 43 `SKILL.md` files,
+- valid frontmatter with `name` and `description`,
+- explicit Unity 6 / 6000.x targeting,
+- a `## Verification` section in every skill,
+- no stale patterns such as old Unity IAP APIs, old skill counts, pre-Unity-6 URP versions, or hard-coded MCP tool names.
 
 ## Editorial conventions
 

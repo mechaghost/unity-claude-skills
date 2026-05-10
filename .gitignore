@@ -5,6 +5,7 @@
 .claude/worktrees/
 .codex/
 docs/superpowers/
+scripts/
 
 # Temporary install / verification artifacts.
 tmp-skills/
