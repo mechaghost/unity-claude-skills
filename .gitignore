@@ -1,1 +1,12 @@
+# Generated exports for runtimes that do not read .claude/skills directly.
 .agents/
+
+# Local agent working state.
+.claude/worktrees/
+.codex/
+docs/superpowers/
+
+# Temporary install / verification artifacts.
+tmp-skills/
+*.log
+.DS_Store

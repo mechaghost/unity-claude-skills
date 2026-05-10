@@ -178,3 +178,10 @@ Tool returned success but change is invisible:
 4. For generated assets (Input Actions, Shader Graph, URP renderer features), reopen — auto-generated C# may be stale.
 5. Visual change? Capture a screenshot. See `unity-3d-verification`.
 6. Still wrong? Revert and report. Don't stack speculative fixes.
+
+## Verification
+
+- Domain skill verification completed before final response.
+- Editor console read after the final mutation; red errors resolved or reported as blockers.
+- Paradigm summary known: Unity version, render pipeline, input mode, and physics dimension.
+- Visual work backed by screenshot verification (`unity-3d-verification` for 3D).

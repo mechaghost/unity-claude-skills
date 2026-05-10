@@ -143,7 +143,7 @@ Never call legacy `Input.touchCount`/`Input.GetTouch` on a new-Input-System proj
 
 ## Permissions
 
-Android 6+ and all iOS versions require runtime permission prompts for camera, microphone, location, push notifications, photo library. Use `com.unity.android-permissions` on Android; on iOS, fill in matching `NS<Permission>UsageDescription` strings in `PlayerSettings > iOS > Other Settings`. Missing iOS usage descriptions are an automatic App Store rejection.
+Android 6+ and all iOS versions require runtime permission prompts for camera, microphone, location, push notifications, photo library. On Android, declare the permission in the manifest and request it at runtime with the built-in `UnityEngine.Android.Permission` API (`HasUserAuthorizedPermission`, `RequestUserPermission`, optional `PermissionCallbacks`); no package is required. On iOS, fill in matching `NS<Permission>UsageDescription` strings in `PlayerSettings > iOS > Other Settings`. Missing iOS usage descriptions are an automatic App Store rejection.
 
 Two permissions need their own dedicated skills because prompt copy, timing, and store-review surface are non-trivial:
 

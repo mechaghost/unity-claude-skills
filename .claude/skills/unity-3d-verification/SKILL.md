@@ -133,7 +133,7 @@ The 4-shot capture is heavy: 4 camera moves + 4 PNG writes + 4 PNG reads. For bu
 - **Trusted-shape skip list.** Default URP primitives (`Cube`, `Sphere`, `Cylinder`, `Capsule`, `Plane`, `Quad`) with `Universal Render Pipeline/Lit` and no transform tricks always look right. Skip. Verify only with non-uniform scale, custom material, or non-default rotation.
 - **Per-session budget.** At most 4 objects fully verified per session unless asked. Beyond that, a single Game-view screenshot framing the object is sufficient — escalate to 4-shot only if the single shot reveals a problem.
 
-## After verification
+## Verification
 
 - Report view by view in plain language. Example: "left: chair seat parallel to ground, four legs visible, oak material rendering correctly. right: same, mirrored. top: only three leg tops visible — back-left leg missing or rotated 90° out. bottom: confirms three legs, fourth rotated horizontally and embedded in floor."
 - Any defect → don't declare success. Fix, rerun, re-inspect. Repeat until all four read clean.

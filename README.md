@@ -35,6 +35,15 @@ This repository is a Claude Code skill pack. The canonical, hand-edited skill tr
 
 Do not edit `.agents/skills/` as a second source of truth. If an `.agents/` tree exists locally, treat it as an optional generated export for agent runtimes that expect that layout. It is ignored by git to prevent drift between two copies of the same skills.
 
+The published repository should stay focused on the skill pack:
+
+- `.claude/skills/` — canonical skills and references.
+- `README.md` — installation, routing, contribution, and maintenance docs.
+- `scripts/validate_skills.rb` — local validation for the skill pack.
+- `.gitignore` — keeps generated exports and agent working files out of GitHub.
+
+Agent worktrees, Superpowers plan notes, Codex scratch state, and generated exports are local workflow artifacts. They are intentionally ignored and should not be committed.
+
 ## How the skills work
 
 Skills load on description match. `unity-best-practices` is written to fire on essentially any Unity-related prompt and acts as the always-loaded primer (paradigm detection, console reading, server-agnostic capability inventory, failure protocol, router to all 43 skills).
@@ -122,11 +131,30 @@ Domain skills load when their trigger keywords appear in the user's prompt. The 
     SKILL.md            # frontmatter (name, description with triggers + disambiguators) + body
     references/         # optional: deep catalogs / cookbooks / reference tables
       <topic>.md
+scripts/
+  validate_skills.rb    # checks count, frontmatter, Unity 6 policy, and stale patterns
 ```
 
 Each skill is self-contained. Cross-links between skills are by name (`unity-physics`, `unity-iap`, etc.). Reference files hold deep cookbook content that the parent SKILL.md links into when relevant.
 
-`.agents/` is not part of the source layout. Generate or copy it only as an export artifact when a downstream runtime needs it.
+These paths are not part of the source layout and should remain local only:
+
+- `.agents/` — generated export for other runtimes.
+- `.claude/worktrees/` — local Claude/Codex worktrees.
+- `docs/superpowers/` — temporary implementation plans and execution notes.
+- `.codex/` — local Codex state.
+
+Generate or copy ignored trees only when a downstream runtime or local workflow needs them.
+
+## Maintenance
+
+Run the validator before publishing changes:
+
+```bash
+ruby scripts/validate_skills.rb
+```
+
+It checks that the canonical `.claude/skills/` tree has 43 skills, valid frontmatter, explicit Unity 6 / 6000.x targeting, and no stale patterns such as old Unity IAP APIs, old skill counts, pre-Unity-6 URP versions, or hard-coded MCP tool names.
 
 ## Editorial conventions
 

@@ -65,6 +65,7 @@ public sealed class IapShopService : MonoBehaviour
 {
     StoreController _store;
     readonly Dictionary<string, Product> _products = new();
+    bool _storeConnected;
 
     async void Awake()
     {
@@ -75,11 +76,14 @@ public sealed class IapShopService : MonoBehaviour
     {
         _store = UnityIAPServices.StoreController();
 
+        _store.OnStoreDisconnected += failure => {
+            _storeConnected = false;
+            Debug.LogWarning($"IAP store disconnected: {failure}");
+        };
         _store.OnProductsFetched += OnProductsFetched;
         _store.OnProductsFetchFailed += failure =>
             Debug.LogWarning($"IAP product fetch failed: {failure.FailureReason}");
-        _store.OnPurchasesFetched += orders =>
-            Debug.Log($"IAP purchases fetched: {orders}");
+        _store.OnPurchasesFetched += OnPurchasesFetched;
         _store.OnPurchasesFetchFailed += failure =>
             Debug.LogWarning($"IAP purchase fetch failed: {failure.FailureReason}");
         _store.OnPurchasePending += OnPurchasePending;
@@ -87,6 +91,7 @@ public sealed class IapShopService : MonoBehaviour
             Debug.LogWarning($"IAP purchase failed: {failed.Info.ProductId}");
 
         await _store.Connect();
+        _storeConnected = true;
         _store.FetchProducts(IapProducts.Definitions);
     }
 
@@ -99,8 +104,29 @@ public sealed class IapShopService : MonoBehaviour
         _store.FetchPurchases();
     }
 
+    void OnPurchasesFetched(Orders orders)
+    {
+        foreach (var confirmedOrder in orders.ConfirmedOrders)
+        {
+            foreach (var item in confirmedOrder.CartOrdered.Items())
+            {
+                var product = item.Product;
+                if (product.definition.type == ProductType.Consumable)
+                    continue; // consumables must already be persisted remotely before confirmation.
+
+                CacheEntitlement(product);
+            }
+        }
+    }
+
     public void Buy(string productId)
     {
+        if (!_storeConnected)
+        {
+            Debug.LogWarning("IAP store unavailable; disable purchase UI and retry Connect later.");
+            return;
+        }
+
         if (_products.TryGetValue(productId, out var product))
             _store.Purchase(product);
         else
@@ -120,10 +146,18 @@ public sealed class IapShopService : MonoBehaviour
 
         _store.ConfirmPurchase(order);
     }
+
+    void CacheEntitlement(Product product)
+    {
+        // For real games, sync from backend and persist only the server-authoritative state.
+        Debug.Log($"IAP entitlement restored: {product.definition.id}");
+    }
 }
 ```
 
 Thin service only. UI binding in `unity-ugui`; analytics in `unity-analytics-events`.
+
+If `OnStoreDisconnected` fires, disable purchase UI, show a store-unavailable message, and call `Connect()` again from a backoff / foreground-resume path. Never leave buy buttons enabled after a disconnect.
 
 ## Purchase flow
 

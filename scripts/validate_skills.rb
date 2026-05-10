@@ -36,6 +36,7 @@ skill_files.each do |path|
   # state that explicitly somewhere in its body so users on older Unity versions
   # are warned before relying on the skill.
   errors << "#{rel}: must mention 'Unity 6' or '6000.x' (skill set targets Unity 6+ only)" unless content.match?(/Unity 6\b|6000\.x\b/)
+  errors << "#{rel}: missing ## Verification section" unless content.include?("## Verification")
 end
 
 stale_patterns = [
