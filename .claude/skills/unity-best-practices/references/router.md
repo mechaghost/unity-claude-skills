@@ -1,6 +1,6 @@
 # Domain skill router (full reference)
 
-The deeper-dive routing table for all 43 skills in this set, grouped by category. The always-on `unity-best-practices` SKILL.md keeps a 6-row "Common cases" cheat-sheet that covers ~80% of routing without bloating every Unity prompt; reach for this file when the cheat-sheet's collapsed groupings aren't specific enough.
+The deeper-dive routing table for all 46 skills in this set, grouped by category. The always-on `unity-best-practices` SKILL.md keeps a 7-row "Common cases" cheat-sheet that covers ~80% of routing without bloating every Unity prompt; reach for this file when the cheat-sheet's collapsed groupings aren't specific enough.
 
 Hand off to the matching skill. `unity-best-practices` stays loaded alongside.
 
@@ -24,6 +24,10 @@ Hand off to the matching skill. `unity-best-practices` stays loaded alongside.
 | UI rotation (RectTransform) | `unity-ugui-rotation` |
 | Physics (Rigidbody, colliders, joints, queries; 3D + 2D) | `unity-physics` |
 | AI navigation / pathfinding | `unity-navmesh` |
+| **World construction** | |
+| Unity Terrain (heightmaps, layers, trees, multi-tile, TerrainCollider) | `unity-terrain` |
+| Procedural generation primitives (noise, heightmap gen, procedural mesh, voxel, dungeons, scatter) | `unity-procgen` |
+| World layout / composition (roads, settlements, vegetation rules, biome blending, on/off-road, foundation flatten, decals at seams) | `unity-world-layout` |
 | **Input & UI** | |
 | New Input System | `unity-input-system` |
 | UGUI / Canvas / TMP / layout | `unity-ugui` |

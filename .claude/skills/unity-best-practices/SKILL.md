@@ -180,6 +180,7 @@ Full router: `references/router.md`.
 | Always-on primer + 3D verification | unity-best-practices, unity-3d-verification |
 | Rendering / shaders / lighting / particles / VFX | unity-urp, unity-shaders, unity-lighting, unity-shuriken, unity-vfx-graph, unity-animation, unity-cinemachine |
 | Gameplay (rotation / physics / navmesh) | unity-3d-rotation, unity-2d-rotation, unity-ugui-rotation, unity-physics, unity-navmesh |
+| World / level generation (terrain, procgen, composition) | unity-terrain, unity-procgen, unity-world-layout |
 | Input + UI + audio | unity-input-system, unity-ugui, unity-audio |
 | Project hygiene + shipping | unity-scenes, unity-persistence, unity-build, unity-store-shipping-pipeline, unity-addressables, unity-asmdef, unity-vcs, unity-tests, unity-profiling, unity-ci |
 | Live-ops + compliance | unity-iap, unity-ads-mediation, unity-consent-att-gdpr, unity-privacy-manifests, unity-crash-reporting, unity-analytics-events, unity-remote-config-flags, unity-ab-testing, unity-auth-account-linking, unity-cloud-save-conflict, unity-push-local-notifications, unity-localization, unity-anti-cheat-iap-fraud, unity-support-and-bug-capture |
