@@ -30,7 +30,7 @@ A `CinemachineBrain` on the **Main Camera** is what actually moves the Camera tr
 
 - **Default Blend** — `Cut`, `EaseInOut`, `EaseIn`, `EaseOut`, `Linear`, `Custom` (animation curve), with `Time` in seconds.
 - **Custom Blends** — slot for `CinemachineBlenderSettings` mapping `(FromCam, ToCam)` pairs to curves and durations. Empty/unassigned → Default Blend wins.
-- **Update Method** — `SmartUpdate` (recommended), `FixedUpdate` (when Follow target is a Rigidbody — avoid jitter), `LateUpdate`, `ManualUpdate`.
+- **Update Method** — `SmartUpdate` (recommended, including Rigidbody targets), `FixedUpdate`, `LateUpdate`, `ManualUpdate`. For Rigidbody Follow targets, keep Brain on `SmartUpdate` and set `Rigidbody.interpolation = Interpolate` on the target — that's what kills jitter. Switching the Brain to `FixedUpdate` while interpolation is on can actually *introduce* jitter (camera samples on the physics step boundary while the visual is interpolated forward).
 - **Blend Update Method** — same options for blend interpolation.
 - **Show Debug Text** — overlays active vcam name + blend percentage.
 
@@ -49,7 +49,7 @@ Procedural components as **siblings**:
 - `CinemachineFollow` — fixed offset from Follow target. Per-axis damping.
 - `CinemachineHardLockToTarget` — pin position exactly on target.
 - `CinemachineOrbitalFollow` — orbital horizontal/vertical input around target (replaces 2.x FreeLook).
-- `CinemachineThirdPersonFollow` — over-the-shoulder follow with shoulder offset, distance, aim/strafe.
+- `CinemachineThirdPersonFollow` — over-the-shoulder follow with shoulder offset, distance, aim/strafe. **Character-tuned** (humanoid third-person, strafe shooters); don't use for vehicles — the shoulder offset and strafe behavior produce harsh, jittery framing. Use `CinemachineFollow` for vehicles.
 - `CinemachinePositionComposer` — 2D framing: target at screen-space position with **Dead Zone** (no movement) + **Soft Zone** (damped catch-up). Replaces 2.x Framing Transposer.
 - `CinemachineRotationComposer` — rotates camera so LookAt target stays in dead/soft zone. Replaces 2.x Composer.
 - `CinemachineHardLookAt` — strict aim, no damping.
@@ -65,6 +65,7 @@ Procedural components as **siblings**:
 - **First-person**: `CinemachineCamera` + `CinemachineHardLockToTarget` parented under player head bone. Many FPS games hand-roll the camera (frame-locked, no smoothing) — use Cinemachine here only for a small amount of camera character.
 - **Cinematic dolly**: `CinemachineCamera` + `CinemachineSplineDolly` referencing a `SplineContainer`. Drive position via Auto-Dolly, `CinemachineSplineCart`, or Timeline track.
 - **Orbital character viewer**: `CinemachineCamera` + `CinemachineOrbitalFollow` for character select, inventory, photo mode.
+- **Vehicle chase**: `CinemachineCamera` + `CinemachineFollow` (offset above and behind, e.g. Y≈3, Z≈-7) + `CinemachineHardLookAt`. Target a `CameraLookTarget` empty parented to the vehicle, offset slightly above and ahead of center (the chassis pivot is usually too low). Set `CinemachineFollow.TrackerSettings.BindingMode = LockToTargetWithWorldUp` — `LazyFollow` drifts, `WorldSpace` locks to world axes and won't track the vehicle's heading. For a reverse camera, mirror Z offset and swap priority via script. Do **not** use `CinemachineThirdPersonFollow` (character-only) or `CinemachineRotationComposer` (its `ScreenPosition` fights `CinemachineFollow` when the camera is above the target — see Gotchas).
 
 ## Blends and priorities
 
@@ -123,7 +124,10 @@ Use Timeline for cinematic flythroughs, intro shots, scripted boss-intro cameras
 - Following 2.x tutorials: Unity 6 ships 3.x with renamed/split components. `CinemachineVirtualCamera` doesn't exist in 3.x — translate via rename table.
 - Custom Blends asset edited but **not assigned** to Brain's Custom Blends slot → Default Blend used regardless.
 - High `BasicMultiChannelPerlin` amplitude on continuous shake → motion sickness. Tune low; reserve big shakes for one-shot Impulse.
-- `Update Method = FixedUpdate` is needed when Follow is a Rigidbody (else jitter), but desyncs from non-physics targets. Pick per-Brain to match the dominant target type, or split into two cameras.
+- `Update Method = FixedUpdate` is **not** the right fix for Rigidbody-follow jitter — set `Rigidbody.interpolation = Interpolate` on the target instead and keep the Brain on `SmartUpdate`. Switch the Brain to `FixedUpdate` only if you genuinely cannot enable Rigidbody interpolation; it desyncs from non-physics targets.
+- Old hand-rolled camera scripts on the Main Camera (anything writing `transform.position`/`transform.rotation` in Update/LateUpdate) fight `CinemachineBrain` every frame, producing jitter that's easy to misdiagnose as a Cinemachine setting. Before adding the Brain, audit Main Camera for any such MonoBehaviour and remove or disable it — exactly one writer.
+- `CinemachineFollow.TrackerSettings` is a struct exposed as a property *named the same as the type*. Writing `follow.TrackerSettings.BindingMode = ...` fails to compile because `TrackerSettings` resolves to the type, not the property. Copy the struct, mutate, reassign: `var t = follow.TrackerSettings; t.BindingMode = BindingMode.LockToTargetWithWorldUp; follow.TrackerSettings = t;` — or drive it via `SerializedObject`.
+- `CinemachineRotationComposer.ScreenPosition` is unintuitive when the camera is above the target. Lowering screen-space Y (e.g. to put the subject in the lower third) tilts the camera *upward*, because the composer rotates so the target lands at that screen position. For follow cameras sitting above the target, prefer `CinemachineHardLookAt` — predictable, and it won't fight `CinemachineFollow`.
 - `CinemachineConfiner2D` requires `CompositeCollider2D`; **Bake** is mandatory at edit time.
 - Cinemachine doesn't drive Canvas UI cameras. UI overlay rendering is separate.
 - `CinemachineCamera.Priority` is `int`; activation is non-deterministic when two share the same value — give every vcam a unique priority.

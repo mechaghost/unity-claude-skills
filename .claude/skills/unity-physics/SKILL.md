@@ -35,11 +35,11 @@ Anti-pattern: Collider on a moving GameObject without a Rigidbody = static-tree 
 
 ## Colliders
 
-**3D primitives (cheap):** `BoxCollider`, `SphereCollider`, `CapsuleCollider`. **`MeshCollider`** — set `convex = true` if attached to a Rigidbody (non-convex + Rigidbody silently fails to collide). **`TerrainCollider`** for Terrain. **`WheelCollider`** has its own suspension model — don't mix with regular stacks.
+**3D primitives (cheap):** `BoxCollider`, `SphereCollider`, `CapsuleCollider`. **`MeshCollider`** — set `convex = true` if attached to a Rigidbody (non-convex + Rigidbody silently fails to collide). **`TerrainCollider`** for Terrain. **`WheelCollider`** has its own raycast suspension model — don't mix with regular stacks. See "Vehicles" section below.
 
 **2D primitives:** `BoxCollider2D`, `CircleCollider2D`, `CapsuleCollider2D`. **`PolygonCollider2D`** auto-fits sprite outline (often too dense — simplify). **`EdgeCollider2D`** for one-sided lines. **`CompositeCollider2D`** merges children (or `TilemapCollider2D`) into one outline; set `usedByComposite = true` on each child, put Composite + Rigidbody2D (Static/Kinematic) on the parent.
 
-**Compound colliders:** primitives parented under one Rigidbody act as one complex shape. Prefer over MeshCollider — faster, more stable, supports concave for dynamic bodies.
+**Compound colliders:** primitives parented under one Rigidbody act as one complex shape. Prefer over MeshCollider — faster, more stable, supports concave for dynamic bodies. For vehicles, a single flat `BoxCollider` on the body catches on every edge — build a compound of angled boxes: tilted front box for the approach angle, flat midsection, tilted rear box for the departure angle. Size to the visible body, not the wheels (wheels are `WheelCollider`s, not part of the body compound).
 
 Edge cases: colliders <~0.01 units cause solver instability. For thin or fast bodies set `Rigidbody.collisionDetectionMode = Continuous` (or `ContinuousDynamic` if both sides move fast); leave walls on `Discrete`.
 
@@ -68,6 +68,42 @@ Joints connect exactly two bodies. `connectedBody = null` → world. Anchors are
 | `WheelJoint2D` | suspension + driven wheel for 2D vehicles |
 
 Full fields, motor/limit setup, break-force tuning: `references/joints.md`.
+
+## Vehicles (WheelCollider)
+
+`WheelCollider` is a raycast-based suspension model, not a regular collider — it casts down from the wheel pivot through `suspensionDistance` and applies spring/damper forces along the suspension axis. Don't pair it with primitive colliders on the wheel GameObject; the chassis Rigidbody owns the dynamics.
+
+**Body / Rigidbody setup:**
+
+- Compound collider on the chassis (see Colliders → Compound) — *never* a flat `BoxCollider` flush with the ground; it snags on terrain seams.
+- `Rigidbody.centerOfMass` — push down ~0.4–0.6 m below geometric center, or the vehicle flips on the first hard turn. Sanity-check by drawing a gizmo at `transform.TransformPoint(rb.centerOfMass)`.
+- Chassis `mass` is the total vehicle mass (e.g. 1200 kg). Wheel `mass` is small (≈20 kg per wheel) and feeds into suspension dynamics.
+
+**Suspension spring/damper:**
+
+- Spring **must support static load** with headroom: `spring ≥ 1.5 × (chassisMass × 9.81) / numWheels`. Under-sprung wheels sit at full compression and the chassis drags on terrain.
+- Damping ratio = `damper / (2 × sqrt(spring × massPerWheel))`. Target **0.8–0.95** for road cars. Under-damped pogos; over-damped feels glued.
+- `targetPosition` — 0 = fully extended at rest, 1 = fully compressed. ~0.5 lets the wheel travel both directions from rest.
+- `suspensionDistance` — total travel. Match the visible suspension geometry; too small clips, too large lets the chassis sink into the ground.
+- `forceAppPointDistance` — where suspension force applies along the suspension axis. Above wheel center (positive); too low causes outward chassis roll on cornering.
+
+**Ground colliders:**
+
+- Use `MeshCollider` (non-convex; static, no Rigidbody) or `TerrainCollider`. Primitive `SphereCollider`s and small bumpy meshes produce steep contact normals that *launch* vehicles. Keep ground surfaces low-curvature.
+
+**Friction curves** — `forwardFriction` and `sidewaysFriction` are `WheelFrictionCurve` **structs**. Subject to CS1612: cache, mutate, reassign:
+
+```csharp
+var f = wheel.sidewaysFriction;
+f.extremumSlip = 0.4f;
+f.asymptoteSlip = 0.8f;
+f.stiffness = 3f;     // 2–5 for grippy road tires
+wheel.sidewaysFriction = f;
+```
+
+**Physics material on the chassis** — `bounceCombine = Minimum`, low `bounciness`, or the vehicle pogos on every contact (see Physics materials section).
+
+**MCP serialization** — `WheelCollider`s with mid-import non-finite transforms crash some Unity MCP servers via `Matrix4x4.ValidTRS()`. See `unity-best-practices` → "MCP serialization landmines". Use typed `GetComponent<WheelCollider>()` rather than generic component dumps.
 
 ## Forces and motion
 
@@ -140,7 +176,9 @@ Layer-based filtering goes through the matrix only. Setting fields on the Collid
 
 Edits don't retroactively affect contacts already in progress; reassign `sharedMaterial` (or briefly disable/enable the collider) to refresh.
 
-Unity 6 canonical type is `PhysicsMaterial`. Older `PhysicMaterial` (no `s`) is deprecated.
+Unity 6 canonical types are `PhysicsMaterial` and `PhysicsMaterialCombine`. The pre-Unity-6 names `PhysicMaterial` and `PhysicMaterialCombine` (no `s`) are **removed**, not just deprecated — code or AI-generated snippets copied from pre-6 tutorials are hard compile errors, not warnings. Search-replace before pasting.
+
+For grounded gameplay (vehicles, characters, props that shouldn't pogo on contact), set `bounceCombine = Minimum` so the lowest `bounciness` in any contact pair wins — a stray nonzero bounce on any surface with default `Average` makes the body bounce on every contact. `frictionCombine = Average` (default) is usually fine; switch to `Multiply` for stickier behavior or `Minimum` for ice-like surfaces.
 
 ## Fixed timestep and execution order
 

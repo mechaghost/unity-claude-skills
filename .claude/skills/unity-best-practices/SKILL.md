@@ -101,6 +101,43 @@ Server-managed mutations usually handle this. Custom Editor scripts must do it e
 - Edit mode covers: component setup, screenshots, scene building, serialization, asset import, prefab work.
 - Need runtime verification? Ask first.
 
+**Enforcement pattern** — any Editor script or RunCommand body that mutates the scene/assets should refuse to run while Play mode is active:
+
+```csharp
+if (Application.isPlaying) {
+    Debug.LogError("Refusing to mutate scene in Play mode — changes are wiped on exit. Stop Play mode first.");
+    return;
+}
+```
+
+**Automated PlayMode runs driven from outside Unity** (MCP test harnesses, CLI batch runs): set `Application.runInBackground = true` *before* entering Play mode. When the Editor loses focus (which it does the moment another tool takes focus), the default `runInBackground = false` pauses the game loop — `FixedUpdate` runs once then stops, tests appear to hang. Set this on the test harness's first Awake, or in Project Settings → Player → Run In Background for non-Editor builds.
+
+## MCP serialization landmines
+
+Some Unity MCP server implementations crash the Editor when serializing components with degenerate or non-finite transforms. The crash surfaces as a `Matrix4x4.ValidTRS()` assertion inside the server's JSON serializer and takes the Editor down — unsaved work lost. Common triggers:
+
+- Generic "dump all components" tools (`get_components`, `get_component`, deep hierarchy inspectors) called on GameObjects with `WheelCollider`s.
+- Same tools on freshly imported FBX hierarchies before the import settles (skinned meshes with non-uniform parent scale, missing bind poses).
+- ScriptableObject inspectors that traverse into asset references with stale or null transforms.
+
+Mitigations:
+
+- Prefer **targeted** `RunCommand` with a typed `GetComponent<T>()` call over generic component dumps when you need component state.
+- Before spawning an Explore-style sub-agent that will touch MCP hierarchy/component tools, brief it explicitly: *"Don't run generic component-dump tools on `WheelCollider` rigs or freshly imported FBX hierarchies — those crash Unity via `Matrix4x4.ValidTRS()`."* The sub-agent inherits no other warning.
+- If the Editor crashes mid-session: reopen, read the console for the last successful action, and switch to targeted RunCommand inspection from that point.
+
+## Editing scripts outside Unity
+
+After editing `.cs` files via any tool that bypasses Unity's file watcher (MCP file-write, IDE without auto-import, external editor with a sluggish watcher), Unity may keep running stale bytecode. Tools report success on old code; behavior doesn't change.
+
+After every external `.cs` edit, refresh and wait:
+
+```csharp
+AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
+```
+
+Then wait for `EditorApplication.isCompiling` to clear before invoking the new code. Reads of the new types will throw or silently no-op until then.
+
 ## Asset paths and folders
 
 - `Assets/` — version-controlled source. Anything Unity tracks lives here.
@@ -131,6 +168,8 @@ A success return is not a visual confirmation.
 - 2D content → one Game-view screenshot.
 - UI → reference resolution + one off-target resolution (catches anchor breakage).
 - Read the PNG. If you can't see what you intended, the change failed.
+- Don't tell the user "try it" after a scene/asset change without first capturing and reading a screenshot — that's "blindly trust me" territory and the user will (correctly) call it out.
+- For physics/runtime behavior that only manifests under simulation: ask the user before entering Play mode, then capture the Game-view camera *after the system has settled* (a few seconds of `FixedUpdate`). Single frame at t=0 catches nothing — vehicles haven't fallen, ragdolls haven't drooped, joints haven't relaxed.
 
 ## Domain skill router
 
